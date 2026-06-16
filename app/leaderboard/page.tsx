@@ -214,7 +214,7 @@ export default function LeaderboardPage() {
                   <p className="text-sm font-semibold text-slate-400">
                     {index + 1}
                   </p>
-                  <h2 className="mt-1 text-xl font-black">{team.name}</h2>
+                  <h2 className="mt-1 text-sm md:text-xl font-black">{team.name}</h2>
                 </div>
 
                 <div className="text-right">
@@ -254,7 +254,7 @@ export default function LeaderboardPage() {
                           </div>
 
                           <p
-                            className={`text-lg font-black ${
+                            className={`text-xs md:text-lg font-black ${
                               isCounting
                                 ? "text-emerald-300"
                                 : "text-slate-500"
