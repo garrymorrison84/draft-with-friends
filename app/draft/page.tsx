@@ -192,7 +192,7 @@ setAvailableGolfers(
     );
 
     await saveDraftPick({
-      pool_id: pool.id,
+      pool_id: pool!.id,
       team: currentTeam,
       golfer_name: golfer.name,
       golfer_rank: golfer.rank,
