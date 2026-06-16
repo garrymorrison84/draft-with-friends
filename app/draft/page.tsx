@@ -139,8 +139,8 @@ setAvailableGolfers(
   if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-950 text-white">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <h1 className="text-4xl font-black">Loading draft...</h1>
+        <div className="mx-auto max-w-4xl px-2 md:px-6 py-12">
+          <h1 className="text-2xl md:text-4xl font-black">Loading draft...</h1>
         </div>
       </main>
     );
@@ -149,8 +149,8 @@ setAvailableGolfers(
   if (!pool) {
     return (
       <main className="min-h-screen bg-slate-950 text-white">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <h1 className="text-4xl font-black">No pool found</h1>
+        <div className="mx-auto max-w-4xl px-2 md:px-6 py-12">
+          <h1 className="text-2xl md:text-4xl font-black">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
             Create a pool →
           </a>
@@ -225,7 +225,7 @@ setAvailableGolfers(
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto max-w-[1700px] px-6 py-8">
+      <div className="mx-auto max-w-[1700px] px-2 md:px-6 py-8">
         <a
           href={`/pool?id=${pool.id}`}
           className="text-sm font-medium text-emerald-300"
@@ -244,9 +244,9 @@ setAvailableGolfers(
                   )}`}
             </p>
 
-            <h1 className="mt-2 text-5xl font-black">Draft Room</h1>
+            <h1 className="mt-2 text-3xl md:text-5xl font-black">Draft Room</h1>
 
-            <p className="mt-4 text-xl font-semibold text-slate-200">
+            <p className="mt-4 text-base md:text-xl font-semibold text-slate-200">
               {draftComplete
                 ? "All picks are complete."
                 : `${currentTeam} is on the clock.`}
@@ -263,7 +263,7 @@ setAvailableGolfers(
 
             <a
               href={`/leaderboard?id=${pool.id}`}
-              className="rounded-xl bg-emerald-400 px-6 py-3 font-bold text-slate-950"
+              className="rounded-xl bg-emerald-400 px-2 md:px-6 py-3 font-bold text-slate-950"
             >
               Finish Draft
             </a>
