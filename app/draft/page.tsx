@@ -246,7 +246,7 @@ setAvailableGolfers(
 
             <h1 className="mt-2 text-3xl md:text-5xl font-black">Draft Room</h1>
 
-            <p className="mt-4 text-base md:text-xl font-semibold text-slate-200">
+            <p className="mt-4 text-xs md:text-base md:text-sm md:text-xl font-semibold text-slate-200">
               {draftComplete
                 ? "All picks are complete."
                 : `${currentTeam} is on the clock.`}
@@ -337,7 +337,7 @@ setAvailableGolfers(
                         Team
                       </p>
 
-                      <p className="mt-1 text-xl font-black text-white">
+                      <p className="mt-1 text-sm md:text-xl font-black text-white">
                         {team}
                       </p>
                     </div>
@@ -398,7 +398,7 @@ setAvailableGolfers(
                               <p className="pr-12 text-sm font-semibold text-blue-200">
                                 Drafted
                               </p>
-                              <p className="mt-2 pr-12 text-lg font-bold text-white">
+                              <p className="mt-2 pr-12 text-xs md:text-lg font-bold text-white">
                                 {pick.golfer.name}
                               </p>
                               <p className="mt-1 text-sm text-slate-400">
