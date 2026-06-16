@@ -220,7 +220,7 @@ setAvailableGolfers(
       [...prev, lastPick.pick.golfer].sort((a, b) => a.rank - b.rank)
     );
 
-    await deleteLastDraftPick(pool.id, lastPick.index);
+    await deleteLastDraftPick(pool!.id, lastPick.index);
   }
 
   return (
