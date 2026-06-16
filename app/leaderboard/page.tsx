@@ -203,11 +203,11 @@ export default function LeaderboardPage() {
       </div>
     </div>
   </div>
-        <section className="mt-6 grid gap-3 xl:grid-cols-4">
+        <section className="mt-8 grid gap-5 xl:grid-cols-4">
           {sortedTeams.map((team, index) => (
             <div
               key={team.name}
-              className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"
+              className="rounded-3xl border border-white/10 bg-white/[0.04] p-4"
             >
               <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
@@ -225,7 +225,7 @@ export default function LeaderboardPage() {
                 </div>
               </div>
 
-              <div className="mt-3 space-y-1.5">
+              <div className="mt-4 space-y-2">
                 {team.golfers.length === 0 ? (
                   <div className="rounded-xl border border-white/10 bg-slate-900 p-4 text-sm text-slate-500">
                     No golfers drafted yet.
@@ -239,13 +239,18 @@ export default function LeaderboardPage() {
                     return (
                       <div
                         key={golfer.name}
-                        className={`rounded-lg border p-2 ${
+                        className={`rounded-xl border p-3 ${
                           isCounting
                             ? "border-emerald-400/30 bg-emerald-400/10"
                             : "border-white/10 bg-slate-900 text-slate-500"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-bold">{golfer.name}</p>
+                            <p className="text-xs text-slate-500">
+                            </p>
+                          </div>
 
                           <p
                             className={`text-xs md:text-lg font-black ${
