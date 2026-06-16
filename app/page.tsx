@@ -6,12 +6,7 @@ export default function Home() {
           DRAFT WITH FRIENDS
         </div>
 
-        <a
-          href="#"
-          className="rounded-full border border-white/15 px-5 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10"
-        >
-          Sign In
-        </a>
+        
       </nav>
 
       <section className="relative mx-auto grid min-h-[calc(100vh-104px)] max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-2">
