@@ -234,7 +234,7 @@ export default function LeaderboardPage() {
                   className="grid grid-cols-[32px_1fr_70px] items-center border-b border-white/5 py-2 text-sm last:border-0"
                 >
                   <p className="font-bold text-slate-400">{index + 1}</p>
-                  <table className="w-full table-fixed text-left text-[11px] md:min-w-[720px] md:text-sm">
+                  <p className="font-bold">{team.name}</p>
                   <p className="text-right text-lg font-black text-emerald-300">
                     {formatScore(team.total)}
                   </p>
@@ -266,7 +266,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full table-fixed text-left text-[11px] md:min-w-[720px] md:text-sm">
+                  <table className="w-full min-w-[720px] text-left text-sm">
                     <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
                       <tr>
                         <th className="py-2 pr-3">Pos</th>
@@ -295,7 +295,7 @@ export default function LeaderboardPage() {
                             <td className="py-2 pr-3 font-bold text-slate-400">
                               {golfer.rank}
                             </td>
-                            <td className="truncate py-2 pr-1 font-bold">
+                            <td className="py-2 pr-3 font-bold">
                               {golfer.name}
                             </td>
                             <td className="py-2 text-center">
