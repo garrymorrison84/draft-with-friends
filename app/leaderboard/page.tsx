@@ -54,7 +54,10 @@ function getRankMap(scores: GolferScoreRow[]) {
       (g) => (g.tournament_score ?? 0) === score
     ).length;
 
-    map.set(golfer.name, sameScoreCount > 1 ? `T${firstIndex + 1}` : `${firstIndex + 1}`);
+    map.set(
+      golfer.name,
+      sameScoreCount > 1 ? `T${firstIndex + 1}` : `${firstIndex + 1}`
+    );
   });
 
   return map;
@@ -246,12 +249,15 @@ export default function LeaderboardPage() {
                 key={team.name}
                 className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"
               >
-                <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
-                  <div>
-                    <p className="text-xs font-semibold text-slate-400">
+                <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl font-black text-slate-400">
                       {index + 1}
-                    </p>
-                    <h2 className="text-xl font-black">{team.name}</h2>
+                    </span>
+
+                    <h2 className="text-3xl font-black text-white">
+                      {team.name}
+                    </h2>
                   </div>
 
                   <p className="text-3xl font-black text-emerald-300">
