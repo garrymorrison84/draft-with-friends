@@ -116,7 +116,6 @@ export default function LeaderboardPage() {
     }
 
     loadLeaderboard();
-
     const interval = setInterval(loadLeaderboard, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -124,8 +123,8 @@ export default function LeaderboardPage() {
   if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-950 text-white">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <h1 className="text-4xl font-black">Loading leaderboard...</h1>
+        <div className="px-4 py-8">
+          <h1 className="text-2xl font-black">Loading leaderboard...</h1>
         </div>
       </main>
     );
@@ -134,9 +133,9 @@ export default function LeaderboardPage() {
   if (!pool) {
     return (
       <main className="min-h-screen bg-slate-950 text-white">
-        <div className="mx-auto max-w-4xl px-6 py-12">
-          <h1 className="text-4xl font-black">No pool found</h1>
-          <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
+        <div className="px-4 py-8">
+          <h1 className="text-2xl font-black">No pool found</h1>
+          <a href="/create-pool" className="mt-4 inline-block text-emerald-300">
             Create a pool →
           </a>
         </div>
@@ -170,19 +169,11 @@ export default function LeaderboardPage() {
       .slice(0, pool.scoresToCount);
 
     const teamTotal = countingGolfers.reduce((sum, g) => sum + g.total, 0);
-    const teamRound1 = countingGolfers.reduce((sum, g) => sum + g.round1, 0);
-    const teamRound2 = countingGolfers.reduce((sum, g) => sum + g.round2, 0);
-    const teamRound3 = countingGolfers.reduce((sum, g) => sum + g.round3, 0);
-    const teamRound4 = countingGolfers.reduce((sum, g) => sum + g.round4, 0);
 
     return {
       name: team,
       golfers,
       countingGolferNames: countingGolfers.map((g) => g.name),
-      round1: teamRound1,
-      round2: teamRound2,
-      round3: teamRound3,
-      round4: teamRound4,
       total: teamTotal,
     };
   });
@@ -191,56 +182,124 @@ export default function LeaderboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto max-w-[1700px] px-3 py-6 md:px-6 md:py-8">
-        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
-          <div>
-            <p className="text-xs font-semibold text-emerald-300 md:text-sm">
-              Live Standings
-            </p>
-            <h1 className="mt-1 text-3xl font-black md:text-5xl">
-              Leaderboard
-            </h1>
-            <p className="mt-2 text-xs text-slate-400 md:text-base">
-              {pool.golfEvent} • Draft {pool.golfersPerTeam} golfers • Best{" "}
-              {pool.scoresToCount} scores count
-            </p>
-          </div>
+      <div className="mx-auto max-w-[1500px] px-3 py-4 md:px-6 md:py-8">
+        <div className="mb-4">
+          <p className="text-xs font-bold text-emerald-300">Live Standings</p>
+          <h1 className="text-3xl font-black md:text-5xl">Leaderboard</h1>
+          <p className="mt-1 text-xs text-slate-400 md:text-base">
+            {pool.golfEvent} • Draft {pool.golfersPerTeam} golfers • Best{" "}
+            {pool.scoresToCount} scores count
+          </p>
 
-          <div className="flex gap-2">
+          <div className="mt-3 flex gap-2">
             <button
               onClick={syncScores}
               disabled={isSyncing}
-              className="rounded-lg bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 disabled:opacity-50 md:px-5 md:py-3 md:text-sm"
+              className="rounded-lg bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 disabled:opacity-50"
             >
-              {isSyncing ? "Updating..." : "Refresh Scores"}
+              {isSyncing ? "Updating..." : "Refresh"}
             </button>
 
-            <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-300 md:px-4 md:py-3 md:text-sm">
+            <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">
               {pool.poolName}
             </div>
           </div>
         </div>
 
-        <section className="mt-5 grid gap-4 xl:grid-cols-[320px_1fr]">
+        {/* MOBILE */}
+        <section className="space-y-3 md:hidden">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+            <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+              Leaderboard
+            </h2>
+
+            {sortedTeams.map((team, index) => (
+              <div
+                key={team.name}
+                className="grid grid-cols-[28px_1fr_54px] items-center border-b border-white/10 py-2 last:border-0"
+              >
+                <p className="text-sm font-bold text-slate-400">{index + 1}</p>
+                <p className="text-base font-black">{team.name}</p>
+                <p className="text-right text-base font-black text-emerald-300">
+                  {formatScore(team.total)}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {sortedTeams.map((team, index) => (
+            <div
+              key={team.name}
+              className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
+            >
+              <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-black text-slate-400">
+                    {index + 1}
+                  </span>
+                  <h2 className="text-2xl font-black">{team.name}</h2>
+                </div>
+
+                <p className="text-2xl font-black text-emerald-300">
+                  {formatScore(team.total)}
+                </p>
+              </div>
+
+              <div className="space-y-0">
+                <div className="grid grid-cols-[42px_1fr_44px] border-b border-white/10 py-1 text-[10px] font-black uppercase text-slate-400">
+                  <p>Pos</p>
+                  <p>Golfer</p>
+                  <p className="text-right">Tot</p>
+                </div>
+
+                {team.golfers.map((golfer) => {
+                  const isCounting = team.countingGolferNames.includes(
+                    golfer.name
+                  );
+
+                  return (
+                    <div
+                      key={`${team.name}-${golfer.name}`}
+                      className={`grid grid-cols-[42px_1fr_44px] items-center border-b border-white/5 py-1.5 text-sm last:border-0 ${
+                        isCounting ? "text-white" : "text-slate-500 line-through"
+                      }`}
+                    >
+                      <p className="font-bold text-slate-400">{golfer.rank}</p>
+                      <p className="truncate font-semibold">{golfer.name}</p>
+                      <p
+                        className={`text-right font-black ${
+                          isCounting ? "text-emerald-300" : "text-slate-500"
+                        }`}
+                      >
+                        {formatScore(golfer.total)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* DESKTOP */}
+        <section className="hidden gap-4 md:grid xl:grid-cols-[320px_1fr]">
           <aside className="self-start rounded-2xl border border-white/10 bg-white/[0.04] p-3 xl:sticky xl:top-6">
             <h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
 
-            <div className="space-y-1">
-              {sortedTeams.map((team, index) => (
-                <div
-                  key={team.name}
-                  className="grid grid-cols-[32px_1fr_70px] items-center border-b border-white/5 py-2 text-sm last:border-0"
-                >
-                  <p className="font-bold text-slate-400">{index + 1}</p>
-                  <p className="font-bold">{team.name}</p>
-                  <p className="text-right text-lg font-black text-emerald-300">
-                    {formatScore(team.total)}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {sortedTeams.map((team, index) => (
+              <div
+                key={team.name}
+                className="grid grid-cols-[32px_1fr_70px] items-center border-b border-white/5 py-2 text-sm last:border-0"
+              >
+                <p className="font-bold text-slate-400">{index + 1}</p>
+                <p className="text-xl font-black">{team.name}</p>
+                <p className="text-right text-xl font-black text-emerald-300">
+                  {formatScore(team.total)}
+                </p>
+              </div>
+            ))}
           </aside>
 
           <div className="space-y-3">
@@ -254,10 +313,7 @@ export default function LeaderboardPage() {
                     <span className="text-3xl font-black text-slate-400">
                       {index + 1}
                     </span>
-
-                    <h2 className="text-3xl font-black text-white">
-                      {team.name}
-                    </h2>
+                    <h2 className="text-3xl font-black">{team.name}</h2>
                   </div>
 
                   <p className="text-3xl font-black text-emerald-300">
@@ -265,66 +321,50 @@ export default function LeaderboardPage() {
                   </p>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-left text-sm">
-                    <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
-                      <tr>
-                        <th className="py-2 pr-3">Pos</th>
-                        <th className="py-2 pr-3">Player</th>
-                        <th className="py-2 text-center">R1</th>
-                        <th className="py-2 text-center">R2</th>
-                        <th className="py-2 text-center">R3</th>
-                        <th className="py-2 text-center">R4</th>
-                        <th className="py-2 text-right">Total</th>
-                      </tr>
-                    </thead>
+                <table className="w-full table-fixed text-left text-sm">
+                  <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
+                    <tr>
+                      <th className="w-[52px] py-2 pr-2">Pos</th>
+                      <th className="py-2 pr-2">Player</th>
+                      <th className="w-[58px] py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
 
-                    <tbody>
-                      {team.golfers.map((golfer) => {
-                        const isCounting = team.countingGolferNames.includes(
-                          golfer.name
-                        );
+                  <tbody>
+                    {team.golfers.map((golfer) => {
+                      const isCounting = team.countingGolferNames.includes(
+                        golfer.name
+                      );
 
-                        return (
-                          <tr
-                            key={`${team.name}-${golfer.name}`}
-                            className={`border-b border-white/5 last:border-0 ${
-                              isCounting ? "text-white" : "text-slate-500"
+                      return (
+                        <tr
+                          key={`${team.name}-${golfer.name}`}
+                          className={`border-b border-white/5 last:border-0 ${
+                            isCounting
+                              ? "text-white"
+                              : "text-slate-500 line-through"
+                          }`}
+                        >
+                          <td className="py-2 pr-2 font-bold text-slate-400">
+                            {golfer.rank}
+                          </td>
+                          <td className="truncate py-2 pr-2 font-bold">
+                            {golfer.name}
+                          </td>
+                          <td
+                            className={`py-2 text-right font-black ${
+                              isCounting
+                                ? "text-emerald-300"
+                                : "text-slate-500"
                             }`}
                           >
-                            <td className="py-2 pr-3 font-bold text-slate-400">
-                              {golfer.rank}
-                            </td>
-                            <td className="py-2 pr-3 font-bold">
-                              {golfer.name}
-                            </td>
-                            <td className="py-2 text-center">
-                              {formatScore(golfer.round1)}
-                            </td>
-                            <td className="py-2 text-center">
-                              {formatScore(golfer.round2)}
-                            </td>
-                            <td className="py-2 text-center">
-                              {formatScore(golfer.round3)}
-                            </td>
-                            <td className="py-2 text-center">
-                              {formatScore(golfer.round4)}
-                            </td>
-                            <td
-                              className={`py-2 text-right font-black ${
-                                isCounting
-                                  ? "text-emerald-300"
-                                  : "text-slate-500"
-                              }`}
-                            >
-                              {formatScore(golfer.total)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                            {formatScore(golfer.total)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ))}
           </div>
