@@ -191,7 +191,7 @@ export default function LeaderboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto max-w-[1700px] px-3 py-6 md:px-6 md:py-8">
+      <div className="mx-auto max-w-[1700px] px-2 py-4 md:px-6 md:py-8">
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="text-xs font-semibold text-emerald-300 md:text-sm">
@@ -234,7 +234,7 @@ export default function LeaderboardPage() {
                   className="grid grid-cols-[32px_1fr_70px] items-center border-b border-white/5 py-2 text-sm last:border-0"
                 >
                   <p className="font-bold text-slate-400">{index + 1}</p>
-                  <p className="font-bold">{team.name}</p>
+                  <p className="text-xl font-black">{team.name}</p>
                   <p className="text-right text-lg font-black text-emerald-300">
                     {formatScore(team.total)}
                   </p>
@@ -266,16 +266,17 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[720px] text-left text-sm">
+                  <table className="w-full table-fixed text-left text-[11px] md:text-sm">
                     <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
                       <tr>
                         <th className="py-2 pr-3">Pos</th>
-                        <th className="py-2 pr-3">Player</th>
-                        <th className="py-2 text-center">R1</th>
-                        <th className="py-2 text-center">R2</th>
-                        <th className="py-2 text-center">R3</th>
-                        <th className="py-2 text-center">R4</th>
-                        <th className="py-2 text-right">Total</th>
+                        <th className="w-[34px] py-2 pr-1">Pos</th>
+<th className="w-[44%] py-2 pr-1">Player</th>
+<th className="w-[34px] py-2 text-center">R1</th>
+<th className="w-[34px] py-2 text-center">R2</th>
+<th className="w-[34px] py-2 text-center">R3</th>
+<th className="w-[34px] py-2 text-center">R4</th>
+<th className="w-[46px] py-2 text-right">Total</th>
                       </tr>
                     </thead>
 
@@ -292,10 +293,10 @@ export default function LeaderboardPage() {
                               isCounting ? "text-white" : "text-slate-500"
                             }`}
                           >
-                            <td className="py-2 pr-3 font-bold text-slate-400">
+                            <td className="truncate py-2 pr-1 font-bold">
                               {golfer.rank}
                             </td>
-                            <td className="py-2 pr-3 font-bold">
+                            <td className="truncate py-2 pr-1 font-bold">
                               {golfer.name}
                             </td>
                             <td className="py-2 text-center">
