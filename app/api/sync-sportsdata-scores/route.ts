@@ -26,8 +26,6 @@ export async function GET() {
 
     if (!round) return 0;
 
-    // Best source for completed round score:
-    // Example: 68 - 70 = -2
     if (
       typeof round.Score === "number" &&
       typeof round.Par === "number" &&
@@ -37,7 +35,6 @@ export async function GET() {
       return round.Score - round.Par;
     }
 
-    // Fallback for live/in-progress hole data
     const holes = round.Holes || [];
 
     return holes.reduce((sum: number, hole: any) => {
@@ -52,7 +49,12 @@ export async function GET() {
       const round3 = getRoundScoreToPar(player, 3);
       const round4 = getRoundScoreToPar(player, 4);
 
-      const total = round1 + round2 + round3 + round4;
+      const calculatedTotal = round1 + round2 + round3 + round4;
+
+      const total =
+        typeof player.TotalScore === "number"
+          ? player.TotalScore
+          : calculatedTotal;
 
       return supabase
         .from("golfers")
@@ -68,8 +70,6 @@ export async function GET() {
     })
   );
 
-  // Manual correction for known SportsData name/round issue.
-  // Remove later if SportsData fixes the feed.
   await supabase
     .from("golfers")
     .update({
