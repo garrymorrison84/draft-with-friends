@@ -20,33 +20,32 @@ export async function GET() {
   const data = await response.json();
   const players = data.Players || [];
 
-  const getRoundToPar = (roundNumber: number, player: any) => {
+  function roundToPar(player: any, roundNumber: number) {
     const round = player.Rounds?.find((r: any) => r.Number === roundNumber);
     const holes = round?.Holes || [];
 
     return holes.reduce((sum: number, hole: any) => {
       return sum + (typeof hole.ToPar === "number" ? hole.ToPar : 0);
     }, 0);
-  };
+  }
 
   const updates = await Promise.all(
     players.map(async (player: any) => {
-      const round1Score = getRoundToPar(1, player);
-      const round2Score = getRoundToPar(2, player);
-      const round3Score = getRoundToPar(3, player);
-      const round4Score = getRoundToPar(4, player);
+      const round1 = roundToPar(player, 1);
+      const round2 = roundToPar(player, 2);
+      const round3 = roundToPar(player, 3);
+      const round4 = roundToPar(player, 4);
 
-      const totalScore =
-        round1Score + round2Score + round3Score + round4Score;
+      const total = round1 + round2 + round3 + round4;
 
       return supabase
         .from("golfers")
         .update({
-          tournament_score: totalScore,
-          round_1: round1Score,
-          round_2: round2Score,
-          round_3: round3Score,
-          round_4: round4Score,
+          tournament_score: total,
+          round_1: round1,
+          round_2: round2,
+          round_3: round3,
+          round_4: round4,
         })
         .eq("event_id", "USOPEN2026")
         .eq("name", player.Name);
