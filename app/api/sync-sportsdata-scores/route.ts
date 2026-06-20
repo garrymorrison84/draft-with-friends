@@ -48,7 +48,7 @@ export async function GET() {
           round_4: round4,
         })
         .eq("event_id", "USOPEN2026")
-        .ilike("name", player.Name);
+        .eq("name", player.Name);
     })
   );
 
