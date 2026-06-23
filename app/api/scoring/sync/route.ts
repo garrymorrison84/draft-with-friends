@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabase } from "../../../lib/supabase";
 
-function roundScoreToPar(round: any) {
+function roundScoreToPar(round: any): number | null {
+  if (!round) return null;
+
   if (
-    typeof round?.Score === "number" &&
-    typeof round?.Par === "number" &&
+    typeof round.Score === "number" &&
+    typeof round.Par === "number" &&
     round.Score > 0 &&
     round.Par > 0
   ) {
@@ -14,24 +16,18 @@ function roundScoreToPar(round: any) {
   return null;
 }
 
-function isValidGolfScore(score: number | null) {
-  if (score === null) return true;
+function isValidTotalScore(score: number | null) {
+  if (score === null) return false;
   return Number.isInteger(score) && score >= -40 && score <= 40;
 }
 
-export async function GET(request: Request) {  const apiKey = process.env.SPORTSDATA_API_KEY;
-      const syncSecret = process.env.SCORING_SYNC_SECRET;
-  const providedSecret = new URL(request.url).searchParams.get("secret");
+function isValidRoundScore(score: number | null) {
+  if (score === null) return true;
+  return Number.isInteger(score) && score >= -20 && score <= 20;
+}
 
-  if (!syncSecret || providedSecret !== syncSecret) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Unauthorized",
-      },
-      { status: 401 }
-    );
-  }
+export async function GET() {
+  const apiKey = process.env.SPORTSDATA_API_KEY;
   const tournamentId = 690;
   const eventId = "USOPEN2026";
 
@@ -70,33 +66,34 @@ export async function GET(request: Request) {  const apiKey = process.env.SPORTS
     const round3 = roundScoreToPar(rounds.find((r: any) => r.Number === 3));
     const round4 = roundScoreToPar(rounds.find((r: any) => r.Number === 4));
 
-        const roundScores = [round1, round2, round3, round4].filter(
+    const completedRoundScores = [round1, round2, round3, round4].filter(
       (score): score is number => typeof score === "number"
     );
 
     const calculatedTotal =
-      roundScores.length > 0
-        ? roundScores.reduce((sum, score) => sum + score, 0)
-        : typeof player.TotalScore === "number"
-          ? player.TotalScore
-          : null;
+      completedRoundScores.length > 0
+        ? completedRoundScores.reduce((sum, score) => sum + score, 0)
+        : null;
 
     return {
       name: player.Name,
+      sportsdata_total_score: player.TotalScore,
       tournament_score: calculatedTotal,
       round_1: round1,
       round_2: round2,
       round_3: round3,
       round_4: round4,
+      completed_round_count: completedRoundScores.length,
     };
+  });
 
   const invalidPlayers = preparedPlayers.filter((player: any) => {
     return (
-      !isValidGolfScore(player.tournament_score) ||
-      !isValidGolfScore(player.round_1) ||
-      !isValidGolfScore(player.round_2) ||
-      !isValidGolfScore(player.round_3) ||
-      !isValidGolfScore(player.round_4)
+      !isValidTotalScore(player.tournament_score) ||
+      !isValidRoundScore(player.round_1) ||
+      !isValidRoundScore(player.round_2) ||
+      !isValidRoundScore(player.round_3) ||
+      !isValidRoundScore(player.round_4)
     );
   });
 
@@ -104,9 +101,10 @@ export async function GET(request: Request) {  const apiKey = process.env.SPORTS
     return NextResponse.json(
       {
         success: false,
+        scoringVersion: "round-sum-v2",
         error: "Validation failed. No database updates were made.",
         invalidCount: invalidPlayers.length,
-        invalidPlayers: invalidPlayers.slice(0, 20),
+        invalidPlayers: invalidPlayers.slice(0, 25),
       },
       { status: 422 }
     );
@@ -128,6 +126,11 @@ export async function GET(request: Request) {  const apiKey = process.env.SPORTS
 
       return {
         name: player.name,
+        tournament_score: player.tournament_score,
+        round_1: player.round_1,
+        round_2: player.round_2,
+        round_3: player.round_3,
+        round_4: player.round_4,
         error,
       };
     })
@@ -135,8 +138,23 @@ export async function GET(request: Request) {  const apiKey = process.env.SPORTS
 
   const errors = updates.filter((update: any) => update.error);
 
+  const watchedNames = [
+    "Sungjae Im",
+    "Ryan Gerard",
+    "Bryson DeChambeau",
+    "Rickie Fowler",
+    "Gary Woodland",
+    "Charley Hoffman",
+    "Charlie Hoffman",
+  ];
+
+  const watchedPlayers = preparedPlayers.filter((player: any) =>
+    watchedNames.includes(player.name)
+  );
+
   return NextResponse.json({
     success: errors.length === 0,
+    scoringVersion: "round-sum-v2",
     tournament: data.Tournament?.Name,
     tournamentId,
     eventId,
@@ -144,6 +162,7 @@ export async function GET(request: Request) {  const apiKey = process.env.SPORTS
     updatedCount: updates.length - errors.length,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
+    watchedPlayers,
     updatedAt: new Date().toISOString(),
   });
 }
