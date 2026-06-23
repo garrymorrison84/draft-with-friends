@@ -19,8 +19,19 @@ function isValidGolfScore(score: number | null) {
   return Number.isInteger(score) && score >= -40 && score <= 40;
 }
 
-export async function GET() {
-  const apiKey = process.env.SPORTSDATA_API_KEY;
+export async function GET(request: Request) {  const apiKey = process.env.SPORTSDATA_API_KEY;
+      const syncSecret = process.env.SCORING_SYNC_SECRET;
+  const providedSecret = new URL(request.url).searchParams.get("secret");
+
+  if (!syncSecret || providedSecret !== syncSecret) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unauthorized",
+      },
+      { status: 401 }
+    );
+  }
   const tournamentId = 690;
   const eventId = "USOPEN2026";
 
@@ -59,23 +70,25 @@ export async function GET() {
     const round3 = roundScoreToPar(rounds.find((r: any) => r.Number === 3));
     const round4 = roundScoreToPar(rounds.find((r: any) => r.Number === 4));
 
-    const calculatedTotal =
-      (round1 ?? 0) + (round2 ?? 0) + (round3 ?? 0) + (round4 ?? 0);
+        const roundScores = [round1, round2, round3, round4].filter(
+      (score): score is number => typeof score === "number"
+    );
 
-    const total =
-      typeof player.TotalScore === "number"
-        ? player.TotalScore
-        : calculatedTotal;
+    const calculatedTotal =
+      roundScores.length > 0
+        ? roundScores.reduce((sum, score) => sum + score, 0)
+        : typeof player.TotalScore === "number"
+          ? player.TotalScore
+          : null;
 
     return {
       name: player.Name,
-      tournament_score: total,
+      tournament_score: calculatedTotal,
       round_1: round1,
       round_2: round2,
       round_3: round3,
       round_4: round4,
     };
-  });
 
   const invalidPlayers = preparedPlayers.filter((player: any) => {
     return (
