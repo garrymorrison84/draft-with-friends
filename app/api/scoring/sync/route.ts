@@ -16,14 +16,13 @@ function roundScoreToPar(round: any): number | null {
   return null;
 }
 
-function isValidTotalScore(score: number | null) {
+function isValidScore(score: number | null) {
   if (score === null) return false;
-  return Number.isInteger(score) && score >= -40 && score <= 40;
+  return Number.isInteger(score) && score >= -40 && score <= 80;
 }
 
-function isValidRoundScore(score: number | null) {
-  if (score === null) return true;
-  return Number.isInteger(score) && score >= -20 && score <= 20;
+function isCutGolfer(round3: number | null, round4: number | null) {
+  return round3 === null && round4 === null;
 }
 
 export async function GET() {
@@ -70,7 +69,7 @@ export async function GET() {
       (score): score is number => typeof score === "number"
     );
 
-    const calculatedTotal =
+    const rawTotal =
       completedRoundScores.length > 0
         ? completedRoundScores.reduce((sum, score) => sum + score, 0)
         : null;
@@ -78,16 +77,18 @@ export async function GET() {
     return {
       name: player.Name,
       sportsdata_total_score: player.TotalScore,
-      tournament_score: calculatedTotal,
+      raw_total_score: rawTotal,
+      tournament_score: rawTotal,
       round_1: round1,
       round_2: round2,
       round_3: round3,
       round_4: round4,
       completed_round_count: completedRoundScores.length,
+      made_cut: !isCutGolfer(round3, round4),
     };
   });
 
-   const playersWithScores = preparedPlayers.filter(
+  const playersWithScores = preparedPlayers.filter(
     (player: any) => player.completed_round_count > 0
   );
 
@@ -95,21 +96,47 @@ export async function GET() {
     (player: any) => player.completed_round_count === 0
   );
 
-  const invalidPlayers = playersWithScores.filter((player: any) => {
-    return (
-      !isValidTotalScore(player.tournament_score) ||
-      !isValidRoundScore(player.round_1) ||
-      !isValidRoundScore(player.round_2) ||
-      !isValidRoundScore(player.round_3) ||
-      !isValidRoundScore(player.round_4)
+  const madeCutPlayers = playersWithScores.filter(
+    (player: any) => player.made_cut && typeof player.raw_total_score === "number"
+  );
+
+  if (madeCutPlayers.length === 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        scoringVersion: "cut-penalty-v1",
+        error: "No made-cut players found. No database updates were made.",
+      },
+      { status: 422 }
     );
+  }
+
+  const worstMadeCutScore = Math.max(
+    ...madeCutPlayers.map((player: any) => player.raw_total_score)
+  );
+
+  const cutPenaltyScore = worstMadeCutScore + 1;
+
+  const scoredPlayers = playersWithScores.map((player: any) => {
+    if (!player.made_cut) {
+      return {
+        ...player,
+        tournament_score: cutPenaltyScore,
+      };
+    }
+
+    return player;
+  });
+
+  const invalidPlayers = scoredPlayers.filter((player: any) => {
+    return !isValidScore(player.tournament_score);
   });
 
   if (invalidPlayers.length > 0) {
     return NextResponse.json(
       {
         success: false,
-        scoringVersion: "round-sum-v2",
+        scoringVersion: "cut-penalty-v1",
         error: "Validation failed. No database updates were made.",
         invalidCount: invalidPlayers.length,
         invalidPlayers: invalidPlayers.slice(0, 25),
@@ -119,7 +146,7 @@ export async function GET() {
   }
 
   const updates = await Promise.all(
-    playersWithScores.map(async (player: any) => {
+    scoredPlayers.map(async (player: any) => {
       const { error } = await supabase
         .from("golfers")
         .update({
@@ -135,10 +162,8 @@ export async function GET() {
       return {
         name: player.name,
         tournament_score: player.tournament_score,
-        round_1: player.round_1,
-        round_2: player.round_2,
-        round_3: player.round_3,
-        round_4: player.round_4,
+        raw_total_score: player.raw_total_score,
+        made_cut: player.made_cut,
         error,
       };
     })
@@ -156,13 +181,13 @@ export async function GET() {
     "Charlie Hoffman",
   ];
 
-  const watchedPlayers = preparedPlayers.filter((player: any) =>
+  const watchedPlayers = scoredPlayers.filter((player: any) =>
     watchedNames.includes(player.name)
   );
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "round-sum-v2",
+    scoringVersion: "cut-penalty-v1",
     tournament: data.Tournament?.Name,
     tournamentId,
     eventId,
@@ -170,6 +195,8 @@ export async function GET() {
     updatedCount: updates.length - errors.length,
     skippedCount: skippedPlayers.length,
     skippedPlayers: skippedPlayers.slice(0, 20),
+    worstMadeCutScore,
+    cutPenaltyScore,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
     watchedPlayers,
