@@ -21,14 +21,12 @@ function isValidScore(score: number | null) {
   return Number.isInteger(score) && score >= -40 && score <= 80;
 }
 
-function isCutGolfer(round3: number | null, round4: number | null) {
-  return round3 === null && round4 === null;
+function hasWeekendScore(round3: number | null, round4: number | null) {
+  return typeof round3 === "number" || typeof round4 === "number";
 }
 
 export async function GET() {
   const apiKey = process.env.SPORTSDATA_API_KEY;
-  const tournamentId = 690;
-  const eventId = "USOPEN2026";
 
   if (!apiKey) {
     return NextResponse.json(
@@ -36,6 +34,26 @@ export async function GET() {
       { status: 500 }
     );
   }
+
+  const { data: activeEvent, error: eventError } = await supabase
+    .from("events")
+    .select("id, name, sportsdata_tournament_id")
+    .eq("is_active", true)
+    .single();
+
+  if (eventError || !activeEvent) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "No active golf event found in Supabase.",
+        details: eventError,
+      },
+      { status: 500 }
+    );
+  }
+
+  const tournamentId = activeEvent.sportsdata_tournament_id;
+  const eventId = activeEvent.id;
 
   const response = await fetch(
     `https://api.sportsdata.io/golf/v2/json/Leaderboard/${tournamentId}?key=${apiKey}`,
@@ -84,7 +102,7 @@ export async function GET() {
       round_3: round3,
       round_4: round4,
       completed_round_count: completedRoundScores.length,
-      made_cut: !isCutGolfer(round3, round4),
+      has_weekend_score: hasWeekendScore(round3, round4),
     };
   });
 
@@ -96,29 +114,46 @@ export async function GET() {
     (player: any) => player.completed_round_count === 0
   );
 
-  const madeCutPlayers = playersWithScores.filter(
-    (player: any) => player.made_cut && typeof player.raw_total_score === "number"
+  const weekendHasStarted = playersWithScores.some(
+    (player: any) => player.has_weekend_score
   );
 
-  if (madeCutPlayers.length === 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        scoringVersion: "cut-penalty-v1",
-        error: "No made-cut players found. No database updates were made.",
-      },
-      { status: 422 }
-    );
-  }
-
-  const worstMadeCutScore = Math.max(
-    ...madeCutPlayers.map((player: any) => player.raw_total_score)
-  );
-
-  const cutPenaltyScore = worstMadeCutScore + 1;
+  let worstMadeCutScore: number | null = null;
+  let cutPenaltyScore: number | null = null;
 
   const scoredPlayers = playersWithScores.map((player: any) => {
-    if (!player.made_cut) {
+    return {
+      ...player,
+      made_cut: weekendHasStarted ? player.has_weekend_score : true,
+    };
+  });
+
+  if (weekendHasStarted) {
+    const madeCutPlayers = scoredPlayers.filter(
+      (player: any) =>
+        player.made_cut && typeof player.raw_total_score === "number"
+    );
+
+    if (madeCutPlayers.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          scoringVersion: "active-event-cut-penalty-v2",
+          error: "Weekend scoring started, but no made-cut players were found.",
+        },
+        { status: 422 }
+      );
+    }
+
+    worstMadeCutScore = Math.max(
+      ...madeCutPlayers.map((player: any) => player.raw_total_score)
+    );
+
+    cutPenaltyScore = worstMadeCutScore + 1;
+  }
+
+  const finalPlayers = scoredPlayers.map((player: any) => {
+    if (weekendHasStarted && !player.made_cut && cutPenaltyScore !== null) {
       return {
         ...player,
         tournament_score: cutPenaltyScore,
@@ -128,7 +163,7 @@ export async function GET() {
     return player;
   });
 
-  const invalidPlayers = scoredPlayers.filter((player: any) => {
+  const invalidPlayers = finalPlayers.filter((player: any) => {
     return !isValidScore(player.tournament_score);
   });
 
@@ -136,7 +171,7 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        scoringVersion: "cut-penalty-v1",
+        scoringVersion: "active-event-cut-penalty-v2",
         error: "Validation failed. No database updates were made.",
         invalidCount: invalidPlayers.length,
         invalidPlayers: invalidPlayers.slice(0, 25),
@@ -146,7 +181,7 @@ export async function GET() {
   }
 
   const updates = await Promise.all(
-    scoredPlayers.map(async (player: any) => {
+    finalPlayers.map(async (player: any) => {
       const { error } = await supabase
         .from("golfers")
         .update({
@@ -171,35 +206,22 @@ export async function GET() {
 
   const errors = updates.filter((update: any) => update.error);
 
-  const watchedNames = [
-    "Sungjae Im",
-    "Ryan Gerard",
-    "Bryson DeChambeau",
-    "Rickie Fowler",
-    "Gary Woodland",
-    "Charley Hoffman",
-    "Charlie Hoffman",
-  ];
-
-  const watchedPlayers = scoredPlayers.filter((player: any) =>
-    watchedNames.includes(player.name)
-  );
-
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "cut-penalty-v1",
+    scoringVersion: "active-event-cut-penalty-v2",
     tournament: data.Tournament?.Name,
+    appEventName: activeEvent.name,
     tournamentId,
     eventId,
     playerCount: players.length,
     updatedCount: updates.length - errors.length,
     skippedCount: skippedPlayers.length,
     skippedPlayers: skippedPlayers.slice(0, 20),
+    weekendHasStarted,
     worstMadeCutScore,
     cutPenaltyScore,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
-    watchedPlayers,
     updatedAt: new Date().toISOString(),
   });
 }
