@@ -87,7 +87,15 @@ export async function GET() {
     };
   });
 
-  const invalidPlayers = preparedPlayers.filter((player: any) => {
+   const playersWithScores = preparedPlayers.filter(
+    (player: any) => player.completed_round_count > 0
+  );
+
+  const skippedPlayers = preparedPlayers.filter(
+    (player: any) => player.completed_round_count === 0
+  );
+
+  const invalidPlayers = playersWithScores.filter((player: any) => {
     return (
       !isValidTotalScore(player.tournament_score) ||
       !isValidRoundScore(player.round_1) ||
@@ -111,7 +119,7 @@ export async function GET() {
   }
 
   const updates = await Promise.all(
-    preparedPlayers.map(async (player: any) => {
+    playersWithScores.map(async (player: any) => {
       const { error } = await supabase
         .from("golfers")
         .update({
@@ -160,6 +168,8 @@ export async function GET() {
     eventId,
     playerCount: players.length,
     updatedCount: updates.length - errors.length,
+    skippedCount: skippedPlayers.length,
+    skippedPlayers: skippedPlayers.slice(0, 20),
     errorCount: errors.length,
     errors: errors.slice(0, 20),
     watchedPlayers,
