@@ -164,7 +164,9 @@ export default function DraftPage() {
           return {
             name: golfer.name,
             rank: sortValue,
-            vegasOdds: formatOdds(golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds),
+            vegasOdds: formatOdds(
+              golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds
+            ),
           };
         })
         .filter((golfer: Golfer) => golfer.name)
@@ -217,8 +219,9 @@ export default function DraftPage() {
     );
   }
 
-  const teams = pool.draftOrder;
-  const golfersPerTeam = pool.golfersPerTeam;
+  const activePool = pool;
+  const teams = activePool.draftOrder;
+  const golfersPerTeam = activePool.golfersPerTeam;
   const totalPicks = teams.length * golfersPerTeam;
 
   const currentPickIndex = draftPicks.findIndex((pick) => pick === null);
@@ -250,7 +253,7 @@ export default function DraftPage() {
   }
 
   async function confirmDraftGolfer() {
-    if (!pool || !pendingGolfer || draftComplete || isSavingPick) return;
+    if (!pendingGolfer || draftComplete || isSavingPick) return;
 
     const golfer = pendingGolfer;
 
@@ -285,7 +288,7 @@ export default function DraftPage() {
 
     try {
       await saveDraftPick({
-        pool_id: pool.id,
+        pool_id: activePool.id,
         team: nextTeam,
         golfer_name: golfer.name,
         golfer_rank: golfer.rank,
@@ -319,7 +322,7 @@ export default function DraftPage() {
     setDraftPicks(nextPicks);
 
     try {
-      await deleteLastDraftPick(pool.id, lastPick.index);
+      await deleteLastDraftPick(activePool.id, lastPick.index);
     } catch (error) {
       setDraftPicks(previousPicks);
       console.error(error);
@@ -330,7 +333,7 @@ export default function DraftPage() {
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-[1700px] px-3 py-4 md:px-6 md:py-8">
         <a
-          href={`/pool?id=${pool.id}`}
+          href={`/pool?id=${activePool.id}`}
           className="text-sm font-medium text-emerald-300"
         >
           ← Back to Pool Lobby
@@ -372,7 +375,7 @@ export default function DraftPage() {
             </button>
 
             <a
-              href={`/leaderboard?id=${pool.id}`}
+              href={`/leaderboard?id=${activePool.id}`}
               className="rounded-xl bg-emerald-400 px-4 py-3 text-center text-sm font-bold text-slate-950 md:px-6 md:text-base"
             >
               Finish Draft
