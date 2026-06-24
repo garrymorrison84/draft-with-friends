@@ -9,11 +9,9 @@ export async function GET() {
 
   const data = await response.json();
 
-  const usOpen = data.filter(
-    (t: any) =>
-      t.Name?.toLowerCase().includes("u.s. open") ||
-      t.Name?.toLowerCase().includes("us open")
-  );
+  const travelers = data.filter((t: any) =>
+  t.Name?.toLowerCase().includes("travelers")
+);
 
-  return NextResponse.json(usOpen);
+return NextResponse.json(travelers);
 }
