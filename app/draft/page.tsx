@@ -34,6 +34,14 @@ type DraftPick = {
   pickIndex: number;
 };
 
+function normalizeGolferName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function getTeamIndexForPick(pickNumber: number, teamCount: number) {
   const roundIndex = Math.floor(pickNumber / teamCount);
   const pickInRound = pickNumber % teamCount;
@@ -141,9 +149,13 @@ export default function DraftPage() {
 
       setDraftPicks(picksArray);
 
-      const draftedGolferNames = new Set([
-        ...savedPicks.map((pick: any) => pick.golfer_name),
-        ...Array.from(optimisticDraftedNamesRef.current),
+      const savedAndOptimisticDraftedNames = new Set([
+        ...savedPicks.map((pick: any) =>
+          normalizeGolferName(pick.golfer_name)
+        ),
+        ...Array.from(optimisticDraftedNamesRef.current).map((name) =>
+          normalizeGolferName(name)
+        ),
       ]);
 
       const golfers = await loadGolfers(CURRENT_EVENT_ID);
@@ -162,7 +174,10 @@ export default function DraftPage() {
 
       setAvailableGolfers(
         formattedGolfers.filter(
-          (golfer: Golfer) => !draftedGolferNames.has(golfer.name)
+          (golfer: Golfer) =>
+            !savedAndOptimisticDraftedNames.has(
+              normalizeGolferName(golfer.name)
+            )
         )
       );
 
@@ -179,23 +194,27 @@ export default function DraftPage() {
   }, []);
 
   const draftedGolferNames = useMemo(() => {
-  return new Set(
-    draftPicks
-      .filter((pick): pick is DraftPick => pick !== null)
-      .map((pick) => pick.golfer.name)
-  );
-}, [draftPicks]);
+    return new Set([
+      ...draftPicks
+        .filter((pick): pick is DraftPick => pick !== null)
+        .map((pick) => normalizeGolferName(pick.golfer.name)),
+      ...Array.from(optimisticDraftedNamesRef.current).map((name) =>
+        normalizeGolferName(name)
+      ),
+    ]);
+  }, [draftPicks]);
 
-const filteredAvailableGolfers = useMemo(() => {
-  const search = searchTerm.trim().toLowerCase();
+  const filteredAvailableGolfers = useMemo(() => {
+    const search = normalizeGolferName(searchTerm);
 
-  return availableGolfers.filter((golfer) => {
-    const isAlreadyDrafted = draftedGolferNames.has(golfer.name);
-    const matchesSearch = golfer.name.toLowerCase().includes(search);
+    return availableGolfers.filter((golfer) => {
+      const normalizedName = normalizeGolferName(golfer.name);
+      const isAlreadyDrafted = draftedGolferNames.has(normalizedName);
+      const matchesSearch = !search || normalizedName.includes(search);
 
-    return !isAlreadyDrafted && (!search || matchesSearch);
-  });
-}, [availableGolfers, draftedGolferNames, searchTerm]);
+      return !isAlreadyDrafted && matchesSearch;
+    });
+  }, [availableGolfers, draftedGolferNames, searchTerm]);
 
   if (isLoading) {
     return (
@@ -263,8 +282,12 @@ const filteredAvailableGolfers = useMemo(() => {
     nextPicks[currentPickIndex] = nextPick;
 
     setDraftPicks(nextPicks);
+
     setAvailableGolfers((prev) =>
-      prev.filter((player) => player.name !== golfer.name)
+      prev.filter(
+        (player) =>
+          normalizeGolferName(player.name) !== normalizeGolferName(golfer.name)
+      )
     );
 
     setPendingGolfer(null);
