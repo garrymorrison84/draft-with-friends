@@ -63,13 +63,14 @@ export async function getDraftPicks(poolId: string) {
     return [];
   }
 
-  return data;
+  return data || [];
 }
+
 export async function loadGolfers(eventId: string) {
   const { data, error } = await supabase
     .from("golfers")
     .select("*")
-    .order("odds_sort", { ascending: true });
+    .eq("event_id", eventId);
 
   if (error) {
     console.error("LOAD GOLFERS ERROR:", error);
@@ -78,6 +79,7 @@ export async function loadGolfers(eventId: string) {
 
   return data || [];
 }
+
 export async function getGolferScores(eventId: string) {
   const { data, error } = await supabase
     .from("golfers")

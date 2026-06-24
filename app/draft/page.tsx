@@ -35,7 +35,7 @@ type DraftPick = {
 };
 
 function normalizeGolferName(name: string) {
-  return name
+  return String(name || "")
     .trim()
     .toLowerCase()
     .normalize("NFD")
@@ -76,7 +76,11 @@ function formatOdds(rawOdds: unknown) {
 
 function getSortValue(golfer: any) {
   const odds =
-    golfer.odds ?? golfer.vegas_odds ?? golfer.rank ?? golfer.world_rank;
+    golfer.odds ??
+    golfer.odds_sort ??
+    golfer.vegas_odds ??
+    golfer.rank ??
+    golfer.world_rank;
 
   const oddsNumber =
     typeof odds === "number"
@@ -93,9 +97,7 @@ export default function DraftPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
-  const [optimisticDraftedNames, setOptimisticDraftedNames] = useState<
-    string[]
-  >([]);
+  const [isSavingPick, setIsSavingPick] = useState(false);
 
   useEffect(() => {
     async function loadDraft() {
@@ -121,8 +123,8 @@ export default function DraftPage() {
         numberOfTeams: savedPool.number_of_teams,
         golfersPerTeam: savedPool.golfers_per_team,
         scoresToCount: savedPool.scores_to_count,
-        teamNames: savedPool.team_names,
-        draftOrder: savedPool.draft_order,
+        teamNames: savedPool.team_names || [],
+        draftOrder: savedPool.draft_order || savedPool.team_names || [],
       };
 
       setPool(formattedPool);
@@ -131,21 +133,24 @@ export default function DraftPage() {
         formattedPool.draftOrder.length * formattedPool.golfersPerTeam;
 
       const savedPicks = await getDraftPicks(formattedPool.id);
-
       const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
 
       savedPicks.forEach((pick: any) => {
-        picksArray[pick.pick_index] = {
-          team: pick.team,
-          golfer: {
-            name: pick.golfer_name,
-            rank: pick.golfer_rank ?? 999999,
-            vegasOdds: pick.golfer_rank
-              ? formatOdds(pick.golfer_rank)
-              : "Odds TBD",
-          },
-          pickIndex: pick.pick_index,
-        };
+        if (
+          typeof pick.pick_index === "number" &&
+          pick.pick_index >= 0 &&
+          pick.pick_index < totalPicks
+        ) {
+          picksArray[pick.pick_index] = {
+            team: pick.team,
+            golfer: {
+              name: pick.golfer_name,
+              rank: pick.golfer_rank ?? 999999,
+              vegasOdds: formatOdds(pick.golfer_rank),
+            },
+            pickIndex: pick.pick_index,
+          };
+        }
       });
 
       setDraftPicks(picksArray);
@@ -159,9 +164,10 @@ export default function DraftPage() {
           return {
             name: golfer.name,
             rank: sortValue,
-            vegasOdds: formatOdds(golfer.odds ?? golfer.vegas_odds),
+            vegasOdds: formatOdds(golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds),
           };
         })
+        .filter((golfer: Golfer) => golfer.name)
         .sort((a: Golfer, b: Golfer) => a.rank - b.rank);
 
       setAllGolfers(formattedGolfers);
@@ -172,13 +178,12 @@ export default function DraftPage() {
   }, []);
 
   const draftedGolferNames = useMemo(() => {
-    return new Set([
-      ...draftPicks
+    return new Set(
+      draftPicks
         .filter((pick): pick is DraftPick => pick !== null)
-        .map((pick) => normalizeGolferName(pick.golfer.name)),
-      ...optimisticDraftedNames.map((name) => normalizeGolferName(name)),
-    ]);
-  }, [draftPicks, optimisticDraftedNames]);
+        .map((pick) => normalizeGolferName(pick.golfer.name))
+    );
+  }, [draftPicks]);
 
   const visibleGolfers = useMemo(() => {
     const search = normalizeGolferName(searchTerm);
@@ -193,9 +198,7 @@ export default function DraftPage() {
     return (
       <main className="min-h-screen bg-slate-950 text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
-          <h1 className="text-2xl font-black md:text-4xl">
-            Loading draft...
-          </h1>
+          <h1 className="text-2xl font-black md:text-4xl">Loading draft...</h1>
         </div>
       </main>
     );
@@ -235,17 +238,19 @@ export default function DraftPage() {
 
   function draftGolfer(golfer: Golfer) {
     if (draftComplete) return;
+    if (isSavingPick) return;
     if (isGolferTaken(golfer)) return;
 
     setPendingGolfer(golfer);
   }
 
   function cancelDraftGolfer() {
+    if (isSavingPick) return;
     setPendingGolfer(null);
   }
 
   async function confirmDraftGolfer() {
-    if (!pendingGolfer || draftComplete) return;
+    if (!pendingGolfer || draftComplete || isSavingPick) return;
 
     const golfer = pendingGolfer;
 
@@ -270,29 +275,33 @@ export default function DraftPage() {
       pickIndex: nextPickIndex,
     };
 
+    const previousPicks = [...draftPicks];
     const nextPicks = [...draftPicks];
     nextPicks[nextPickIndex] = nextPick;
 
+    setIsSavingPick(true);
     setDraftPicks(nextPicks);
-    setOptimisticDraftedNames((prev) =>
-      prev.some(
-        (name) => normalizeGolferName(name) === normalizeGolferName(golfer.name)
-      )
-        ? prev
-        : [...prev, golfer.name]
-    );
     setPendingGolfer(null);
 
-    await saveDraftPick({
-      pool_id: pool.id,
-      team: nextTeam,
-      golfer_name: golfer.name,
-      golfer_rank: golfer.rank,
-      pick_index: nextPickIndex,
-    });
+    try {
+      await saveDraftPick({
+        pool_id: pool.id,
+        team: nextTeam,
+        golfer_name: golfer.name,
+        golfer_rank: golfer.rank,
+        pick_index: nextPickIndex,
+      });
+    } catch (error) {
+      setDraftPicks(previousPicks);
+      console.error(error);
+    } finally {
+      setIsSavingPick(false);
+    }
   }
 
   async function undoLastPick() {
+    if (isSavingPick) return;
+
     const lastPick = [...draftPicks]
       .map((pick, index) => ({ pick, index }))
       .filter(
@@ -303,20 +312,18 @@ export default function DraftPage() {
 
     if (!lastPick) return;
 
+    const previousPicks = [...draftPicks];
     const nextPicks = [...draftPicks];
     nextPicks[lastPick.index] = null;
 
     setDraftPicks(nextPicks);
 
-    setOptimisticDraftedNames((prev) =>
-      prev.filter(
-        (name) =>
-          normalizeGolferName(name) !==
-          normalizeGolferName(lastPick.pick.golfer.name)
-      )
-    );
-
-    await deleteLastDraftPick(pool.id, lastPick.index);
+    try {
+      await deleteLastDraftPick(pool.id, lastPick.index);
+    } catch (error) {
+      setDraftPicks(previousPicks);
+      console.error(error);
+    }
   }
 
   return (
@@ -358,7 +365,8 @@ export default function DraftPage() {
           <div className="grid grid-cols-2 gap-3 md:flex">
             <button
               onClick={undoLastPick}
-              className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 md:px-5 md:text-base"
+              disabled={isSavingPick}
+              className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 md:px-5 md:text-base"
             >
               Undo Pick
             </button>
@@ -374,7 +382,7 @@ export default function DraftPage() {
 
         <div className="mt-5 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:gap-6">
           <aside className="w-full shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
-            <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers TEST</h2>
+            <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers</h2>
 
             <p className="mt-2 text-sm text-slate-400">
               Available golfers are highlighted. Taken golfers stay visible but
@@ -397,7 +405,7 @@ export default function DraftPage() {
                   <button
                     key={golfer.name}
                     onClick={() => draftGolfer(golfer)}
-                    disabled={draftComplete || isTaken}
+                    disabled={draftComplete || isTaken || isSavingPick}
                     className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition md:p-4 ${
                       isTaken
                         ? "cursor-not-allowed border-white/5 bg-slate-950/60 opacity-45"
@@ -585,16 +593,18 @@ export default function DraftPage() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 onClick={cancelDraftGolfer}
-                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-white/10"
+                disabled={isSavingPick}
+                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 No
               </button>
 
               <button
                 onClick={confirmDraftGolfer}
-                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+                disabled={isSavingPick}
+                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Yes
+                {isSavingPick ? "Saving..." : "Yes"}
               </button>
             </div>
           </div>
