@@ -224,30 +224,34 @@ export default function DraftPage() {
     currentTeamIndex === null ? "Draft Complete" : teams[currentTeamIndex];
 
   async function draftGolfer(golfer: Golfer) {
-    if (draftComplete) return;
+  if (draftComplete) return;
 
-    const nextPick: DraftPick = {
-      team: currentTeam,
-      golfer,
-      pickIndex: currentPickIndex,
-    };
+  const confirmed = window.confirm(`Draft ${golfer.name}?`);
 
-    const nextPicks = [...draftPicks];
-    nextPicks[currentPickIndex] = nextPick;
+  if (!confirmed) return;
 
-    setDraftPicks(nextPicks);
-    setAvailableGolfers((prev) =>
-      prev.filter((player) => player.name !== golfer.name)
-    );
+  const nextPick: DraftPick = {
+    team: currentTeam,
+    golfer,
+    pickIndex: currentPickIndex,
+  };
 
-    await saveDraftPick({
-      pool_id: pool!.id,
-      team: currentTeam,
-      golfer_name: golfer.name,
-      golfer_rank: golfer.rank,
-      pick_index: currentPickIndex,
-    });
-  }
+  const nextPicks = [...draftPicks];
+  nextPicks[currentPickIndex] = nextPick;
+
+  setDraftPicks(nextPicks);
+  setAvailableGolfers((prev) =>
+    prev.filter((player) => player.name !== golfer.name)
+  );
+
+  await saveDraftPick({
+    pool_id: pool!.id,
+    team: currentTeam,
+    golfer_name: golfer.name,
+    golfer_rank: golfer.rank,
+    pick_index: currentPickIndex,
+  });
+}
 
   async function undoLastPick() {
     const lastPick = [...draftPicks]
