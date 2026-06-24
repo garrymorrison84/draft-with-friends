@@ -352,7 +352,7 @@ export default function DraftPage() {
 
         <div className="mt-5 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:gap-6">
           <aside className="w-full shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
-            <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers</h2>
+            <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers v2</h2>
 
             <p className="mt-2 text-sm text-slate-400">
               Click Draft to select a golfer for the team on the clock.
