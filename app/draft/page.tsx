@@ -537,20 +537,16 @@ export default function DraftPage() {
                           </div>
 
                           {pick ? (
-                            <>
-                              <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
-                                Drafted
-                              </p>
+  <>
+    <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
+      Drafted
+    </p>
 
-                              <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
-                                {pick.golfer.name}
-                              </p>
-
-                              <p className="mt-1 text-xs text-slate-400 md:text-sm">
-                                Odds {pick.golfer.vegasOdds || "TBD"}
-                              </p>
-                            </>
-                          ) : (
+    <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
+      {pick.golfer.name}
+    </p>
+  </>
+) : (
                             <>
                               <p
                                 className={`pr-10 text-xs font-semibold md:pr-12 md:text-sm ${
