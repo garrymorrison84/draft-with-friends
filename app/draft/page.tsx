@@ -524,7 +524,6 @@ export default function DraftPage() {
             </h2>
 
             <p className="mt-2 text-sm text-slate-400">
-              This will add {pendingGolfer.name} to the current pick.
             </p>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
