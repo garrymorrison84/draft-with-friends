@@ -250,7 +250,7 @@ export default function DraftPage() {
   }
 
   async function confirmDraftGolfer() {
-    if (!pendingGolfer || draftComplete || isSavingPick) return;
+    if (!pool || !pendingGolfer || draftComplete || isSavingPick) return;
 
     const golfer = pendingGolfer;
 
