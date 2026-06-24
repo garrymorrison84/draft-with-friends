@@ -93,6 +93,9 @@ export default function DraftPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
+  const [optimisticDraftedNames, setOptimisticDraftedNames] = useState<
+    string[]
+  >([]);
 
   const optimisticDraftedNamesRef = useRef<Set<string>>(new Set());
 
@@ -181,11 +184,12 @@ export default function DraftPage() {
       ...draftPicks
         .filter((pick): pick is DraftPick => pick !== null)
         .map((pick) => normalizeGolferName(pick.golfer.name)),
+      ...optimisticDraftedNames.map((name) => normalizeGolferName(name)),
       ...Array.from(optimisticDraftedNamesRef.current).map((name) =>
         normalizeGolferName(name)
       ),
     ]);
-  }, [draftPicks]);
+  }, [draftPicks, optimisticDraftedNames]);
 
   const filteredAvailableGolfers = useMemo(() => {
     const search = normalizeGolferName(searchTerm);
@@ -255,6 +259,10 @@ export default function DraftPage() {
 
     optimisticDraftedNamesRef.current.add(golfer.name);
 
+    setOptimisticDraftedNames((prev) =>
+      prev.includes(golfer.name) ? prev : [...prev, golfer.name]
+    );
+
     const nextPick: DraftPick = {
       team: currentTeam,
       golfer,
@@ -288,6 +296,10 @@ export default function DraftPage() {
     if (!lastPick) return;
 
     optimisticDraftedNamesRef.current.delete(lastPick.pick.golfer.name);
+
+    setOptimisticDraftedNames((prev) =>
+      prev.filter((name) => name !== lastPick.pick.golfer.name)
+    );
 
     const nextPicks = [...draftPicks];
     nextPicks[lastPick.index] = null;
@@ -352,7 +364,7 @@ export default function DraftPage() {
 
         <div className="mt-5 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:gap-6">
           <aside className="w-full shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
-            <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers v2</h2>
+            <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers</h2>
 
             <p className="mt-2 text-sm text-slate-400">
               Click Draft to select a golfer for the team on the clock.
