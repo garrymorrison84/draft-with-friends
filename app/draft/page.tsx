@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getPool,
   getDraftPicks,
@@ -92,12 +92,6 @@ export default function DraftPage() {
   const [draftPicks, setDraftPicks] = useState<(DraftPick | null)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
-  const [optimisticDraftedNames, setOptimisticDraftedNames] = useState<
-    string[]
-  >([]);
-
-  const optimisticDraftedNamesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     async function loadDraft() {
@@ -180,16 +174,12 @@ export default function DraftPage() {
   }, []);
 
   const draftedGolferNames = useMemo(() => {
-    return new Set([
-      ...draftPicks
+    return new Set(
+      draftPicks
         .filter((pick): pick is DraftPick => pick !== null)
-        .map((pick) => normalizeGolferName(pick.golfer.name)),
-      ...optimisticDraftedNames.map((name) => normalizeGolferName(name)),
-      ...Array.from(optimisticDraftedNamesRef.current).map((name) =>
-        normalizeGolferName(name)
-      ),
-    ]);
-  }, [draftPicks, optimisticDraftedNames]);
+        .map((pick) => normalizeGolferName(pick.golfer.name))
+    );
+  }, [draftPicks]);
 
   const filteredAvailableGolfers = useMemo(() => {
     const search = normalizeGolferName(searchTerm);
@@ -243,25 +233,8 @@ export default function DraftPage() {
   const currentTeam =
     currentTeamIndex === null ? "Draft Complete" : teams[currentTeamIndex];
 
-  function draftGolfer(golfer: Golfer) {
+  async function draftGolfer(golfer: Golfer) {
     if (draftComplete) return;
-    setPendingGolfer(golfer);
-  }
-
-  function cancelDraftGolfer() {
-    setPendingGolfer(null);
-  }
-
-  async function confirmDraftGolfer() {
-    if (!pendingGolfer || draftComplete) return;
-
-    const golfer = pendingGolfer;
-
-    optimisticDraftedNamesRef.current.add(golfer.name);
-
-    setOptimisticDraftedNames((prev) =>
-      prev.includes(golfer.name) ? prev : [...prev, golfer.name]
-    );
 
     const nextPick: DraftPick = {
       team: currentTeam,
@@ -273,7 +246,6 @@ export default function DraftPage() {
     nextPicks[currentPickIndex] = nextPick;
 
     setDraftPicks(nextPicks);
-    setPendingGolfer(null);
 
     await saveDraftPick({
       pool_id: pool!.id,
@@ -294,12 +266,6 @@ export default function DraftPage() {
       .pop();
 
     if (!lastPick) return;
-
-    optimisticDraftedNamesRef.current.delete(lastPick.pick.golfer.name);
-
-    setOptimisticDraftedNames((prev) =>
-      prev.filter((name) => name !== lastPick.pick.golfer.name)
-    );
 
     const nextPicks = [...draftPicks];
     nextPicks[lastPick.index] = null;
@@ -533,40 +499,6 @@ export default function DraftPage() {
           </section>
         </div>
       </div>
-
-      {pendingGolfer && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
-              Confirm Pick
-            </p>
-
-            <h2 className="mt-3 text-2xl font-black text-white">
-              Draft {pendingGolfer.name}?
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-400">
-              This will add {pendingGolfer.name} to the current pick.
-            </p>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                onClick={cancelDraftGolfer}
-                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-white/10"
-              >
-                No
-              </button>
-
-              <button
-                onClick={confirmDraftGolfer}
-                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
