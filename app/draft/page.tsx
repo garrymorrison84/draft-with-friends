@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getPool,
   getDraftPicks,
@@ -8,6 +8,8 @@ import {
   deleteLastDraftPick,
   loadGolfers,
 } from "../lib/poolApi";
+
+const CURRENT_EVENT_ID = "TRAVELERS2026";
 
 type Golfer = {
   name: string;
@@ -47,11 +49,36 @@ function getRoundPickLabel(pickNumber: number, teamCount: number) {
   return `${round}.${pickInRound}`;
 }
 
+function formatOdds(rawOdds: unknown) {
+  if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
+    return "Odds TBD";
+  }
+
+  const oddsNumber =
+    typeof rawOdds === "number" ? rawOdds : Number(String(rawOdds).replace("+", ""));
+
+  if (!Number.isFinite(oddsNumber)) {
+    return String(rawOdds);
+  }
+
+  return `+${oddsNumber}`;
+}
+
+function getSortValue(golfer: any) {
+  const odds = golfer.odds ?? golfer.vegas_odds ?? golfer.rank ?? golfer.world_rank;
+
+  const oddsNumber =
+    typeof odds === "number" ? odds : Number(String(odds ?? "").replace("+", ""));
+
+  return Number.isFinite(oddsNumber) ? oddsNumber : 999999;
+}
+
 export default function DraftPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [availableGolfers, setAvailableGolfers] = useState<Golfer[]>([]);
   const [draftPicks, setDraftPicks] = useState<(DraftPick | null)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function loadDraft() {
@@ -95,7 +122,8 @@ export default function DraftPage() {
           team: pick.team,
           golfer: {
             name: pick.golfer_name,
-            rank: pick.golfer_rank,
+            rank: pick.golfer_rank ?? 999999,
+            vegasOdds: pick.golfer_rank ? formatOdds(pick.golfer_rank) : "Odds TBD",
           },
           pickIndex: pick.pick_index,
         };
@@ -107,22 +135,25 @@ export default function DraftPage() {
         (pick: any) => pick.golfer_name
       );
 
-      const golfers = await loadGolfers("USOPEN2026");
+      const golfers = await loadGolfers(CURRENT_EVENT_ID);
 
-      const formattedGolfers = golfers.map((golfer: any) => ({
-  name: golfer.name,
-  rank: golfer.world_rank,
-  vegasOdds: golfer.vegas_odds,
-}));
+      const formattedGolfers = golfers
+        .map((golfer: any) => {
+          const sortValue = getSortValue(golfer);
 
-      console.log("GOLFERS FROM SUPABASE:", formattedGolfers);
-console.log("DRAFTED NAMES:", draftedGolferNames);
+          return {
+            name: golfer.name,
+            rank: sortValue,
+            vegasOdds: formatOdds(golfer.odds ?? golfer.vegas_odds),
+          };
+        })
+        .sort((a: Golfer, b: Golfer) => a.rank - b.rank);
 
-setAvailableGolfers(
-  formattedGolfers.filter(
-    (golfer: Golfer) => !draftedGolferNames.includes(golfer.name)
-  )
-);
+      setAvailableGolfers(
+        formattedGolfers.filter(
+          (golfer: Golfer) => !draftedGolferNames.includes(golfer.name)
+        )
+      );
 
       setIsLoading(false);
     }
@@ -135,6 +166,16 @@ setAvailableGolfers(
 
     return () => clearInterval(interval);
   }, []);
+
+  const filteredAvailableGolfers = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    if (!search) return availableGolfers;
+
+    return availableGolfers.filter((golfer) =>
+      golfer.name.toLowerCase().includes(search)
+    );
+  }, [availableGolfers, searchTerm]);
 
   if (isLoading) {
     return (
@@ -251,6 +292,10 @@ setAvailableGolfers(
                 ? "All picks are complete."
                 : `${currentTeam} is on the clock.`}
             </p>
+
+            <p className="mt-2 text-xs font-semibold text-slate-500">
+              Eligible field: {CURRENT_EVENT_ID}
+            </p>
           </div>
 
           <div className="flex gap-3">
@@ -271,22 +316,24 @@ setAvailableGolfers(
         </div>
 
         <div className="mt-8 flex gap-6">
-          <aside className="sticky top-6 h-[calc(100vh-48px)] w-[340px] shrink-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-            <h2 className="text-2xl font-bold">Eligible Golfers</h2>
+          <aside className="sticky top-6 h-[calc(100vh-48px)] w-[220px] md:w-[340px] shrink-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+            <h2 className="text-lg md:text-2xl font-bold">Eligible Golfers</h2>
             <p className="mt-2 text-sm text-slate-400">
               Click Draft to select a golfer for the team on the clock.
             </p>
 
             <input
               type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search golfers..."
               className="mt-5 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
             />
 
             <div className="mt-5 h-[calc(100vh-240px)] space-y-3 overflow-y-auto pr-1">
-              {availableGolfers.map((golfer) => (
+              {filteredAvailableGolfers.map((golfer) => (
                 <button
-                  key={`${golfer.name}-${golfer.rank}`}
+                  key={golfer.name}
                   onClick={() => draftGolfer(golfer)}
                   disabled={draftComplete}
                   className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-slate-900 p-4 text-left transition hover:border-emerald-400/50 hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:opacity-40"
@@ -298,7 +345,7 @@ setAvailableGolfers(
                     </p>
                   </div>
 
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-sm">
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs">
                     Draft
                   </span>
                 </button>
@@ -309,8 +356,8 @@ setAvailableGolfers(
           <section className="min-w-0 flex-1 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold">Draft Board</h2>
-                <p className="mt-2 text-sm text-slate-400">
+                <h2 className="text-lg md:text-2xl font-bold">Draft Board</h2>
+                <p className="mt-1 text-xs md:text-sm text-slate-400">
                   Picks fill in automatically as golfers are selected.
                 </p>
               </div>
@@ -402,7 +449,7 @@ setAvailableGolfers(
                                 {pick.golfer.name}
                               </p>
                               <p className="mt-1 text-sm text-slate-400">
-                                World Rank #{pick.golfer.rank}
+                                Odds {pick.golfer.vegasOdds || "TBD"}
                               </p>
                             </>
                           ) : (
