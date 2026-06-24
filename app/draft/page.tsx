@@ -88,7 +88,7 @@ function getSortValue(golfer: any) {
 
 export default function DraftPage() {
   const [pool, setPool] = useState<Pool | null>(null);
-  const [availableGolfers, setAvailableGolfers] = useState<Golfer[]>([]);
+  const [allGolfers, setAllGolfers] = useState<Golfer[]>([]);
   const [draftPicks, setDraftPicks] = useState<(DraftPick | null)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,15 +149,6 @@ export default function DraftPage() {
 
       setDraftPicks(picksArray);
 
-      const savedAndOptimisticDraftedNames = new Set([
-        ...savedPicks.map((pick: any) =>
-          normalizeGolferName(pick.golfer_name)
-        ),
-        ...Array.from(optimisticDraftedNamesRef.current).map((name) =>
-          normalizeGolferName(name)
-        ),
-      ]);
-
       const golfers = await loadGolfers(CURRENT_EVENT_ID);
 
       const formattedGolfers = golfers
@@ -172,15 +163,7 @@ export default function DraftPage() {
         })
         .sort((a: Golfer, b: Golfer) => a.rank - b.rank);
 
-      setAvailableGolfers(
-        formattedGolfers.filter(
-          (golfer: Golfer) =>
-            !savedAndOptimisticDraftedNames.has(
-              normalizeGolferName(golfer.name)
-            )
-        )
-      );
-
+      setAllGolfers(formattedGolfers);
       setIsLoading(false);
     }
 
@@ -207,14 +190,14 @@ export default function DraftPage() {
   const filteredAvailableGolfers = useMemo(() => {
     const search = normalizeGolferName(searchTerm);
 
-    return availableGolfers.filter((golfer) => {
+    return allGolfers.filter((golfer) => {
       const normalizedName = normalizeGolferName(golfer.name);
       const isAlreadyDrafted = draftedGolferNames.has(normalizedName);
       const matchesSearch = !search || normalizedName.includes(search);
 
       return !isAlreadyDrafted && matchesSearch;
     });
-  }, [availableGolfers, draftedGolferNames, searchTerm]);
+  }, [allGolfers, draftedGolferNames, searchTerm]);
 
   if (isLoading) {
     return (
@@ -282,14 +265,6 @@ export default function DraftPage() {
     nextPicks[currentPickIndex] = nextPick;
 
     setDraftPicks(nextPicks);
-
-    setAvailableGolfers((prev) =>
-      prev.filter(
-        (player) =>
-          normalizeGolferName(player.name) !== normalizeGolferName(golfer.name)
-      )
-    );
-
     setPendingGolfer(null);
 
     await saveDraftPick({
@@ -318,10 +293,6 @@ export default function DraftPage() {
     nextPicks[lastPick.index] = null;
 
     setDraftPicks(nextPicks);
-
-    setAvailableGolfers((prev) =>
-      [...prev, lastPick.pick.golfer].sort((a, b) => a.rank - b.rank)
-    );
 
     await deleteLastDraftPick(pool!.id, lastPick.index);
   }
