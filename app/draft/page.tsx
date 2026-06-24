@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getPool,
   getDraftPicks,
@@ -86,6 +86,8 @@ export default function DraftPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
 
+  const optimisticDraftedNamesRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     async function loadDraft() {
       const params = new URLSearchParams(window.location.search);
@@ -139,10 +141,10 @@ export default function DraftPage() {
 
       setDraftPicks(picksArray);
 
-      const draftedGolferNames = [
-  ...savedPicks.map((pick: any) => pick.golfer_name),
-  ...Array.from(optimisticDraftedNamesRef.current),
-];
+      const draftedGolferNames = new Set([
+        ...savedPicks.map((pick: any) => pick.golfer_name),
+        ...Array.from(optimisticDraftedNamesRef.current),
+      ]);
 
       const golfers = await loadGolfers(CURRENT_EVENT_ID);
 
@@ -160,7 +162,7 @@ export default function DraftPage() {
 
       setAvailableGolfers(
         formattedGolfers.filter(
-          (golfer: Golfer) => !draftedGolferNames.includes(golfer.name)
+          (golfer: Golfer) => !draftedGolferNames.has(golfer.name)
         )
       );
 
@@ -241,7 +243,7 @@ export default function DraftPage() {
     const golfer = pendingGolfer;
 
     optimisticDraftedNamesRef.current.add(golfer.name);
-    
+
     const nextPick: DraftPick = {
       team: currentTeam,
       golfer,
@@ -277,7 +279,7 @@ export default function DraftPage() {
       .pop();
 
     if (!lastPick) return;
-    
+
     optimisticDraftedNamesRef.current.delete(lastPick.pick.golfer.name);
 
     const nextPicks = [...draftPicks];
@@ -529,6 +531,7 @@ export default function DraftPage() {
             </h2>
 
             <p className="mt-2 text-sm text-slate-400">
+              This will add {pendingGolfer.name} to the current pick.
             </p>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
