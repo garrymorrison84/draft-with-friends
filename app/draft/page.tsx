@@ -178,15 +178,24 @@ export default function DraftPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredAvailableGolfers = useMemo(() => {
-    const search = searchTerm.trim().toLowerCase();
+  const draftedGolferNames = useMemo(() => {
+  return new Set(
+    draftPicks
+      .filter((pick): pick is DraftPick => pick !== null)
+      .map((pick) => pick.golfer.name)
+  );
+}, [draftPicks]);
 
-    if (!search) return availableGolfers;
+const filteredAvailableGolfers = useMemo(() => {
+  const search = searchTerm.trim().toLowerCase();
 
-    return availableGolfers.filter((golfer) =>
-      golfer.name.toLowerCase().includes(search)
-    );
-  }, [availableGolfers, searchTerm]);
+  return availableGolfers.filter((golfer) => {
+    const isAlreadyDrafted = draftedGolferNames.has(golfer.name);
+    const matchesSearch = golfer.name.toLowerCase().includes(search);
+
+    return !isAlreadyDrafted && (!search || matchesSearch);
+  });
+}, [availableGolfers, draftedGolferNames, searchTerm]);
 
   if (isLoading) {
     return (
