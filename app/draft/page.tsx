@@ -139,9 +139,10 @@ export default function DraftPage() {
 
       setDraftPicks(picksArray);
 
-      const draftedGolferNames = savedPicks.map(
-        (pick: any) => pick.golfer_name
-      );
+      const draftedGolferNames = [
+  ...savedPicks.map((pick: any) => pick.golfer_name),
+  ...Array.from(optimisticDraftedNamesRef.current),
+];
 
       const golfers = await loadGolfers(CURRENT_EVENT_ID);
 
@@ -239,6 +240,8 @@ export default function DraftPage() {
 
     const golfer = pendingGolfer;
 
+    optimisticDraftedNamesRef.current.add(golfer.name);
+    
     const nextPick: DraftPick = {
       team: currentTeam,
       golfer,
@@ -274,6 +277,8 @@ export default function DraftPage() {
       .pop();
 
     if (!lastPick) return;
+    
+    optimisticDraftedNamesRef.current.delete(lastPick.pick.golfer.name);
 
     const nextPicks = [...draftPicks];
     nextPicks[lastPick.index] = null;
