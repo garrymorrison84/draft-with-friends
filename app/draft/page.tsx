@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getPool,
   getDraftPicks,
@@ -97,8 +97,6 @@ export default function DraftPage() {
     string[]
   >([]);
 
-  const optimisticDraftedNamesRef = useRef<Set<string>>(new Set());
-
   useEffect(() => {
     async function loadDraft() {
       const params = new URLSearchParams(window.location.search);
@@ -171,12 +169,6 @@ export default function DraftPage() {
     }
 
     loadDraft();
-
-    const interval = setInterval(() => {
-      loadDraft();
-    }, 3000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const draftedGolferNames = useMemo(() => {
@@ -185,23 +177,17 @@ export default function DraftPage() {
         .filter((pick): pick is DraftPick => pick !== null)
         .map((pick) => normalizeGolferName(pick.golfer.name)),
       ...optimisticDraftedNames.map((name) => normalizeGolferName(name)),
-      ...Array.from(optimisticDraftedNamesRef.current).map((name) =>
-        normalizeGolferName(name)
-      ),
     ]);
   }, [draftPicks, optimisticDraftedNames]);
 
-  const filteredAvailableGolfers = useMemo(() => {
+  const visibleGolfers = useMemo(() => {
     const search = normalizeGolferName(searchTerm);
 
     return allGolfers.filter((golfer) => {
       const normalizedName = normalizeGolferName(golfer.name);
-      const isAlreadyDrafted = draftedGolferNames.has(normalizedName);
-      const matchesSearch = !search || normalizedName.includes(search);
-
-      return !isAlreadyDrafted && matchesSearch;
+      return !search || normalizedName.includes(search);
     });
-  }, [allGolfers, draftedGolferNames, searchTerm]);
+  }, [allGolfers, searchTerm]);
 
   if (isLoading) {
     return (
@@ -243,8 +229,14 @@ export default function DraftPage() {
   const currentTeam =
     currentTeamIndex === null ? "Draft Complete" : teams[currentTeamIndex];
 
+  function isGolferTaken(golfer: Golfer) {
+    return draftedGolferNames.has(normalizeGolferName(golfer.name));
+  }
+
   function draftGolfer(golfer: Golfer) {
     if (draftComplete) return;
+    if (isGolferTaken(golfer)) return;
+
     setPendingGolfer(golfer);
   }
 
@@ -257,30 +249,46 @@ export default function DraftPage() {
 
     const golfer = pendingGolfer;
 
-    optimisticDraftedNamesRef.current.add(golfer.name);
+    if (isGolferTaken(golfer)) {
+      setPendingGolfer(null);
+      return;
+    }
 
-    setOptimisticDraftedNames((prev) =>
-      prev.includes(golfer.name) ? prev : [...prev, golfer.name]
-    );
+    const nextPickIndex = draftPicks.findIndex((pick) => pick === null);
+
+    if (nextPickIndex === -1) {
+      setPendingGolfer(null);
+      return;
+    }
+
+    const nextTeamIndex = getTeamIndexForPick(nextPickIndex, teams.length);
+    const nextTeam = teams[nextTeamIndex];
 
     const nextPick: DraftPick = {
-      team: currentTeam,
+      team: nextTeam,
       golfer,
-      pickIndex: currentPickIndex,
+      pickIndex: nextPickIndex,
     };
 
     const nextPicks = [...draftPicks];
-    nextPicks[currentPickIndex] = nextPick;
+    nextPicks[nextPickIndex] = nextPick;
 
     setDraftPicks(nextPicks);
+    setOptimisticDraftedNames((prev) =>
+      prev.some(
+        (name) => normalizeGolferName(name) === normalizeGolferName(golfer.name)
+      )
+        ? prev
+        : [...prev, golfer.name]
+    );
     setPendingGolfer(null);
 
     await saveDraftPick({
-      pool_id: pool!.id,
-      team: currentTeam,
+      pool_id: pool.id,
+      team: nextTeam,
       golfer_name: golfer.name,
       golfer_rank: golfer.rank,
-      pick_index: currentPickIndex,
+      pick_index: nextPickIndex,
     });
   }
 
@@ -295,18 +303,20 @@ export default function DraftPage() {
 
     if (!lastPick) return;
 
-    optimisticDraftedNamesRef.current.delete(lastPick.pick.golfer.name);
-
-    setOptimisticDraftedNames((prev) =>
-      prev.filter((name) => name !== lastPick.pick.golfer.name)
-    );
-
     const nextPicks = [...draftPicks];
     nextPicks[lastPick.index] = null;
 
     setDraftPicks(nextPicks);
 
-    await deleteLastDraftPick(pool!.id, lastPick.index);
+    setOptimisticDraftedNames((prev) =>
+      prev.filter(
+        (name) =>
+          normalizeGolferName(name) !==
+          normalizeGolferName(lastPick.pick.golfer.name)
+      )
+    );
+
+    await deleteLastDraftPick(pool.id, lastPick.index);
   }
 
   return (
@@ -367,7 +377,8 @@ export default function DraftPage() {
             <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers</h2>
 
             <p className="mt-2 text-sm text-slate-400">
-              Click Draft to select a golfer for the team on the clock.
+              Available golfers are highlighted. Taken golfers stay visible but
+              cannot be drafted again.
             </p>
 
             <input
@@ -379,28 +390,50 @@ export default function DraftPage() {
             />
 
             <div className="mt-4 max-h-[42vh] space-y-3 overflow-y-auto pr-1 lg:h-[calc(100vh-240px)] lg:max-h-none">
-              {filteredAvailableGolfers.map((golfer) => (
-                <button
-                  key={golfer.name}
-                  onClick={() => draftGolfer(golfer)}
-                  disabled={draftComplete}
-                  className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-900 p-3 text-left transition hover:border-emerald-400/50 hover:bg-emerald-400/10 disabled:cursor-not-allowed disabled:opacity-40 md:p-4"
-                >
-                  <div>
-                    <p className="text-sm font-bold leading-tight md:text-base">
-                      {golfer.name}
-                    </p>
+              {visibleGolfers.map((golfer) => {
+                const isTaken = isGolferTaken(golfer);
 
-                    <p className="mt-1 text-sm text-slate-400">
-                      {golfer.vegasOdds || "Odds TBD"}
-                    </p>
-                  </div>
+                return (
+                  <button
+                    key={golfer.name}
+                    onClick={() => draftGolfer(golfer)}
+                    disabled={draftComplete || isTaken}
+                    className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition md:p-4 ${
+                      isTaken
+                        ? "cursor-not-allowed border-white/5 bg-slate-950/60 opacity-45"
+                        : "border-emerald-400/30 bg-slate-900 hover:border-emerald-400/70 hover:bg-emerald-400/10"
+                    }`}
+                  >
+                    <div>
+                      <p
+                        className={`text-sm font-bold leading-tight md:text-base ${
+                          isTaken ? "text-slate-500 line-through" : "text-white"
+                        }`}
+                      >
+                        {golfer.name}
+                      </p>
 
-                  <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-xs">
-                    Draft
-                  </span>
-                </button>
-              ))}
+                      <p
+                        className={`mt-1 text-sm ${
+                          isTaken ? "text-slate-600" : "text-slate-400"
+                        }`}
+                      >
+                        {golfer.vegasOdds || "Odds TBD"}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
+                        isTaken
+                          ? "bg-slate-800 text-slate-500"
+                          : "bg-emerald-400/15 text-emerald-300"
+                      }`}
+                    >
+                      {isTaken ? "Taken" : "Draft"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </aside>
 
