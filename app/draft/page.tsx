@@ -67,7 +67,8 @@ function formatOdds(rawOdds: unknown) {
 }
 
 function getSortValue(golfer: any) {
-  const odds = golfer.odds ?? golfer.vegas_odds ?? golfer.rank ?? golfer.world_rank;
+  const odds =
+    golfer.odds ?? golfer.vegas_odds ?? golfer.rank ?? golfer.world_rank;
 
   const oddsNumber =
     typeof odds === "number"
@@ -83,6 +84,7 @@ export default function DraftPage() {
   const [draftPicks, setDraftPicks] = useState<(DraftPick | null)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
 
   useEffect(() => {
     async function loadDraft() {
@@ -223,35 +225,44 @@ export default function DraftPage() {
   const currentTeam =
     currentTeamIndex === null ? "Draft Complete" : teams[currentTeamIndex];
 
-  async function draftGolfer(golfer: Golfer) {
-  if (draftComplete) return;
+  function draftGolfer(golfer: Golfer) {
+    if (draftComplete) return;
+    setPendingGolfer(golfer);
+  }
 
-  const confirmed = window.confirm(`Draft ${golfer.name}?`);
+  function cancelDraftGolfer() {
+    setPendingGolfer(null);
+  }
 
-  if (!confirmed) return;
+  async function confirmDraftGolfer() {
+    if (!pendingGolfer || draftComplete) return;
 
-  const nextPick: DraftPick = {
-    team: currentTeam,
-    golfer,
-    pickIndex: currentPickIndex,
-  };
+    const golfer = pendingGolfer;
 
-  const nextPicks = [...draftPicks];
-  nextPicks[currentPickIndex] = nextPick;
+    const nextPick: DraftPick = {
+      team: currentTeam,
+      golfer,
+      pickIndex: currentPickIndex,
+    };
 
-  setDraftPicks(nextPicks);
-  setAvailableGolfers((prev) =>
-    prev.filter((player) => player.name !== golfer.name)
-  );
+    const nextPicks = [...draftPicks];
+    nextPicks[currentPickIndex] = nextPick;
 
-  await saveDraftPick({
-    pool_id: pool!.id,
-    team: currentTeam,
-    golfer_name: golfer.name,
-    golfer_rank: golfer.rank,
-    pick_index: currentPickIndex,
-  });
-}
+    setDraftPicks(nextPicks);
+    setAvailableGolfers((prev) =>
+      prev.filter((player) => player.name !== golfer.name)
+    );
+
+    setPendingGolfer(null);
+
+    await saveDraftPick({
+      pool_id: pool!.id,
+      team: currentTeam,
+      golfer_name: golfer.name,
+      golfer_rank: golfer.rank,
+      pick_index: currentPickIndex,
+    });
+  }
 
   async function undoLastPick() {
     const lastPick = [...draftPicks]
@@ -500,6 +511,40 @@ export default function DraftPage() {
           </section>
         </div>
       </div>
+
+      {pendingGolfer && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
+              Confirm Pick
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black text-white">
+              Draft {pendingGolfer.name}?
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-400">
+              This will add {pendingGolfer.name} to the current pick.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                onClick={cancelDraftGolfer}
+                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-white/10"
+              >
+                No
+              </button>
+
+              <button
+                onClick={confirmDraftGolfer}
+                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
