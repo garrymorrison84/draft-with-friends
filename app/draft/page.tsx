@@ -1,84 +1,3 @@
-useEffect(() => {
-  if (!pool) return;
-
-  const totalPicks = pool.draftOrder.length * pool.golfersPerTeam;
-  let isCancelled = false;
-
-  async function refreshDraftPicks() {
-    if (isSavingPick) return;
-
-    const savedPicks = await getDraftPicks(pool.id);
-
-    if (isCancelled) return;
-
-    const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
-
-    savedPicks.forEach((pick: any) => {
-      if (
-        typeof pick.pick_index === "number" &&
-        pick.pick_index >= 0 &&
-        pick.pick_index < totalPicks
-      ) {
-        picksArray[pick.pick_index] = {
-          team: pick.team,
-          golfer: {
-            name: pick.golfer_name,
-            rank: pick.golfer_rank ?? 999999,
-            vegasOdds: formatOdds(pick.golfer_rank),
-          },
-          pickIndex: pick.pick_index,
-        };
-      }
-    });
-
-    setDraftPicks(picksArray);
-  }
-
-  const interval = window.setInterval(refreshDraftPicks, 3000);
-
-  return () => {
-    isCancelled = true;
-    window.clearInterval(interval);
-  };
-}, [pool, isSavingPick]);
-What this does:
-Every 3 seconds, each user’s browser checks Supabase for new draft picks.
-If someone else drafts a golfer, your page updates automatically.
-The golfer becomes Taken.
-The draft board advances.
-It avoids refreshing while you are actively saving your own pick.
-Then deploy:
-git add app/draft/page.tsx
-git commit -m "Auto refresh draft picks across users"
-git push
-Longer term, Supabase realtime would be smoother, but this polling approach is the fastest reliable fix for launch.
-
-9:02 PM
-
-
-
-
-
-
-share the full new code
-
-
-
-
-9:03 PM
-
-
-
-
-
-
-Absolutely — replace the full contents of app/draft/page.tsx with this version.
-It includes:
-Travelers-only golfers
-Taken golfers marked immediately
-Confirmation modal
-Auto-refresh every 3 seconds so other people’s picks show up without a manual refresh
-No odds shown once a golfer is selected on the draft board
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -171,33 +90,6 @@ function getSortValue(golfer: any) {
   return Number.isFinite(oddsNumber) ? oddsNumber : 999999;
 }
 
-function buildDraftPicksArray(
-  savedPicks: any[],
-  totalPicks: number
-): (DraftPick | null)[] {
-  const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
-
-  savedPicks.forEach((pick: any) => {
-    if (
-      typeof pick.pick_index === "number" &&
-      pick.pick_index >= 0 &&
-      pick.pick_index < totalPicks
-    ) {
-      picksArray[pick.pick_index] = {
-        team: pick.team,
-        golfer: {
-          name: pick.golfer_name,
-          rank: pick.golfer_rank ?? 999999,
-          vegasOdds: formatOdds(pick.golfer_rank),
-        },
-        pickIndex: pick.pick_index,
-      };
-    }
-  });
-
-  return picksArray;
-}
-
 export default function DraftPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [allGolfers, setAllGolfers] = useState<Golfer[]>([]);
@@ -241,7 +133,27 @@ export default function DraftPage() {
         formattedPool.draftOrder.length * formattedPool.golfersPerTeam;
 
       const savedPicks = await getDraftPicks(formattedPool.id);
-      setDraftPicks(buildDraftPicksArray(savedPicks, totalPicks));
+      const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
+
+      savedPicks.forEach((pick: any) => {
+        if (
+          typeof pick.pick_index === "number" &&
+          pick.pick_index >= 0 &&
+          pick.pick_index < totalPicks
+        ) {
+          picksArray[pick.pick_index] = {
+            team: pick.team,
+            golfer: {
+              name: pick.golfer_name,
+              rank: pick.golfer_rank ?? 999999,
+              vegasOdds: formatOdds(pick.golfer_rank),
+            },
+            pickIndex: pick.pick_index,
+          };
+        }
+      });
+
+      setDraftPicks(picksArray);
 
       const golfers = await loadGolfers(CURRENT_EVENT_ID);
 
@@ -268,28 +180,14 @@ export default function DraftPage() {
   }, []);
 
   useEffect(() => {
-    if (!pool) return;
-
-    const totalPicks = pool.draftOrder.length * pool.golfersPerTeam;
-    let isCancelled = false;
-
-    async function refreshDraftPicks() {
-      if (isSavingPick) return;
-
-      const savedPicks = await getDraftPicks(pool.id);
-
-      if (isCancelled) return;
-
-      setDraftPicks(buildDraftPicksArray(savedPicks, totalPicks));
-    }
-
-    const interval = window.setInterval(refreshDraftPicks, 3000);
+    const interval = window.setInterval(() => {
+      window.location.reload();
+    }, 10000);
 
     return () => {
-      isCancelled = true;
       window.clearInterval(interval);
     };
-  }, [pool, isSavingPick]);
+  }, []);
 
   const draftedGolferNames = useMemo(() => {
     return new Set(
@@ -649,16 +547,16 @@ export default function DraftPage() {
                           </div>
 
                           {pick ? (
-                            <>
-                              <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
-                                Drafted
-                              </p>
+  <>
+    <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
+      Drafted
+    </p>
 
-                              <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
-                                {pick.golfer.name}
-                              </p>
-                            </>
-                          ) : (
+    <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
+      {pick.golfer.name}
+    </p>
+  </>
+) : (
                             <>
                               <p
                                 className={`pr-10 text-xs font-semibold md:pr-12 md:text-sm ${
