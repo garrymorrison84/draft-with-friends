@@ -182,7 +182,7 @@ export default function DraftPage() {
   useEffect(() => {
     const interval = window.setInterval(() => {
       window.location.reload();
-    }, 20000);
+    }, 40000);
 
     return () => {
       window.clearInterval(interval);
