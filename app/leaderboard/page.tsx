@@ -109,7 +109,7 @@ export default function LeaderboardPage() {
       const savedPicks = await getDraftPicks(formattedPool.id);
       setDraftPicks(savedPicks || []);
 
-      const scores = await getGolferScores("USOPEN2026");
+      const scores = await getGolferScores("TRAVELERS2026");
       setGolferScores(scores || []);
 
       setIsLoading(false);
