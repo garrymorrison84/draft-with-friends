@@ -1,28 +1,104 @@
 import { NextResponse } from "next/server";
 import { supabase } from "../../../lib/supabase";
 
+export const dynamic = "force-dynamic";
+
+type SupabaseGolfer = {
+  id: number;
+  event_id: string;
+  name: string;
+};
+
+type PreparedPlayer = {
+  supabaseGolfer: SupabaseGolfer;
+  sportsDataName: string;
+  sportsdata_total_score: number | null;
+  tournament_score: number | null;
+  round_1: number | null;
+  round_2: number | null;
+  round_3: number | null;
+  round_4: number | null;
+  completed_round_count: number;
+  has_weekend_score: boolean;
+};
+
+function cleanName(name: string) {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactName(name: string) {
+  return cleanName(name).replace(/\s+/g, "");
+}
+
+function nameKeys(name: string) {
+  const cleaned = cleanName(name);
+  const compact = cleaned.replace(/\s+/g, "");
+  const parts = cleaned.split(" ").filter(Boolean);
+
+  const keys = new Set<string>();
+  keys.add(compact);
+
+  // Handles "Sungjae Im" vs "Im Sung-jae"
+  // Handles "Si Woo Kim" vs "Kim Si-woo"
+  if (parts.length >= 2) {
+    keys.add([...parts].reverse().join(""));
+  }
+
+  // Handles initials like "J T Poston" vs "JT Poston"
+  if (parts.length >= 3 && parts[0].length === 1 && parts[1].length === 1) {
+    keys.add(`${parts[0]}${parts[1]}${parts.slice(2).join("")}`);
+  }
+
+  return Array.from(keys);
+}
+
+function asNumber(value: any): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function roundScoreToPar(round: any): number | null {
   if (!round) return null;
 
-  if (
-    typeof round.Score === "number" &&
-    typeof round.Par === "number" &&
-    round.Score > 0 &&
-    round.Par > 0
-  ) {
-    return round.Score - round.Par;
+  const score = asNumber(round.Score);
+  const par = asNumber(round.Par);
+
+  if (score !== null && par !== null && score > 0 && par > 0) {
+    return score - par;
+  }
+
+  const holes = Array.isArray(round.Holes) ? round.Holes : [];
+
+  if (holes.length > 0) {
+    const holePars = holes
+      .map((hole: any) => asNumber(hole.ToPar))
+      .filter((value: number | null): value is number => value !== null);
+
+    if (holePars.length > 0) {
+      return holePars.reduce((sum: number, value: number) => sum + value, 0);
+    }
   }
 
   return null;
 }
 
-function isValidScore(score: number | null) {
-  if (score === null) return false;
-  return Number.isInteger(score) && score >= -40 && score <= 80;
-}
+function completedRoundCount(rounds: any[]) {
+  return rounds.filter((round: any) => {
+    const score = asNumber(round.Score);
+    const holesPlayed = asNumber(round.HolesPlayed);
 
-function hasWeekendScore(round3: number | null, round4: number | null) {
-  return typeof round3 === "number" || typeof round4 === "number";
+    return (
+      (score !== null && score > 0) ||
+      (holesPlayed !== null && holesPlayed > 0) ||
+      (Array.isArray(round.Holes) && round.Holes.length > 0)
+    );
+  }).length;
 }
 
 export async function GET() {
@@ -35,25 +111,41 @@ export async function GET() {
     );
   }
 
-  const { data: activeEvent, error: eventError } = await supabase
+  const { data: activeEvent, error: activeEventError } = await supabase
     .from("events")
-    .select("id, name, sportsdata_tournament_id")
+    .select("*")
     .eq("is_active", true)
     .single();
 
-  if (eventError || !activeEvent) {
+  if (activeEventError || !activeEvent) {
     return NextResponse.json(
       {
         success: false,
         error: "No active golf event found in Supabase.",
-        details: eventError,
+        details: activeEventError,
       },
       { status: 500 }
     );
   }
 
-  const tournamentId = activeEvent.sportsdata_tournament_id;
   const eventId = activeEvent.id;
+  const tournamentId = activeEvent.sportsdata_tournament_id;
+
+  const { data: dbGolfers, error: golfersError } = await supabase
+    .from("golfers")
+    .select("id,event_id,name")
+    .eq("event_id", eventId);
+
+  if (golfersError || !dbGolfers) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Could not load golfers from Supabase.",
+        details: golfersError,
+      },
+      { status: 500 }
+    );
+  }
 
   const response = await fetch(
     `https://api.sportsdata.io/golf/v2/json/Leaderboard/${tournamentId}?key=${apiKey}`,
@@ -68,160 +160,197 @@ export async function GET() {
         status: response.status,
         statusText: response.statusText,
       },
-      { status: 502 }
+      { status: 500 }
     );
   }
 
   const data = await response.json();
-  const players = data.Players || [];
+  const players = Array.isArray(data.Players) ? data.Players : [];
 
-  const preparedPlayers = players.map((player: any) => {
-    const rounds = player.Rounds || [];
+  const golferByKey = new Map<string, SupabaseGolfer>();
+
+  for (const golfer of dbGolfers as SupabaseGolfer[]) {
+    for (const key of nameKeys(golfer.name)) {
+      golferByKey.set(key, golfer);
+    }
+  }
+
+  const preparedPlayers: PreparedPlayer[] = [];
+  const unmatchedSportsDataPlayers: any[] = [];
+
+  for (const player of players) {
+    const sportsDataName = player.Name;
+
+    if (!sportsDataName) continue;
+
+    let matchedGolfer: SupabaseGolfer | undefined;
+
+    for (const key of nameKeys(sportsDataName)) {
+      matchedGolfer = golferByKey.get(key);
+      if (matchedGolfer) break;
+    }
+
+    if (!matchedGolfer) {
+      unmatchedSportsDataPlayers.push({
+        sportsdata_name: sportsDataName,
+        keys: nameKeys(sportsDataName),
+      });
+      continue;
+    }
+
+    const rounds = Array.isArray(player.Rounds) ? player.Rounds : [];
 
     const round1 = roundScoreToPar(rounds.find((r: any) => r.Number === 1));
     const round2 = roundScoreToPar(rounds.find((r: any) => r.Number === 2));
     const round3 = roundScoreToPar(rounds.find((r: any) => r.Number === 3));
     const round4 = roundScoreToPar(rounds.find((r: any) => r.Number === 4));
 
-    const completedRoundScores = [round1, round2, round3, round4].filter(
-      (score): score is number => typeof score === "number"
-    );
+    const completed = completedRoundCount(rounds);
+    const calculatedTotal =
+      (round1 ?? 0) + (round2 ?? 0) + (round3 ?? 0) + (round4 ?? 0);
 
-    const rawTotal =
-      completedRoundScores.length > 0
-        ? completedRoundScores.reduce((sum, score) => sum + score, 0)
-        : null;
+    const sportsDataTotal = asNumber(player.TotalScore);
 
-    return {
-      name: player.Name,
-      sportsdata_total_score: player.TotalScore,
-      raw_total_score: rawTotal,
-      tournament_score: rawTotal,
+    const hasAnyScore =
+      sportsDataTotal !== null ||
+      round1 !== null ||
+      round2 !== null ||
+      round3 !== null ||
+      round4 !== null;
+
+    preparedPlayers.push({
+      supabaseGolfer: matchedGolfer,
+      sportsDataName,
+      sportsdata_total_score: sportsDataTotal,
+      tournament_score: hasAnyScore
+        ? sportsDataTotal ?? calculatedTotal
+        : null,
       round_1: round1,
       round_2: round2,
       round_3: round3,
       round_4: round4,
-      completed_round_count: completedRoundScores.length,
-      has_weekend_score: hasWeekendScore(round3, round4),
-    };
-  });
+      completed_round_count: completed,
+      has_weekend_score: round3 !== null || round4 !== null,
+    });
+  }
 
-  const playersWithScores = preparedPlayers.filter(
-    (player: any) => player.completed_round_count > 0
+  const scoredPlayers = preparedPlayers.filter(
+    (player) => player.tournament_score !== null
   );
 
-  const skippedPlayers = preparedPlayers.filter(
-    (player: any) => player.completed_round_count === 0
+  const weekendPlayers = scoredPlayers.filter(
+    (player) => player.has_weekend_score
   );
 
-  const weekendHasStarted = playersWithScores.some(
-    (player: any) => player.has_weekend_score
-  );
+  const worstMadeCutScore =
+    weekendPlayers.length > 0
+      ? Math.max(
+          ...weekendPlayers
+            .map((player) => player.tournament_score)
+            .filter((score): score is number => score !== null)
+        )
+      : null;
 
-  let worstMadeCutScore: number | null = null;
-  let cutPenaltyScore: number | null = null;
+  const cutPenaltyScore =
+    worstMadeCutScore !== null ? worstMadeCutScore + 1 : null;
 
-  const scoredPlayers = playersWithScores.map((player: any) => {
+  const finalPlayers = preparedPlayers.map((player) => {
+    const shouldApplyCutPenalty =
+      cutPenaltyScore !== null &&
+      player.completed_round_count >= 2 &&
+      !player.has_weekend_score &&
+      player.tournament_score !== null;
+
     return {
       ...player,
-      made_cut: weekendHasStarted ? player.has_weekend_score : true,
+      tournament_score: shouldApplyCutPenalty
+        ? cutPenaltyScore
+        : player.tournament_score,
     };
   });
 
-  if (weekendHasStarted) {
-    const madeCutPlayers = scoredPlayers.filter(
-      (player: any) =>
-        player.made_cut && typeof player.raw_total_score === "number"
-    );
+  const updates = [];
+  const errors: any[] = [];
+  const skippedPlayers: any[] = [];
 
-    if (madeCutPlayers.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          scoringVersion: "active-event-cut-penalty-v2",
-          error: "Weekend scoring started, but no made-cut players were found.",
-        },
-        { status: 422 }
-      );
+  for (const player of finalPlayers) {
+    if (player.tournament_score === null) {
+      skippedPlayers.push({
+        name: player.supabaseGolfer.name,
+        sportsdata_name: player.sportsDataName,
+        reason: "No usable score returned yet from SportsData",
+        round_1: player.round_1,
+        round_2: player.round_2,
+        round_3: player.round_3,
+        round_4: player.round_4,
+      });
+      continue;
     }
 
-    worstMadeCutScore = Math.max(
-      ...madeCutPlayers.map((player: any) => player.raw_total_score)
-    );
-
-    cutPenaltyScore = worstMadeCutScore + 1;
-  }
-
-  const finalPlayers = scoredPlayers.map((player: any) => {
-    if (weekendHasStarted && !player.made_cut && cutPenaltyScore !== null) {
-      return {
-        ...player,
-        tournament_score: cutPenaltyScore,
-      };
-    }
-
-    return player;
-  });
-
-  const invalidPlayers = finalPlayers.filter((player: any) => {
-    return !isValidScore(player.tournament_score);
-  });
-
-  if (invalidPlayers.length > 0) {
-    return NextResponse.json(
-      {
-        success: false,
-        scoringVersion: "active-event-cut-penalty-v2",
-        error: "Validation failed. No database updates were made.",
-        invalidCount: invalidPlayers.length,
-        invalidPlayers: invalidPlayers.slice(0, 25),
-      },
-      { status: 422 }
-    );
-  }
-
-  const updates = await Promise.all(
-    finalPlayers.map(async (player: any) => {
-      const { error } = await supabase
-        .from("golfers")
-        .update({
-          tournament_score: player.tournament_score,
-          round_1: player.round_1,
-          round_2: player.round_2,
-          round_3: player.round_3,
-          round_4: player.round_4,
-        })
-        .eq("event_id", eventId)
-        .eq("name", player.name);
-
-      return {
-        name: player.name,
+    const { error } = await supabase
+      .from("golfers")
+      .update({
         tournament_score: player.tournament_score,
-        raw_total_score: player.raw_total_score,
-        made_cut: player.made_cut,
-        error,
-      };
-    })
-  );
+        round_1: player.round_1,
+        round_2: player.round_2,
+        round_3: player.round_3,
+        round_4: player.round_4,
+      })
+      .eq("id", player.supabaseGolfer.id);
 
-  const errors = updates.filter((update: any) => update.error);
+    if (error) {
+      errors.push({
+        name: player.supabaseGolfer.name,
+        sportsdata_name: player.sportsDataName,
+        error: error.message,
+      });
+    } else {
+      updates.push(player);
+    }
+  }
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-cut-penalty-v2",
+    scoringVersion: "active-event-normalized-name-sync-v3",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
     eventId,
-    playerCount: players.length,
-    updatedCount: updates.length - errors.length,
+    sportsDataPlayerCount: players.length,
+    appGolferCount: dbGolfers.length,
+    updatedCount: updates.length,
     skippedCount: skippedPlayers.length,
-    skippedPlayers: skippedPlayers.slice(0, 20),
-    weekendHasStarted,
+    skippedPlayers: skippedPlayers.slice(0, 30),
+    unmatchedSportsDataCount: unmatchedSportsDataPlayers.length,
+    unmatchedSportsDataPlayers: unmatchedSportsDataPlayers.slice(0, 30),
     worstMadeCutScore,
     cutPenaltyScore,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
+    watchedPlayers: finalPlayers
+      .filter((player) =>
+        [
+          "J.T. Poston",
+          "JT Poston",
+          "Sungjae Im",
+          "Si Woo Kim",
+          "Nico Echavarria",
+          "Ben James",
+          "Alex Noren",
+        ].includes(player.supabaseGolfer.name)
+      )
+      .map((player) => ({
+        name: player.supabaseGolfer.name,
+        sportsdata_name: player.sportsDataName,
+        sportsdata_total_score: player.sportsdata_total_score,
+        tournament_score: player.tournament_score,
+        round_1: player.round_1,
+        round_2: player.round_2,
+        round_3: player.round_3,
+        round_4: player.round_4,
+        completed_round_count: player.completed_round_count,
+        has_weekend_score: player.has_weekend_score,
+      })),
     updatedAt: new Date().toISOString(),
   });
 }
