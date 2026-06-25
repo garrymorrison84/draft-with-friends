@@ -90,6 +90,33 @@ function getSortValue(golfer: any) {
   return Number.isFinite(oddsNumber) ? oddsNumber : 999999;
 }
 
+function buildDraftPicksArray(
+  savedPicks: any[],
+  totalPicks: number
+): (DraftPick | null)[] {
+  const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
+
+  savedPicks.forEach((pick: any) => {
+    if (
+      typeof pick.pick_index === "number" &&
+      pick.pick_index >= 0 &&
+      pick.pick_index < totalPicks
+    ) {
+      picksArray[pick.pick_index] = {
+        team: pick.team,
+        golfer: {
+          name: pick.golfer_name,
+          rank: pick.golfer_rank ?? 999999,
+          vegasOdds: formatOdds(pick.golfer_rank),
+        },
+        pickIndex: pick.pick_index,
+      };
+    }
+  });
+
+  return picksArray;
+}
+
 export default function DraftPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [allGolfers, setAllGolfers] = useState<Golfer[]>([]);
@@ -133,27 +160,7 @@ export default function DraftPage() {
         formattedPool.draftOrder.length * formattedPool.golfersPerTeam;
 
       const savedPicks = await getDraftPicks(formattedPool.id);
-      const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
-
-      savedPicks.forEach((pick: any) => {
-        if (
-          typeof pick.pick_index === "number" &&
-          pick.pick_index >= 0 &&
-          pick.pick_index < totalPicks
-        ) {
-          picksArray[pick.pick_index] = {
-            team: pick.team,
-            golfer: {
-              name: pick.golfer_name,
-              rank: pick.golfer_rank ?? 999999,
-              vegasOdds: formatOdds(pick.golfer_rank),
-            },
-            pickIndex: pick.pick_index,
-          };
-        }
-      });
-
-      setDraftPicks(picksArray);
+      setDraftPicks(buildDraftPicksArray(savedPicks, totalPicks));
 
       const golfers = await loadGolfers(CURRENT_EVENT_ID);
 
@@ -178,6 +185,30 @@ export default function DraftPage() {
 
     loadDraft();
   }, []);
+
+  useEffect(() => {
+    if (!pool) return;
+
+    const totalPicks = pool.draftOrder.length * pool.golfersPerTeam;
+    let isCancelled = false;
+
+    async function refreshDraftPicks() {
+      if (isSavingPick) return;
+
+      const savedPicks = await getDraftPicks(pool.id);
+
+      if (isCancelled) return;
+
+      setDraftPicks(buildDraftPicksArray(savedPicks, totalPicks));
+    }
+
+    const interval = window.setInterval(refreshDraftPicks, 3000);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [pool, isSavingPick]);
 
   const draftedGolferNames = useMemo(() => {
     return new Set(
@@ -537,16 +568,16 @@ export default function DraftPage() {
                           </div>
 
                           {pick ? (
-  <>
-    <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
-      Drafted
-    </p>
+                            <>
+                              <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
+                                Drafted
+                              </p>
 
-    <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
-      {pick.golfer.name}
-    </p>
-  </>
-) : (
+                              <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
+                                {pick.golfer.name}
+                              </p>
+                            </>
+                          ) : (
                             <>
                               <p
                                 className={`pr-10 text-xs font-semibold md:pr-12 md:text-sm ${
