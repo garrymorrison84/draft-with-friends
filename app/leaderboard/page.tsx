@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
 
   async function syncScores() {
     setIsSyncing(true);
-    await fetch("/api/sync-sportsdata-scores");
+    await fetch("/api/scoring/sync");
     window.location.reload();
   }
 
