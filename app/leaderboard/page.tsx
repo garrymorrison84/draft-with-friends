@@ -38,6 +38,13 @@ function formatScore(score: number) {
   return score.toString();
 }
 
+function formatRoundScore(score: number | null | undefined) {
+  if (score === null || score === undefined) return "-";
+  if (score > 0) return `+${score}`;
+  if (score === 0) return "E";
+  return score.toString();
+}
+
 function getRankMap(scores: GolferScoreRow[]) {
   const sorted = [...scores]
     .filter((g) => typeof g.tournament_score === "number")
@@ -155,10 +162,10 @@ export default function LeaderboardPage() {
         return {
           name: pick.golfer_name,
           rank: rankMap.get(pick.golfer_name) || "-",
-          round1: scoreData?.round_1 ?? 0,
-          round2: scoreData?.round_2 ?? 0,
-          round3: scoreData?.round_3 ?? 0,
-          round4: scoreData?.round_4 ?? 0,
+          round1: scoreData?.round_1 ?? null,
+          round2: scoreData?.round_2 ?? null,
+          round3: scoreData?.round_3 ?? null,
+          round4: scoreData?.round_4 ?? null,
           total: scoreData?.tournament_score ?? 0,
         };
       })
@@ -245,37 +252,59 @@ export default function LeaderboardPage() {
                 </p>
               </div>
 
-              <div className="space-y-0">
-                <div className="grid grid-cols-[42px_1fr_44px] border-b border-white/10 py-1 text-[10px] font-black uppercase text-slate-400">
-                  <p>Pos</p>
-                  <p>Golfer</p>
-                  <p className="text-right">Tot</p>
-                </div>
+              <div className="overflow-x-auto">
+                <div className="min-w-[560px]">
+                  <div className="grid grid-cols-[42px_1fr_42px_42px_42px_42px_50px] border-b border-white/10 py-1 text-[10px] font-black uppercase text-slate-400">
+                    <p>Pos</p>
+                    <p>Golfer</p>
+                    <p className="text-right">R1</p>
+                    <p className="text-right">R2</p>
+                    <p className="text-right">R3</p>
+                    <p className="text-right">R4</p>
+                    <p className="text-right">Tot</p>
+                  </div>
 
-                {team.golfers.map((golfer) => {
-                  const isCounting = team.countingGolferNames.includes(
-                    golfer.name
-                  );
+                  {team.golfers.map((golfer) => {
+                    const isCounting = team.countingGolferNames.includes(
+                      golfer.name
+                    );
 
-                  return (
-                    <div
-                      key={`${team.name}-${golfer.name}`}
-                      className={`grid grid-cols-[42px_1fr_44px] items-center border-b border-white/5 py-1.5 text-sm last:border-0 ${
-                        isCounting ? "text-white" : "text-slate-500 line-through"
-                      }`}
-                    >
-                      <p className="font-bold text-slate-400">{golfer.rank}</p>
-                      <p className="truncate font-semibold">{golfer.name}</p>
-                      <p
-                        className={`text-right font-black ${
-                          isCounting ? "text-emerald-300" : "text-slate-500"
+                    return (
+                      <div
+                        key={`${team.name}-${golfer.name}`}
+                        className={`grid grid-cols-[42px_1fr_42px_42px_42px_42px_50px] items-center border-b border-white/5 py-1.5 text-sm last:border-0 ${
+                          isCounting
+                            ? "text-white"
+                            : "text-slate-500 line-through"
                         }`}
                       >
-                        {formatScore(golfer.total)}
-                      </p>
-                    </div>
-                  );
-                })}
+                        <p className="font-bold text-slate-400">
+                          {golfer.rank}
+                        </p>
+                        <p className="truncate font-semibold">{golfer.name}</p>
+                        <p className="text-right font-bold">
+                          {formatRoundScore(golfer.round1)}
+                        </p>
+                        <p className="text-right font-bold">
+                          {formatRoundScore(golfer.round2)}
+                        </p>
+                        <p className="text-right font-bold">
+                          {formatRoundScore(golfer.round3)}
+                        </p>
+                        <p className="text-right font-bold">
+                          {formatRoundScore(golfer.round4)}
+                        </p>
+                        <p
+                          className={`text-right font-black ${
+                            isCounting ? "text-emerald-300" : "text-slate-500"
+                          }`}
+                        >
+                          {formatScore(golfer.total)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ))}
@@ -326,7 +355,11 @@ export default function LeaderboardPage() {
                     <tr>
                       <th className="w-[52px] py-2 pr-2">Pos</th>
                       <th className="py-2 pr-2">Player</th>
-                      <th className="w-[58px] py-2 text-right">Total</th>
+                      <th className="w-[52px] py-2 text-right">R1</th>
+                      <th className="w-[52px] py-2 text-right">R2</th>
+                      <th className="w-[52px] py-2 text-right">R3</th>
+                      <th className="w-[52px] py-2 text-right">R4</th>
+                      <th className="w-[68px] py-2 text-right">Total</th>
                     </tr>
                   </thead>
 
@@ -350,6 +383,18 @@ export default function LeaderboardPage() {
                           </td>
                           <td className="truncate py-2 pr-2 font-bold">
                             {golfer.name}
+                          </td>
+                          <td className="py-2 text-right font-bold">
+                            {formatRoundScore(golfer.round1)}
+                          </td>
+                          <td className="py-2 text-right font-bold">
+                            {formatRoundScore(golfer.round2)}
+                          </td>
+                          <td className="py-2 text-right font-bold">
+                            {formatRoundScore(golfer.round3)}
+                          </td>
+                          <td className="py-2 text-right font-bold">
+                            {formatRoundScore(golfer.round4)}
                           </td>
                           <td
                             className={`py-2 text-right font-black ${
