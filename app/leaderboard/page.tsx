@@ -15,7 +15,6 @@ type Pool = {
 };
 
 type DraftPickRow = {
-  id: number;
   pool_id: string;
   team: string;
   golfer_name: string;
@@ -32,6 +31,35 @@ type GolferScoreRow = {
   round_4: number | null;
 };
 
+type TeamGolfer = {
+  name: string;
+  rank: number;
+  position: string;
+  round1: number | null;
+  round2: number | null;
+  round3: number | null;
+  round4: number | null;
+  total: number;
+  hasScore: boolean;
+  counts: boolean;
+};
+
+type TeamResult = {
+  teamName: string;
+  total: number;
+  golfers: TeamGolfer[];
+};
+
+const CURRENT_EVENT_ID = "TRAVELERS2026";
+
+function normalizeName(name: string) {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
 function formatScore(score: number) {
   if (score > 0) return `+${score}`;
   if (score === 0) return "E";
@@ -46,28 +74,29 @@ function formatRoundScore(score: number | null | undefined) {
 }
 
 function getRankMap(scores: GolferScoreRow[]) {
-  const sorted = [...scores]
-    .filter((g) => typeof g.tournament_score === "number")
+  const validScores = scores
+    .filter((score) => typeof score.tournament_score === "number")
     .sort((a, b) => (a.tournament_score ?? 0) - (b.tournament_score ?? 0));
 
-  const map = new Map<string, string>();
+  const rankMap: Record<string, string> = {};
+  let previousScore: number | null = null;
+  let previousRank = 0;
 
-  sorted.forEach((golfer) => {
-    const score = golfer.tournament_score ?? 0;
-    const firstIndex = sorted.findIndex(
-      (g) => (g.tournament_score ?? 0) === score
-    );
-    const sameScoreCount = sorted.filter(
-      (g) => (g.tournament_score ?? 0) === score
+  validScores.forEach((score, index) => {
+    const currentScore = score.tournament_score ?? 0;
+    const rank = currentScore === previousScore ? previousRank : index + 1;
+
+    previousScore = currentScore;
+    previousRank = rank;
+
+    const tiedCount = validScores.filter(
+      (item) => item.tournament_score === currentScore
     ).length;
 
-    map.set(
-      golfer.name,
-      sameScoreCount > 1 ? `T${firstIndex + 1}` : `${firstIndex + 1}`
-    );
+    rankMap[normalizeName(score.name)] = tiedCount > 1 ? `T${rank}` : `${rank}`;
   });
 
-  return map;
+  return rankMap;
 }
 
 export default function LeaderboardPage() {
@@ -77,344 +106,353 @@ export default function LeaderboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  async function syncScores() {
-    setIsSyncing(true);
-    await fetch("/api/scoring/sync");
-    window.location.reload();
+  async function loadLeaderboard() {
+    const params = new URLSearchParams(window.location.search);
+    const poolId = params.get("id");
+
+    if (!poolId) {
+      setIsLoading(false);
+      return;
+    }
+
+    const savedPool = await getPool(poolId);
+
+    if (!savedPool) {
+      setIsLoading(false);
+      return;
+    }
+
+    const formattedPool: Pool = {
+      id: savedPool.id,
+      poolName: savedPool.pool_name,
+      golfEvent: savedPool.golf_event,
+      numberOfTeams: savedPool.number_of_teams,
+      golfersPerTeam: savedPool.golfers_per_team,
+      scoresToCount: savedPool.scores_to_count,
+      teamNames: savedPool.team_names || [],
+      draftOrder: savedPool.draft_order || [],
+    };
+
+    setPool(formattedPool);
+
+    const savedPicks = await getDraftPicks(formattedPool.id);
+    setDraftPicks(savedPicks || []);
+
+    const scores = await getGolferScores(CURRENT_EVENT_ID);
+    setGolferScores(scores || []);
+
+    setIsLoading(false);
   }
 
   useEffect(() => {
-    async function loadLeaderboard() {
-      const params = new URLSearchParams(window.location.search);
-      const poolId = params.get("id");
-
-      if (!poolId) {
-        setIsLoading(false);
-        return;
-      }
-
-      const savedPool = await getPool(poolId);
-
-      if (!savedPool) {
-        setIsLoading(false);
-        return;
-      }
-
-      const formattedPool: Pool = {
-        id: savedPool.id,
-        poolName: savedPool.pool_name,
-        golfEvent: savedPool.golf_event,
-        numberOfTeams: savedPool.number_of_teams,
-        golfersPerTeam: savedPool.golfers_per_team,
-        scoresToCount: savedPool.scores_to_count,
-        teamNames: savedPool.team_names,
-        draftOrder: savedPool.draft_order,
-      };
-
-      setPool(formattedPool);
-
-      const savedPicks = await getDraftPicks(formattedPool.id);
-      setDraftPicks(savedPicks || []);
-
-      const scores = await getGolferScores("TRAVELERS2026");
-      setGolferScores(scores || []);
-
-      setIsLoading(false);
-    }
-
     loadLeaderboard();
-    const interval = setInterval(loadLeaderboard, 3000);
-    return () => clearInterval(interval);
+
+    const interval = window.setInterval(() => {
+      loadLeaderboard();
+    }, 3000);
+
+    return () => window.clearInterval(interval);
   }, []);
+
+  async function syncScores() {
+    setIsSyncing(true);
+
+    try {
+      await fetch(`/api/scoring/sync?ts=${Date.now()}`, {
+        cache: "no-store",
+      });
+
+      await loadLeaderboard();
+    } catch (error) {
+      console.error("Failed to sync scores:", error);
+      alert("Score refresh failed. Try again in a minute.");
+    } finally {
+      setIsSyncing(false);
+    }
+  }
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
-        <div className="px-4 py-8">
-          <h1 className="text-2xl font-black">Loading leaderboard...</h1>
-        </div>
+      <main className="min-h-screen bg-[#020617] px-5 py-10 text-white">
+        <p className="text-slate-400">Loading leaderboard...</p>
       </main>
     );
   }
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
-        <div className="px-4 py-8">
-          <h1 className="text-2xl font-black">No pool found</h1>
-          <a href="/create-pool" className="mt-4 inline-block text-emerald-300">
-            Create a pool →
-          </a>
-        </div>
+      <main className="min-h-screen bg-[#020617] px-5 py-10 text-white">
+        <p className="text-slate-400">Pool not found.</p>
       </main>
     );
   }
 
-  const scoreMap = new Map(golferScores.map((golfer) => [golfer.name, golfer]));
+  const scoreMap: Record<string, GolferScoreRow> = {};
+
+  golferScores.forEach((score) => {
+    scoreMap[normalizeName(score.name)] = score;
+  });
+
   const rankMap = getRankMap(golferScores);
 
-  const teamsWithGolfers = pool.draftOrder.map((team) => {
-    const golfers = draftPicks
-      .filter((pick) => pick.team === team)
-      .map((pick) => {
-        const scoreData = scoreMap.get(pick.golfer_name);
+  const teamsWithGolfers: TeamResult[] = pool.teamNames.map((teamName) => {
+    const teamPicks = draftPicks
+      .filter((pick) => pick.team === teamName)
+      .sort((a, b) => a.pick_index - b.pick_index);
 
-        return {
-          name: pick.golfer_name,
-          rank: rankMap.get(pick.golfer_name) || "-",
-          round1: scoreData?.round_1 ?? null,
-          round2: scoreData?.round_2 ?? null,
-          round3: scoreData?.round_3 ?? null,
-          round4: scoreData?.round_4 ?? null,
-          total: scoreData?.tournament_score ?? 0,
-        };
-      })
-      .sort((a, b) => a.total - b.total);
+    const rawGolfers = teamPicks.map((pick) => {
+      const scoreData = scoreMap[normalizeName(pick.golfer_name)];
+      const hasScore = typeof scoreData?.tournament_score === "number";
 
-    const countingGolfers = [...golfers]
-      .sort((a, b) => a.total - b.total)
-      .slice(0, pool.scoresToCount);
+      return {
+        name: pick.golfer_name,
+        rank: pick.golfer_rank,
+        position: scoreData ? rankMap[normalizeName(scoreData.name)] || "-" : "-",
+        round1: scoreData?.round_1 ?? null,
+        round2: scoreData?.round_2 ?? null,
+        round3: scoreData?.round_3 ?? null,
+        round4: scoreData?.round_4 ?? null,
+        total: hasScore ? scoreData.tournament_score ?? 0 : 0,
+        hasScore,
+        counts: false,
+      };
+    });
 
-    const teamTotal = countingGolfers.reduce((sum, g) => sum + g.total, 0);
+    const sortedForScoring = [...rawGolfers].sort((a, b) => {
+      if (a.hasScore !== b.hasScore) return a.hasScore ? -1 : 1;
+      return a.total - b.total;
+    });
+
+    const scoringNames = new Set(
+      sortedForScoring
+        .filter((golfer) => golfer.hasScore)
+        .slice(0, pool.scoresToCount)
+        .map((golfer) => normalizeName(golfer.name))
+    );
+
+    const golfers = rawGolfers
+      .map((golfer) => ({
+        ...golfer,
+        counts: scoringNames.has(normalizeName(golfer.name)),
+      }))
+      .sort((a, b) => {
+        if (a.counts !== b.counts) return a.counts ? -1 : 1;
+        if (a.hasScore !== b.hasScore) return a.hasScore ? -1 : 1;
+        return a.total - b.total;
+      });
+
+    const total = golfers
+      .filter((golfer) => golfer.counts)
+      .reduce((sum, golfer) => sum + golfer.total, 0);
 
     return {
-      name: team,
+      teamName,
+      total,
       golfers,
-      countingGolferNames: countingGolfers.map((g) => g.name),
-      total: teamTotal,
     };
   });
 
-  const sortedTeams = [...teamsWithGolfers].sort((a, b) => a.total - b.total);
+  const rankedTeams = [...teamsWithGolfers].sort((a, b) => a.total - b.total);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto max-w-[1500px] px-3 py-4 md:px-6 md:py-8">
-        <div className="mb-4">
-          <p className="text-xs font-bold text-emerald-300">Live Standings</p>
-          <h1 className="text-3xl font-black md:text-5xl">Leaderboard</h1>
-          <p className="mt-1 text-xs text-slate-400 md:text-base">
+    <main className="min-h-screen bg-[#020617] px-4 py-6 text-white sm:px-6 lg:px-10">
+      <section className="mx-auto max-w-7xl">
+        <div className="mb-7">
+          <p className="mb-2 text-sm font-extrabold text-emerald-400 sm:text-base">
+            Live Standings
+          </p>
+
+          <h1 className="text-5xl font-black tracking-tight sm:text-6xl lg:text-7xl">
+            Leaderboard
+          </h1>
+
+          <p className="mt-3 text-lg font-semibold text-slate-400 sm:text-2xl">
             {pool.golfEvent} • Draft {pool.golfersPerTeam} golfers • Best{" "}
             {pool.scoresToCount} scores count
           </p>
 
-          <div className="mt-3 flex gap-2">
+          <div className="mt-6 flex flex-wrap gap-3">
             <button
               onClick={syncScores}
               disabled={isSyncing}
-              className="rounded-lg bg-emerald-400 px-3 py-2 text-xs font-bold text-slate-950 disabled:opacity-50"
+              className="rounded-xl bg-emerald-400 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSyncing ? "Updating..." : "Refresh"}
+              {isSyncing ? "Refreshing..." : "Refresh"}
             </button>
 
-            <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-bold text-emerald-300">
+            <a
+              href={`/pool?id=${pool.id}`}
+              className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-base font-black text-emerald-300 transition hover:bg-emerald-400/20"
+            >
               {pool.poolName}
-            </div>
+            </a>
           </div>
         </div>
 
-        {/* MOBILE */}
-        <section className="space-y-3 md:hidden">
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
-            <h2 className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">
+        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+          <aside className="rounded-2xl border border-slate-700 bg-slate-900/60 p-5">
+            <h2 className="mb-4 text-xl font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
 
-            {sortedTeams.map((team, index) => (
-              <div
-                key={team.name}
-                className="grid grid-cols-[28px_1fr_54px] items-center border-b border-white/10 py-2 last:border-0"
-              >
-                <p className="text-sm font-bold text-slate-400">{index + 1}</p>
-                <p className="text-base font-black">{team.name}</p>
-                <p className="text-right text-base font-black text-emerald-300">
-                  {formatScore(team.total)}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {sortedTeams.map((team, index) => (
-            <div
-              key={team.name}
-              className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
-            >
-              <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-black text-slate-400">
-                    {index + 1}
-                  </span>
-                  <h2 className="text-2xl font-black">{team.name}</h2>
-                </div>
-
-                <p className="text-2xl font-black text-emerald-300">
-                  {formatScore(team.total)}
-                </p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <div className="min-w-[560px]">
-                  <div className="grid grid-cols-[42px_1fr_42px_42px_42px_42px_50px] border-b border-white/10 py-1 text-[10px] font-black uppercase text-slate-400">
-                    <p>Pos</p>
-                    <p>Golfer</p>
-                    <p className="text-right">R1</p>
-                    <p className="text-right">R2</p>
-                    <p className="text-right">R3</p>
-                    <p className="text-right">R4</p>
-                    <p className="text-right">Tot</p>
-                  </div>
-
-                  {team.golfers.map((golfer) => {
-                    const isCounting = team.countingGolferNames.includes(
-                      golfer.name
-                    );
-
-                    return (
-                      <div
-                        key={`${team.name}-${golfer.name}`}
-                        className={`grid grid-cols-[42px_1fr_42px_42px_42px_42px_50px] items-center border-b border-white/5 py-1.5 text-sm last:border-0 ${
-                          isCounting
-                            ? "text-white"
-                            : "text-slate-500 line-through"
-                        }`}
-                      >
-                        <p className="font-bold text-slate-400">
-                          {golfer.rank}
-                        </p>
-                        <p className="truncate font-semibold">{golfer.name}</p>
-                        <p className="text-right font-bold">
-                          {formatRoundScore(golfer.round1)}
-                        </p>
-                        <p className="text-right font-bold">
-                          {formatRoundScore(golfer.round2)}
-                        </p>
-                        <p className="text-right font-bold">
-                          {formatRoundScore(golfer.round3)}
-                        </p>
-                        <p className="text-right font-bold">
-                          {formatRoundScore(golfer.round4)}
-                        </p>
-                        <p
-                          className={`text-right font-black ${
-                            isCounting ? "text-emerald-300" : "text-slate-500"
-                          }`}
-                        >
-                          {formatScore(golfer.total)}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        {/* DESKTOP */}
-        <section className="hidden gap-4 md:grid xl:grid-cols-[320px_1fr]">
-          <aside className="self-start rounded-2xl border border-white/10 bg-white/[0.04] p-3 xl:sticky xl:top-6">
-            <h2 className="mb-3 text-sm font-black uppercase tracking-wide text-slate-400">
-              Leaderboard
-            </h2>
-
-            {sortedTeams.map((team, index) => (
-              <div
-                key={team.name}
-                className="grid grid-cols-[32px_1fr_70px] items-center border-b border-white/5 py-2 text-sm last:border-0"
-              >
-                <p className="font-bold text-slate-400">{index + 1}</p>
-                <p className="text-xl font-black">{team.name}</p>
-                <p className="text-right text-xl font-black text-emerald-300">
-                  {formatScore(team.total)}
-                </p>
-              </div>
-            ))}
-          </aside>
-
-          <div className="space-y-3">
-            {sortedTeams.map((team, index) => (
-              <div
-                key={team.name}
-                className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"
-              >
-                <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl font-black text-slate-400">
+            <div className="space-y-1">
+              {rankedTeams.map((team, index) => (
+                <div
+                  key={team.teamName}
+                  className="flex items-center justify-between border-b border-slate-800 py-4 last:border-b-0"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-lg font-black text-slate-400">
                       {index + 1}
                     </span>
-                    <h2 className="text-3xl font-black">{team.name}</h2>
+                    <span className="text-2xl font-black">{team.teamName}</span>
                   </div>
 
-                  <p className="text-3xl font-black text-emerald-300">
+                  <span className="text-2xl font-black text-emerald-300">
                     {formatScore(team.total)}
-                  </p>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          <section className="space-y-5">
+            {rankedTeams.map((team, teamIndex) => (
+              <article
+                key={team.teamName}
+                className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-5"
+              >
+                <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-700 pb-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="text-4xl font-black text-slate-400 sm:text-5xl">
+                      {teamIndex + 1}
+                    </span>
+                    <h2 className="min-w-0 truncate text-4xl font-black sm:text-5xl">
+                      {team.teamName}
+                    </h2>
+                  </div>
+
+                  <span className="shrink-0 text-4xl font-black text-emerald-300 sm:text-5xl">
+                    {formatScore(team.total)}
+                  </span>
                 </div>
 
-                <table className="w-full table-fixed text-left text-sm">
-                  <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
-                    <tr>
-                      <th className="w-[52px] py-2 pr-2">Pos</th>
-                      <th className="py-2 pr-2">Player</th>
-                      <th className="w-[52px] py-2 text-right">R1</th>
-                      <th className="w-[52px] py-2 text-right">R2</th>
-                      <th className="w-[52px] py-2 text-right">R3</th>
-                      <th className="w-[52px] py-2 text-right">R4</th>
-                      <th className="w-[68px] py-2 text-right">Total</th>
-                    </tr>
-                  </thead>
+                <div className="hidden md:block">
+                  <div className="grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] border-b border-slate-700 pb-3 text-sm font-black uppercase tracking-wide text-slate-400">
+                    <div>Pos</div>
+                    <div>Golfer</div>
+                    <div className="text-right">R1</div>
+                    <div className="text-right">R2</div>
+                    <div className="text-right">R3</div>
+                    <div className="text-right">R4</div>
+                    <div className="text-right">Total</div>
+                  </div>
 
-                  <tbody>
-                    {team.golfers.map((golfer) => {
-                      const isCounting = team.countingGolferNames.includes(
-                        golfer.name
-                      );
+                  <div>
+                    {team.golfers.map((golfer, golferIndex) => (
+                      <div
+                        key={`${team.teamName}-${golfer.name}-${golferIndex}`}
+                        className={`grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center border-b border-slate-800 py-3 last:border-b-0 ${
+                          golfer.counts ? "text-white" : "text-slate-500 line-through"
+                        }`}
+                      >
+                        <div className="text-lg font-black text-slate-400">
+                          {golfer.position}
+                        </div>
 
-                      return (
-                        <tr
-                          key={`${team.name}-${golfer.name}`}
-                          className={`border-b border-white/5 last:border-0 ${
-                            isCounting
-                              ? "text-white"
-                              : "text-slate-500 line-through"
-                          }`}
-                        >
-                          <td className="py-2 pr-2 font-bold text-slate-400">
-                            {golfer.rank}
-                          </td>
-                          <td className="truncate py-2 pr-2 font-bold">
+                        <div className="text-lg font-black">{golfer.name}</div>
+
+                        <div className="text-right font-bold">
+                          {formatRoundScore(golfer.round1)}
+                        </div>
+
+                        <div className="text-right font-bold">
+                          {formatRoundScore(golfer.round2)}
+                        </div>
+
+                        <div className="text-right font-bold">
+                          {formatRoundScore(golfer.round3)}
+                        </div>
+
+                        <div className="text-right font-bold">
+                          {formatRoundScore(golfer.round4)}
+                        </div>
+
+                        <div className="text-right text-lg font-black text-emerald-300">
+                          {golfer.hasScore ? formatScore(golfer.total) : "E"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:hidden">
+                  <div className="grid grid-cols-[64px_1fr_72px] border-b border-slate-700 pb-3 text-sm font-black uppercase tracking-wide text-slate-400">
+                    <div>Pos</div>
+                    <div>Golfer</div>
+                    <div className="text-right">Total</div>
+                  </div>
+
+                  <div className="space-y-3 pt-3">
+                    {team.golfers.map((golfer, golferIndex) => (
+                      <div
+                        key={`${team.teamName}-${golfer.name}-${golferIndex}`}
+                        className={`rounded-xl border border-slate-800 bg-slate-950/30 p-3 ${
+                          golfer.counts ? "text-white" : "text-slate-500 line-through"
+                        }`}
+                      >
+                        <div className="grid grid-cols-[64px_1fr_72px] items-center gap-2">
+                          <div className="text-lg font-black text-slate-400">
+                            {golfer.position}
+                          </div>
+
+                          <div className="min-w-0 truncate text-lg font-black">
                             {golfer.name}
-                          </td>
-                          <td className="py-2 text-right font-bold">
-                            {formatRoundScore(golfer.round1)}
-                          </td>
-                          <td className="py-2 text-right font-bold">
-                            {formatRoundScore(golfer.round2)}
-                          </td>
-                          <td className="py-2 text-right font-bold">
-                            {formatRoundScore(golfer.round3)}
-                          </td>
-                          <td className="py-2 text-right font-bold">
-                            {formatRoundScore(golfer.round4)}
-                          </td>
-                          <td
-                            className={`py-2 text-right font-black ${
-                              isCounting
-                                ? "text-emerald-300"
-                                : "text-slate-500"
-                            }`}
-                          >
-                            {formatScore(golfer.total)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </div>
+
+                          <div className="text-right text-xl font-black text-emerald-300">
+                            {golfer.hasScore ? formatScore(golfer.total) : "E"}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs font-black uppercase tracking-wide text-slate-400 no-underline">
+                          <div>
+                            <div>R1</div>
+                            <div className="mt-1 text-sm text-slate-200">
+                              {formatRoundScore(golfer.round1)}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div>R2</div>
+                            <div className="mt-1 text-sm text-slate-200">
+                              {formatRoundScore(golfer.round2)}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div>R3</div>
+                            <div className="mt-1 text-sm text-slate-200">
+                              {formatRoundScore(golfer.round3)}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div>R4</div>
+                            <div className="mt-1 text-sm text-slate-200">
+                              {formatRoundScore(golfer.round4)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </article>
             ))}
-          </div>
-        </section>
-      </div>
+          </section>
+        </div>
+      </section>
     </main>
   );
 }
