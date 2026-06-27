@@ -305,10 +305,10 @@ export default function LeaderboardPage() {
                     <span className="text-lg font-black text-slate-400">
                       {index + 1}
                     </span>
-                    <span className="text-2xl font-black">{team.teamName}</span>
+                    <span className="text-lg font-black sm:text-xl">{team.teamName}</span>
                   </div>
 
-                  <span className="text-2xl font-black text-emerald-300">
+                  <span className="text-lg font-black text-emerald-300 sm:text-xl">
                     {formatScore(team.total)}
                   </span>
                 </div>
@@ -324,15 +324,15 @@ export default function LeaderboardPage() {
               >
                 <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-700 pb-4">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="text-3xl font-black text-slate-400 sm:text-5xl">
+                    <span className="text-xl font-black text-slate-400 sm:text-2xl">
                       {teamIndex + 1}
                     </span>
-                    <h2 className="min-w-0 truncate text-3xl font-black sm:text-5xl">
+                    <h2 className="min-w-0 truncate text-xl font-black sm:text-2xl">
                       {team.teamName}
                     </h2>
                   </div>
 
-                  <span className="shrink-0 text-3xl font-black text-emerald-300 sm:text-5xl">
+                  <span className="shrink-0 text-xl font-black text-emerald-300 sm:text-2xl">
                     {formatScore(team.total)}
                   </span>
                 </div>
