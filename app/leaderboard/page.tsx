@@ -73,24 +73,47 @@ function formatRoundScore(score: number | null | undefined) {
   return score.toString();
 }
 
+function calculateGolferTotal(scoreData?: GolferScoreRow) {
+  const completedRounds = [
+    scoreData?.round_1,
+    scoreData?.round_2,
+    scoreData?.round_3,
+    scoreData?.round_4,
+  ].filter((score): score is number => typeof score === "number");
+
+  return {
+    hasScore: completedRounds.length > 0,
+    total: completedRounds.reduce((sum, score) => sum + score, 0),
+  };
+}
+
 function getRankMap(scores: GolferScoreRow[]) {
   const validScores = scores
-    .filter((score) => typeof score.tournament_score === "number")
-    .sort((a, b) => (a.tournament_score ?? 0) - (b.tournament_score ?? 0));
+    .map((score) => {
+      const calculated = calculateGolferTotal(score);
+
+      return {
+        ...score,
+        calculatedTotal: calculated.total,
+        hasScore: calculated.hasScore,
+      };
+    })
+    .filter((score) => score.hasScore)
+    .sort((a, b) => a.calculatedTotal - b.calculatedTotal);
 
   const rankMap: Record<string, string> = {};
   let previousScore: number | null = null;
   let previousRank = 0;
 
   validScores.forEach((score, index) => {
-    const currentScore = score.tournament_score ?? 0;
+    const currentScore = score.calculatedTotal;
     const rank = currentScore === previousScore ? previousRank : index + 1;
 
     previousScore = currentScore;
     previousRank = rank;
 
     const tiedCount = validScores.filter(
-      (item) => item.tournament_score === currentScore
+      (item) => item.calculatedTotal === currentScore
     ).length;
 
     rankMap[normalizeName(score.name)] = tiedCount > 1 ? `T${rank}` : `${rank}`;
@@ -202,7 +225,7 @@ export default function LeaderboardPage() {
 
     const rawGolfers = teamPicks.map((pick) => {
       const scoreData = scoreMap[normalizeName(pick.golfer_name)];
-      const hasScore = typeof scoreData?.tournament_score === "number";
+      const calculated = calculateGolferTotal(scoreData);
 
       return {
         name: pick.golfer_name,
@@ -212,8 +235,8 @@ export default function LeaderboardPage() {
         round2: scoreData?.round_2 ?? null,
         round3: scoreData?.round_3 ?? null,
         round4: scoreData?.round_4 ?? null,
-        total: hasScore ? scoreData.tournament_score ?? 0 : 0,
-        hasScore,
+        total: calculated.total,
+        hasScore: calculated.hasScore,
         counts: false,
       };
     });
@@ -305,7 +328,9 @@ export default function LeaderboardPage() {
                     <span className="text-lg font-black text-slate-400">
                       {index + 1}
                     </span>
-                    <span className="text-lg font-black sm:text-xl">{team.teamName}</span>
+                    <span className="text-lg font-black sm:text-xl">
+                      {team.teamName}
+                    </span>
                   </div>
 
                   <span className="text-lg font-black text-emerald-300 sm:text-xl">
@@ -353,7 +378,9 @@ export default function LeaderboardPage() {
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
                         className={`grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center border-b border-slate-800 py-3 last:border-b-0 ${
-                          golfer.counts ? "text-white" : "text-slate-500 line-through"
+                          golfer.counts
+                            ? "text-white"
+                            : "text-slate-500 line-through"
                         }`}
                       >
                         <div className="text-lg font-black text-slate-400">
@@ -379,7 +406,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div className="text-right text-lg font-black text-emerald-300">
-                          {golfer.hasScore ? formatScore(golfer.total) : "E"}
+                          {golfer.hasScore ? formatScore(golfer.total) : "-"}
                         </div>
                       </div>
                     ))}
@@ -402,7 +429,9 @@ export default function LeaderboardPage() {
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
                         className={`grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] items-center gap-1 border-b border-slate-800 py-2.5 last:border-b-0 ${
-                          golfer.counts ? "text-white" : "text-slate-500 line-through"
+                          golfer.counts
+                            ? "text-white"
+                            : "text-slate-500 line-through"
                         }`}
                       >
                         <div className="text-sm font-black text-slate-400">
@@ -430,7 +459,7 @@ export default function LeaderboardPage() {
                         </div>
 
                         <div className="text-right text-sm font-black text-emerald-300">
-                          {golfer.hasScore ? formatScore(golfer.total) : "E"}
+                          {golfer.hasScore ? formatScore(golfer.total) : "-"}
                         </div>
                       </div>
                     ))}
