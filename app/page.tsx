@@ -138,11 +138,11 @@ export default function Home() {
         <div className="absolute bottom-10 right-10 -z-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative z-10">
-          <div className="mb-10">
+          <div className="mb-8">
             <BrandMark size="lg" />
           </div>
 
-          <h1 className="max-w-5xl text-5xl font-black tracking-tight md:text-8xl">
+          <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight md:text-6xl">
             Your Friends.
             <br />
             Your Pool.
