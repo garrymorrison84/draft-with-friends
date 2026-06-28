@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: "Create sports pools, draft with friends, and track live standings.",
   icons: {
     icon: [
+      { url: "/dwf-favicon.svg", type: "image/svg+xml" },
       { url: "/dwf-icon.png", sizes: "195x96", type: "image/png" },
       { url: "/dwf-logo.png", type: "image/png" },
     ],

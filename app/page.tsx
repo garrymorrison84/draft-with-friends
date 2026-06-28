@@ -133,17 +133,13 @@ function LeaderboardPreview() {
 export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#030712] text-white">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8">
-        <BrandMark size="md" />
-      </nav>
-
-      <section className="relative mx-auto grid min-h-[calc(100vh-104px)] max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-2">
+      <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-2">
         <div className="absolute left-1/2 top-12 -z-0 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="absolute bottom-10 right-10 -z-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
 
         <div className="relative z-10">
           <div className="mb-10">
-            <BrandMark size="lg" />
+            <BrandMark size="lg" variant="wordmark" />
           </div>
 
           <h1 className="max-w-5xl text-5xl font-black tracking-tight md:text-8xl">

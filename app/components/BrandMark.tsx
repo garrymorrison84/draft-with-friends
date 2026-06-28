@@ -1,49 +1,72 @@
 const sizeClasses = {
   sm: {
-    container: "gap-1",
-    mark: "text-3xl",
-    subtitle: "text-[10px]",
+    letters: "text-3xl",
+    word: "text-3xl",
+    with: "text-sm",
   },
   md: {
-    container: "gap-1.5",
-    mark: "text-4xl md:text-5xl",
-    subtitle: "text-xs",
+    letters: "text-4xl md:text-5xl",
+    word: "text-4xl md:text-5xl",
+    with: "text-base md:text-lg",
   },
   lg: {
-    container: "gap-2",
-    mark: "text-6xl md:text-8xl",
-    subtitle: "text-sm md:text-base",
+    letters: "text-6xl md:text-8xl",
+    word: "text-5xl md:text-8xl",
+    with: "text-2xl md:text-4xl",
   },
 };
 
 export default function BrandMark({
   size = "md",
+  variant = "letters",
 }: {
   size?: keyof typeof sizeClasses;
+  variant?: "letters" | "wordmark";
 }) {
   const classes = sizeClasses[size];
+
+  if (variant === "wordmark") {
+    return (
+      <div
+        aria-label="Draft With Friends"
+        className="inline-flex flex-wrap items-baseline gap-x-4 gap-y-2 leading-none"
+      >
+        <span
+          aria-hidden="true"
+          className={`${classes.word} font-black uppercase text-white drop-shadow-[0_10px_24px_rgba(0,0,0,0.45)]`}
+        >
+          Draft
+        </span>
+        <span
+          aria-hidden="true"
+          className={`${classes.with} font-black uppercase text-emerald-400 drop-shadow-[0_10px_24px_rgba(16,185,129,0.22)]`}
+        >
+          With
+        </span>
+        <span
+          aria-hidden="true"
+          className={`${classes.word} font-black uppercase text-white drop-shadow-[0_10px_24px_rgba(0,0,0,0.45)]`}
+        >
+          Friends
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div
       aria-label="Draft With Friends"
-      className={`inline-flex flex-col ${classes.container}`}
+      className="inline-flex"
     >
       <div
         aria-hidden="true"
-        className={`${classes.mark} flex items-center font-black italic leading-none text-white`}
+        className={`${classes.letters} flex items-center font-black italic leading-none text-white`}
       >
         <span className="drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)]">D</span>
         <span className="mx-0.5 bg-gradient-to-b from-emerald-300 to-emerald-500 bg-clip-text text-transparent drop-shadow-[0_8px_24px_rgba(52,211,153,0.22)]">
           W
         </span>
         <span className="drop-shadow-[0_8px_20px_rgba(0,0,0,0.45)]">F</span>
-      </div>
-
-      <div
-        aria-hidden="true"
-        className={`${classes.subtitle} flex gap-2 font-black uppercase leading-none text-slate-200`}
-      >
-        Draft <span className="text-emerald-400">With</span> Friends
       </div>
     </div>
   );
