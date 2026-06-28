@@ -376,7 +376,7 @@ export default function DraftPage() {
                   )}`}
             </p>
 
-            <h1 className="mt-2 text-3xl font-black leading-tight md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black uppercase leading-none md:text-5xl">
               Draft Room
             </h1>
 

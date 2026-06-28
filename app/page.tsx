@@ -135,11 +135,11 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[#030712] text-white">
       <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-2">
         <div className="absolute left-1/2 top-12 -z-0 h-72 w-72 -translate-x-1/2 rounded-full bg-emerald-400/20 blur-3xl" />
-        <div className="absolute bottom-10 right-10 -z-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute bottom-10 right-10 -z-0 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl" />
 
         <div className="relative z-10">
           <div className="mb-8">
-            <BrandMark size="lg" />
+            <BrandMark size="lg" variant="stacked" />
           </div>
 
           <h1 className="max-w-4xl text-4xl font-black leading-[1.05] tracking-tight md:text-6xl">
