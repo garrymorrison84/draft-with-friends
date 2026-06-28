@@ -1,7 +1,7 @@
 function DraftBoardPreview() {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+    <div className="rounded-3xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40">
+      <div className="rounded-2xl border border-slate-700/60 bg-[#1F2937] p-4">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Draft Board</h2>
@@ -15,7 +15,7 @@ function DraftBoardPreview() {
           </span>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-700">
+        <div className="overflow-hidden rounded-2xl border border-slate-700/60">
           <div className="grid grid-cols-4 bg-emerald-700">
             {["Andrew", "Mark", "Garry", "Steve"].map((team) => (
               <div
@@ -32,18 +32,18 @@ function DraftBoardPreview() {
 
           <div className="grid grid-cols-4">
             {[
-              ["Drafted", "Scottie Scheffler", "1.1", "bg-slate-800"],
-              ["Drafted", "Xander Schauffele", "1.2", "bg-slate-800"],
-              ["Drafted", "Tommy Fleetwood", "1.3", "bg-slate-800"],
+              ["Drafted", "Scottie Scheffler", "1.1", "bg-[#1F2937]"],
+              ["Drafted", "Xander Schauffele", "1.2", "bg-[#1F2937]"],
+              ["Drafted", "Tommy Fleetwood", "1.3", "bg-[#1F2937]"],
               ["On the clock", "Awaiting selection", "1.4", "bg-emerald-400/15"],
-              ["Open", "Awaiting selection", "2.4", "bg-slate-950"],
-              ["Open", "Awaiting selection", "2.3", "bg-slate-950"],
-              ["Open", "Awaiting selection", "2.2", "bg-slate-950"],
-              ["Open", "Awaiting selection", "2.1", "bg-slate-950"],
+              ["Open", "Awaiting selection", "2.4", "bg-[#030712]"],
+              ["Open", "Awaiting selection", "2.3", "bg-[#030712]"],
+              ["Open", "Awaiting selection", "2.2", "bg-[#030712]"],
+              ["Open", "Awaiting selection", "2.1", "bg-[#030712]"],
             ].map(([status, name, pick, bg], index) => (
               <div
                 key={`${status}-${pick}-${index}`}
-                className={`${bg} min-h-24 border-r border-t border-slate-800 p-3 last:border-r-0`}
+                className={`${bg} min-h-24 border-r border-t border-slate-700/60 p-3 last:border-r-0`}
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p
@@ -82,8 +82,8 @@ function LeaderboardPreview() {
   ];
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
-      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+    <div className="rounded-3xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40">
+      <div className="rounded-2xl border border-slate-700/60 bg-[#1F2937] p-4">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Live Leaderboard</h2>
@@ -95,7 +95,7 @@ function LeaderboardPreview() {
           <span className="text-xl font-black text-emerald-300">-43</span>
         </div>
 
-        <div className="grid grid-cols-[44px_1fr_42px_42px_42px_42px_54px] border-b border-slate-700 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
+        <div className="grid grid-cols-[44px_1fr_42px_42px_42px_42px_54px] border-b border-slate-700/60 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
           <div>Pos</div>
           <div>Golfer</div>
           <div className="text-right">R1</div>
@@ -108,7 +108,7 @@ function LeaderboardPreview() {
         {golfers.map(([pos, name, r1, r2, r3, r4, total, counts]) => (
           <div
             key={name.toString()}
-            className={`grid grid-cols-[44px_1fr_42px_42px_42px_42px_54px] items-center border-b border-slate-800 py-3 text-xs last:border-b-0 ${
+            className={`grid grid-cols-[44px_1fr_42px_42px_42px_42px_54px] items-center border-b border-slate-700/60 py-3 text-xs last:border-b-0 ${
               counts ? "text-white" : "text-slate-500 line-through"
             }`}
           >
@@ -130,10 +130,10 @@ function LeaderboardPreview() {
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white">
+    <main className="min-h-screen overflow-hidden bg-[#030712] text-white">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8">
         <div className="text-3xl font-black tracking-tight md:text-4xl">
-          DRAFT WITH FRIENDS
+          DRAFT <span className="text-emerald-400">WITH</span> FRIENDS
         </div>
       </nav>
 
@@ -163,9 +163,9 @@ export default function Home() {
           <div className="mt-10">
             <a
               href="/create-pool"
-              className="inline-flex rounded-xl bg-emerald-400 px-7 py-4 text-base font-bold text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+              className="inline-flex rounded-2xl bg-emerald-400 px-7 py-4 text-base font-bold text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
             >
-              Create a Pool
+              Create Your Pool →
             </a>
           </div>
 
@@ -186,7 +186,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-6 pb-20">
         <div className="grid gap-5 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7">
+          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/30">
             <h3 className="text-xl font-bold">Customize Your Pool</h3>
             <p className="mt-3 leading-7 text-slate-400">
               Build the exact format your group wants. Choose how many golfers
@@ -194,7 +194,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7">
+          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/30">
             <h3 className="text-xl font-bold">Built For Friend Groups</h3>
             <p className="mt-3 leading-7 text-slate-400">
               No more messy spreadsheets, screenshots, or group text chaos.
@@ -202,7 +202,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7">
+          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/30">
             <h3 className="text-xl font-bold">
               Golf First. More Sports Coming...
             </h3>
