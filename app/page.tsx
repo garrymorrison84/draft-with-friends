@@ -139,7 +139,7 @@ export default function Home() {
 
         <div className="relative z-10">
           <div className="mb-10">
-            <BrandMark size="lg" variant="wordmark" />
+            <BrandMark size="lg" />
           </div>
 
           <h1 className="max-w-5xl text-5xl font-black tracking-tight md:text-8xl">

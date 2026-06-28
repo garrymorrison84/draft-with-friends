@@ -18,10 +18,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/dwf-favicon.svg", type: "image/svg+xml" },
-      { url: "/dwf-icon.png", sizes: "195x96", type: "image/png" },
-      { url: "/dwf-logo.png", type: "image/png" },
+      { url: "/dwf-icon.png", sizes: "180x180", type: "image/png" },
     ],
-    apple: [{ url: "/dwf-icon.png", sizes: "195x96", type: "image/png" }],
+    apple: [{ url: "/dwf-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
