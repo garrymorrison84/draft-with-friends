@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import BrandMark from "../components/BrandMark";
-import { getPoolsByIds } from "../lib/poolApi";
-import {
-  getOrganizerPoolIds,
-  getOrganizerPoolMeta,
-} from "../lib/organizerStorage";
+import { getCurrentOrganizerUser, getOrganizerPools } from "../lib/poolApi";
+import { supabase } from "../lib/supabase";
 
 type OrganizerPool = {
   id: string;
@@ -23,32 +21,44 @@ type OrganizerPool = {
 };
 
 export default function OrganizerPage() {
+  const [organizer, setOrganizer] = useState<User | null>(null);
   const [pools, setPools] = useState<OrganizerPool[]>([]);
+  const [view, setView] = useState<"active" | "archived">("active");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadOrganizerPools() {
-      const poolIds = getOrganizerPoolIds();
-      const savedPools = await getPoolsByIds(poolIds);
+      const user = await getCurrentOrganizerUser();
 
-      const activePools = savedPools
-        .map((pool: OrganizerPool) => {
-          const meta = getOrganizerPoolMeta(pool.id);
+      if (!user) {
+        window.location.href = "/organizer/sign-in?redirect=/organizer";
+        return;
+      }
 
-          return {
-            ...pool,
-            archived: Boolean(pool.archived || meta.archived),
-            draft_locked: Boolean(pool.draft_locked || meta.draftLocked),
-          };
-        })
-        .filter((pool: OrganizerPool) => !pool.archived);
+      setOrganizer(user);
 
-      setPools(activePools);
+      const savedPools = await getOrganizerPools(user.id);
+      setPools(savedPools as OrganizerPool[]);
       setIsLoading(false);
     }
 
     loadOrganizerPools();
   }, []);
+
+  const activePools = useMemo(
+    () => pools.filter((pool) => !pool.archived),
+    [pools]
+  );
+  const archivedPools = useMemo(
+    () => pools.filter((pool) => pool.archived),
+    [pools]
+  );
+  const visiblePools = view === "active" ? activePools : archivedPools;
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
 
   return (
     <main className="min-h-screen bg-[#030712] text-white">
@@ -58,9 +68,24 @@ export default function OrganizerPage() {
             <BrandMark size="md" />
           </Link>
 
-          <a href="/create-pool" className="text-sm font-medium text-emerald-300">
-            + Create Pool
-          </a>
+          <div className="flex flex-wrap items-center gap-4">
+            {organizer && (
+              <span className="text-sm text-slate-400">{organizer.email}</span>
+            )}
+            <Link
+              href="/create-pool"
+              className="text-sm font-medium text-emerald-300"
+            >
+              + Create Pool
+            </Link>
+            <button
+              type="button"
+              onClick={signOut}
+              className="text-sm font-medium text-slate-400 transition hover:text-white"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         <div className="mt-10">
@@ -71,31 +96,62 @@ export default function OrganizerPage() {
             Pool Dashboard
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-400">
-            Manage pools created on this device. Update settings, jump into the
-            draft, or share the lobby and leaderboard with your group.
+            Manage every pool tied to your organizer account, including active
+            drafts and archived pools you may need to revisit later.
           </p>
+        </div>
+
+        <div className="mt-8 inline-grid grid-cols-2 rounded-2xl border border-white/5 bg-[#111827] p-1 shadow-xl shadow-black/40">
+          <button
+            type="button"
+            onClick={() => setView("active")}
+            className={`rounded-xl px-5 py-3 text-sm font-black transition ${
+              view === "active"
+                ? "bg-emerald-400 text-slate-950"
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            Active ({activePools.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("archived")}
+            className={`rounded-xl px-5 py-3 text-sm font-black transition ${
+              view === "archived"
+                ? "bg-emerald-400 text-slate-950"
+                : "text-slate-300 hover:text-white"
+            }`}
+          >
+            Archived ({archivedPools.length})
+          </button>
         </div>
 
         {isLoading ? (
           <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
             <p className="text-slate-400">Loading organizer pools...</p>
           </section>
-        ) : pools.length === 0 ? (
+        ) : visiblePools.length === 0 ? (
           <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-            <h2 className="text-2xl font-black">No organizer pools yet</h2>
+            <h2 className="text-2xl font-black">
+              No {view === "active" ? "active" : "archived"} pools
+            </h2>
             <p className="mt-3 text-slate-400">
-              Create a pool from this browser and it will appear here.
+              {view === "active"
+                ? "Create a pool while signed in and it will appear here."
+                : "Archived pools will stay available here when you need them."}
             </p>
-            <a
-              href="/create-pool"
-              className="mt-6 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
-            >
-              Create Pool
-            </a>
+            {view === "active" && (
+              <Link
+                href="/create-pool"
+                className="mt-6 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+              >
+                Create Pool
+              </Link>
+            )}
           </section>
         ) : (
           <section className="mt-10 grid gap-5 lg:grid-cols-2">
-            {pools.map((pool) => (
+            {visiblePools.map((pool) => (
               <article
                 key={pool.id}
                 className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40"
@@ -109,46 +165,53 @@ export default function OrganizerPage() {
                       {pool.pool_name}
                     </h2>
                     <p className="mt-2 text-sm text-slate-400">
-                      {pool.number_of_teams} teams • {pool.golfers_per_team} golfers per team • Best {pool.scores_to_count} count
+                      {pool.number_of_teams} teams • {pool.golfers_per_team}{" "}
+                      golfers per team • Best {pool.scores_to_count} count
                     </p>
                   </div>
 
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-black ${
-                      pool.draft_locked
+                      pool.archived
+                        ? "bg-slate-400/10 text-slate-300"
+                        : pool.draft_locked
                         ? "bg-red-400/10 text-red-200"
                         : "bg-emerald-400/10 text-emerald-300"
                     }`}
                   >
-                    {pool.draft_locked ? "Draft Locked" : "Draft Open"}
+                    {pool.archived
+                      ? "Archived"
+                      : pool.draft_locked
+                      ? "Draft Locked"
+                      : "Draft Open"}
                   </span>
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <a
+                  <Link
                     href={`/pool?id=${pool.id}`}
                     className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40"
                   >
                     Lobby
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`/draft?id=${pool.id}`}
                     className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40"
                   >
                     Draft Room
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`/leaderboard?id=${pool.id}`}
                     className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40"
                   >
                     Leaderboard
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href={`/organizer/manage?id=${pool.id}`}
                     className="rounded-xl bg-emerald-400 px-4 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-emerald-300"
                   >
                     Manage
-                  </a>
+                  </Link>
                 </div>
               </article>
             ))}

@@ -1,13 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import BrandMark from "../../components/BrandMark";
-import { deletePool, getPool, updatePool } from "../../lib/poolApi";
 import {
-  getOrganizerPoolMeta,
-  saveOrganizerPoolMeta,
-} from "../../lib/organizerStorage";
+  deleteOwnedPool,
+  getCurrentOrganizerUser,
+  getDraftPicks,
+  getOwnedPool,
+  loadGolfers,
+  updateDraftPick,
+  updateOwnedPool,
+  type DraftPickRow,
+} from "../../lib/poolApi";
+
+const CURRENT_EVENT_ID = "TRAVELERS2026";
 
 type ManagePool = {
   id: string;
@@ -22,21 +30,61 @@ type ManagePool = {
   archived?: boolean;
 };
 
+type GolferOption = {
+  name: string;
+  rank: number;
+};
+
+type PickEdit = {
+  golferName: string;
+  golferRank: number;
+};
+
+function getSortValue(golfer: Record<string, unknown>) {
+  const rawValue =
+    golfer.odds ??
+    golfer.odds_sort ??
+    golfer.vegas_odds ??
+    golfer.rank ??
+    golfer.world_rank;
+
+  const parsedValue =
+    typeof rawValue === "number"
+      ? rawValue
+      : Number(String(rawValue ?? "").replace("+", ""));
+
+  return Number.isFinite(parsedValue) ? parsedValue : 999999;
+}
+
 export default function ManagePoolPage() {
+  const [organizer, setOrganizer] = useState<User | null>(null);
   const [pool, setPool] = useState<ManagePool | null>(null);
   const [poolName, setPoolName] = useState("");
   const [scoresToCount, setScoresToCount] = useState(4);
   const [teamNames, setTeamNames] = useState<string[]>([]);
   const [draftOrder, setDraftOrder] = useState<string[]>([]);
   const [draftLocked, setDraftLocked] = useState(false);
+  const [draftPicks, setDraftPicks] = useState<DraftPickRow[]>([]);
+  const [golferOptions, setGolferOptions] = useState<GolferOption[]>([]);
+  const [pickEdits, setPickEdits] = useState<Record<number, PickEdit>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [savingPickIndex, setSavingPickIndex] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function loadPoolForManagement() {
+      const user = await getCurrentOrganizerUser();
+
+      if (!user) {
+        window.location.href = "/organizer/sign-in?redirect=/organizer";
+        return;
+      }
+
+      setOrganizer(user);
+
       const params = new URLSearchParams(window.location.search);
       const poolId = params.get("id");
 
@@ -45,14 +93,13 @@ export default function ManagePoolPage() {
         return;
       }
 
-      const savedPool = await getPool(poolId);
+      const savedPool = await getOwnedPool(poolId, user.id);
 
       if (!savedPool) {
         setIsLoading(false);
         return;
       }
 
-      const meta = getOrganizerPoolMeta(savedPool.id);
       const formattedPool: ManagePool = {
         id: savedPool.id,
         pool_name: savedPool.pool_name,
@@ -62,9 +109,32 @@ export default function ManagePoolPage() {
         scores_to_count: savedPool.scores_to_count,
         team_names: savedPool.team_names || [],
         draft_order: savedPool.draft_order || savedPool.team_names || [],
-        draft_locked: Boolean(savedPool.draft_locked || meta.draftLocked),
-        archived: Boolean(savedPool.archived || meta.archived),
+        draft_locked: Boolean(savedPool.draft_locked),
+        archived: Boolean(savedPool.archived),
       };
+
+      const [savedPicks, golfers] = await Promise.all([
+        getDraftPicks(formattedPool.id),
+        loadGolfers(CURRENT_EVENT_ID),
+      ]);
+
+      const formattedGolfers = golfers
+        .map((golfer: Record<string, unknown>) => ({
+          name: String(golfer.name || ""),
+          rank: getSortValue(golfer),
+        }))
+        .filter((golfer: GolferOption) => golfer.name)
+        .sort((a: GolferOption, b: GolferOption) => a.rank - b.rank);
+
+      const edits = (savedPicks as DraftPickRow[]).reduce<
+        Record<number, PickEdit>
+      >((draft, pick) => {
+        draft[pick.pick_index] = {
+          golferName: pick.golfer_name,
+          golferRank: pick.golfer_rank ?? 999999,
+        };
+        return draft;
+      }, {});
 
       setPool(formattedPool);
       setPoolName(formattedPool.pool_name);
@@ -72,11 +142,19 @@ export default function ManagePoolPage() {
       setTeamNames(formattedPool.team_names);
       setDraftOrder(formattedPool.draft_order);
       setDraftLocked(Boolean(formattedPool.draft_locked));
+      setDraftPicks(savedPicks as DraftPickRow[]);
+      setGolferOptions(formattedGolfers);
+      setPickEdits(edits);
       setIsLoading(false);
     }
 
     loadPoolForManagement();
   }, []);
+
+  const sortedDraftPicks = useMemo(
+    () => [...draftPicks].sort((a, b) => a.pick_index - b.pick_index),
+    [draftPicks]
+  );
 
   function updateTeamName(index: number, value: string) {
     const previousName = teamNames[index];
@@ -111,7 +189,7 @@ export default function ManagePoolPage() {
   }
 
   async function saveSettings() {
-    if (!pool) return;
+    if (!pool || !organizer) return;
 
     setIsSaving(true);
     setStatusMessage("");
@@ -123,7 +201,7 @@ export default function ManagePoolPage() {
     );
 
     try {
-      const updatedPool = await updatePool(pool.id, {
+      const updatedPool = await updateOwnedPool(pool.id, organizer.id, {
         pool_name: poolName.trim() || "Untitled Golf Pool",
         team_names: finalTeamNames,
         draft_order: finalDraftOrder,
@@ -147,55 +225,119 @@ export default function ManagePoolPage() {
   }
 
   async function toggleDraftLock() {
-    if (!pool) return;
+    if (!pool || !organizer) return;
 
     const nextLocked = !draftLocked;
     setDraftLocked(nextLocked);
-    saveOrganizerPoolMeta(pool.id, { draftLocked: nextLocked });
+    setStatusMessage("");
+    setErrorMessage("");
 
     try {
-      await updatePool(pool.id, { draft_locked: nextLocked });
+      await updateOwnedPool(pool.id, organizer.id, { draft_locked: nextLocked });
+      setPool({ ...pool, draft_locked: nextLocked });
+      setStatusMessage(nextLocked ? "Draft locked." : "Draft unlocked.");
     } catch (error) {
-      console.warn("Draft lock saved locally only.", error);
+      setDraftLocked(!nextLocked);
+      console.error(error);
+      setErrorMessage("Could not update draft lock.");
     }
   }
 
-  async function archivePool() {
-    if (!pool) return;
+  async function toggleArchive() {
+    if (!pool || !organizer) return;
 
+    const nextArchived = !pool.archived;
     const confirmed = window.confirm(
-      "Archive this pool? It will be hidden from your organizer dashboard."
+      nextArchived
+        ? "Archive this pool? It will move to your archived dashboard."
+        : "Restore this pool to your active dashboard?"
     );
 
     if (!confirmed) return;
 
-    saveOrganizerPoolMeta(pool.id, { archived: true });
-
     try {
-      await updatePool(pool.id, { archived: true });
+      await updateOwnedPool(pool.id, organizer.id, { archived: nextArchived });
+      setPool({ ...pool, archived: nextArchived });
+      setStatusMessage(nextArchived ? "Pool archived." : "Pool restored.");
     } catch (error) {
-      console.warn("Pool archived locally only.", error);
+      console.error(error);
+      setErrorMessage("Could not update archive status.");
     }
-
-    window.location.href = "/organizer";
   }
 
   async function removePool() {
-    if (!pool) return;
+    if (!pool || !organizer) return;
 
     const confirmed = window.confirm(
-      "Delete this pool from Supabase? This cannot be undone."
+      "Delete this pool and its draft picks? This cannot be undone."
     );
 
     if (!confirmed) return;
 
     try {
-      await deletePool(pool.id);
-      saveOrganizerPoolMeta(pool.id, { archived: true });
+      await deleteOwnedPool(pool.id, organizer.id);
       window.location.href = "/organizer";
     } catch (error) {
       console.error(error);
       setErrorMessage("Could not delete the pool. Try archive instead.");
+    }
+  }
+
+  function updatePickEdit(pickIndex: number, nextEdit: Partial<PickEdit>) {
+    setPickEdits((current) => ({
+      ...current,
+      [pickIndex]: {
+        golferName: current[pickIndex]?.golferName || "",
+        golferRank: current[pickIndex]?.golferRank || 999999,
+        ...nextEdit,
+      },
+    }));
+  }
+
+  function selectGolferForPick(pickIndex: number, golferName: string) {
+    const selectedGolfer = golferOptions.find(
+      (golfer) => golfer.name === golferName
+    );
+
+    updatePickEdit(pickIndex, {
+      golferName,
+      golferRank: selectedGolfer?.rank ?? pickEdits[pickIndex]?.golferRank ?? 999999,
+    });
+  }
+
+  async function savePickOverride(pick: DraftPickRow) {
+    if (!pool) return;
+
+    const edit = pickEdits[pick.pick_index];
+
+    if (!edit?.golferName.trim()) {
+      setErrorMessage("Golfer name cannot be blank.");
+      return;
+    }
+
+    setSavingPickIndex(pick.pick_index);
+    setStatusMessage("");
+    setErrorMessage("");
+
+    try {
+      const updatedPick = await updateDraftPick(pool.id, pick.pick_index, {
+        golfer_name: edit.golferName.trim(),
+        golfer_rank: Number(edit.golferRank) || 999999,
+      });
+
+      setDraftPicks((current) =>
+        current.map((currentPick) =>
+          currentPick.pick_index === pick.pick_index
+            ? (updatedPick as DraftPickRow)
+            : currentPick
+        )
+      );
+      setStatusMessage("Draft pick updated.");
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Could not update that draft pick.");
+    } finally {
+      setSavingPickIndex(null);
     }
   }
 
@@ -216,9 +358,13 @@ export default function ManagePoolPage() {
         <div className="mx-auto max-w-5xl px-6 py-10">
           <BrandMark size="md" />
           <h1 className="mt-8 text-4xl font-black">Pool not found</h1>
-          <a href="/organizer" className="mt-6 inline-block text-emerald-300">
+          <p className="mt-3 text-slate-400">
+            This pool either does not exist or is not owned by your organizer
+            account.
+          </p>
+          <Link href="/organizer" className="mt-6 inline-block text-emerald-300">
             Back to organizer dashboard →
-          </a>
+          </Link>
         </div>
       </main>
     );
@@ -226,15 +372,15 @@ export default function ManagePoolPage() {
 
   return (
     <main className="min-h-screen bg-[#030712] text-white">
-      <div className="mx-auto max-w-5xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="md" />
           </Link>
 
-          <a href="/organizer" className="text-sm font-medium text-emerald-300">
+          <Link href="/organizer" className="text-sm font-medium text-emerald-300">
             ← Organizer Dashboard
-          </a>
+          </Link>
         </div>
 
         <div className="mt-10">
@@ -245,35 +391,40 @@ export default function ManagePoolPage() {
             {pool.pool_name}
           </h1>
           <p className="mt-3 text-slate-400">
-            {pool.golf_event} • {pool.number_of_teams} teams • {pool.golfers_per_team} golfers per team
+            {pool.golf_event} • {pool.number_of_teams} teams •{" "}
+            {pool.golfers_per_team} golfers per team
           </p>
         </div>
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
           <div className="grid gap-6">
-            <div>
-              <label className="mb-2 block text-sm font-semibold">
-                Pool Name
-              </label>
-              <input
-                value={poolName}
-                onChange={(event) => setPoolName(event.target.value)}
-                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
-              />
-            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Pool Name
+                </label>
+                <input
+                  value={poolName}
+                  onChange={(event) => setPoolName(event.target.value)}
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
+                />
+              </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold">
-                Best Scores Count
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={pool.golfers_per_team}
-                value={scoresToCount}
-                onChange={(event) => setScoresToCount(Number(event.target.value))}
-                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
-              />
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Best Scores Count
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={pool.golfers_per_team}
+                  value={scoresToCount}
+                  onChange={(event) =>
+                    setScoresToCount(Number(event.target.value))
+                  }
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
+                />
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-700/60 bg-[#1F2937] p-5">
@@ -321,18 +472,6 @@ export default function ManagePoolPage() {
               </div>
             </div>
 
-            {statusMessage && (
-              <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-300">
-                {statusMessage}
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm font-bold text-red-200">
-                {errorMessage}
-              </div>
-            )}
-
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -353,10 +492,10 @@ export default function ManagePoolPage() {
 
               <button
                 type="button"
-                onClick={archivePool}
+                onClick={toggleArchive}
                 className="rounded-xl border border-yellow-300/30 px-5 py-3 font-black text-yellow-200 transition hover:bg-yellow-300/10"
               >
-                Archive
+                {pool.archived ? "Restore" : "Archive"}
               </button>
 
               <button
@@ -369,6 +508,125 @@ export default function ManagePoolPage() {
             </div>
           </div>
         </section>
+
+        <section className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-extrabold uppercase text-emerald-400">
+                Commissioner Overrides
+              </p>
+              <h2 className="mt-2 text-3xl font-black">Drafted Golfers</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Replace or correct drafted golfers after the draft has started
+                or gone live.
+              </p>
+            </div>
+
+            <Link
+              href={`/leaderboard?id=${pool.id}`}
+              className="text-sm font-medium text-emerald-300"
+            >
+              View Leaderboard →
+            </Link>
+          </div>
+
+          {sortedDraftPicks.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-white/5 bg-[#1F2937] p-5 text-slate-400">
+              No golfers have been drafted yet.
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-3">
+              {sortedDraftPicks.map((pick) => {
+                const edit = pickEdits[pick.pick_index] || {
+                  golferName: pick.golfer_name,
+                  golferRank: pick.golfer_rank ?? 999999,
+                };
+
+                return (
+                  <div
+                    key={`${pick.pool_id}-${pick.pick_index}`}
+                    className="grid gap-3 rounded-2xl border border-white/5 bg-[#1F2937] p-4 lg:grid-cols-[90px_1fr_1.5fr_120px_120px] lg:items-end"
+                  >
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Pick
+                      </p>
+                      <p className="mt-1 font-black text-white">
+                        {pick.pick_index + 1}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">
+                        Team
+                      </p>
+                      <p className="mt-1 font-black text-white">{pick.team}</p>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase text-slate-500">
+                        Golfer
+                      </label>
+                      <input
+                        list={`golfers-${pick.pick_index}`}
+                        value={edit.golferName}
+                        onChange={(event) =>
+                          selectGolferForPick(
+                            pick.pick_index,
+                            event.target.value
+                          )
+                        }
+                        className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
+                      />
+                      <datalist id={`golfers-${pick.pick_index}`}>
+                        {golferOptions.map((golfer) => (
+                          <option key={golfer.name} value={golfer.name} />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-xs font-bold uppercase text-slate-500">
+                        Rank/Odds
+                      </label>
+                      <input
+                        type="number"
+                        value={edit.golferRank}
+                        onChange={(event) =>
+                          updatePickEdit(pick.pick_index, {
+                            golferRank: Number(event.target.value),
+                          })
+                        }
+                        className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => savePickOverride(pick)}
+                      disabled={savingPickIndex === pick.pick_index}
+                      className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {savingPickIndex === pick.pick_index ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {statusMessage && (
+          <div className="mt-6 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-300">
+            {statusMessage}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mt-6 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm font-bold text-red-200">
+            {errorMessage}
+          </div>
+        )}
       </div>
     </main>
   );

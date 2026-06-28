@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createPoolId,
   savePool as saveLocalPool,
 } from "../lib/poolStorage";
-import { savePool as savePoolToSupabase } from "../lib/poolApi";
+import {
+  getCurrentOrganizerUser,
+  savePool as savePoolToSupabase,
+} from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
+import type { User } from "@supabase/supabase-js";
 
 export default function CreatePoolPage() {
+  const [organizer, setOrganizer] = useState<User | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [poolName, setPoolName] = useState("");
   const [golfEvent, setGolfEvent] = useState("");
   const [numberOfTeams, setNumberOfTeams] = useState(4);
@@ -34,6 +40,16 @@ export default function CreatePoolPage() {
   ]);
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadOrganizer() {
+      const user = await getCurrentOrganizerUser();
+      setOrganizer(user);
+      setIsCheckingAuth(false);
+    }
+
+    loadOrganizer();
+  }, []);
 
   function getFinalTeamNames() {
     return Array.from({ length: numberOfTeams }).map((_, index) => {
@@ -89,6 +105,11 @@ export default function CreatePoolPage() {
   }
 
   async function createPool() {
+    if (!organizer) {
+      window.location.href = "/organizer/sign-in?redirect=/create-pool";
+      return;
+    }
+
     setIsCreating(true);
     setErrorMessage("");
 
@@ -120,6 +141,9 @@ export default function CreatePoolPage() {
       scores_to_count: scoresToCount,
       team_names: finalTeamNames,
       draft_order: finalDraftOrder,
+      owner_id: organizer.id,
+      draft_locked: false,
+      archived: false,
     };
 
     try {
@@ -151,9 +175,27 @@ export default function CreatePoolPage() {
         <h1 className="mt-8 text-5xl font-black">Create a Golf Pool</h1>
 
         <p className="mt-4 text-lg text-slate-400">
-          Set up your pool, add your teams, choose the draft order, and run a
-          live snake draft with friends.
+          Set up your pool, add your teams, choose the draft order, and manage
+          it from your organizer dashboard.
         </p>
+
+        {!isCheckingAuth && !organizer && (
+          <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+            <p className="font-bold text-emerald-300">
+              Organizer account required
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Sign in before creating a pool so it appears in your organizer
+              dashboard and only you can manage commissioner tools.
+            </p>
+            <Link
+              href="/organizer/sign-in?redirect=/create-pool"
+              className="mt-4 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+            >
+              Sign In to Continue
+            </Link>
+          </div>
+        )}
 
         <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="grid gap-6">
@@ -398,10 +440,14 @@ export default function CreatePoolPage() {
             <button
               type="button"
               onClick={createPool}
-              disabled={isCreating}
+              disabled={isCreating || isCheckingAuth}
               className="mt-4 block rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isCreating ? "Creating Pool..." : "Create Pool & Continue"}
+              {isCreating
+                ? "Creating Pool..."
+                : organizer
+                ? "Create Pool & Continue"
+                : "Sign In to Create Pool"}
             </button>
           </div>
         </div>

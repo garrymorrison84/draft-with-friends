@@ -1,6 +1,39 @@
 import { supabase } from "./supabase";
 
-export async function savePool(pool: any) {
+export type SupabasePool = {
+  id: string;
+  pool_name: string;
+  golf_event: string;
+  number_of_teams: number;
+  golfers_per_team: number;
+  scores_to_count: number;
+  team_names: string[];
+  draft_order: string[];
+  owner_id?: string | null;
+  draft_locked?: boolean | null;
+  archived?: boolean | null;
+};
+
+export type DraftPickRow = {
+  pool_id: string;
+  team: string;
+  golfer_name: string;
+  golfer_rank: number;
+  pick_index: number;
+};
+
+export async function getCurrentOrganizerUser() {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  return data.user;
+}
+
+export async function savePool(pool: SupabasePool) {
   const { data, error } = await supabase.from("pools").insert([pool]);
 
   if (error) {
@@ -11,11 +44,43 @@ export async function savePool(pool: any) {
   return data;
 }
 
+export async function getOrganizerPools(ownerId: string) {
+  const { data, error } = await supabase
+    .from("pools")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("archived", { ascending: true })
+    .order("id", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
 export async function getPool(poolId: string) {
   const { data, error } = await supabase
     .from("pools")
     .select("*")
     .eq("id", poolId)
+    .single();
+
+  if (error) {
+    console.error(error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function getOwnedPool(poolId: string, ownerId: string) {
+  const { data, error } = await supabase
+    .from("pools")
+    .select("*")
+    .eq("id", poolId)
+    .eq("owner_id", ownerId)
     .single();
 
   if (error) {
@@ -61,6 +126,27 @@ export async function updatePool(
   return data;
 }
 
+export async function updateOwnedPool(
+  poolId: string,
+  ownerId: string,
+  updates: Record<string, unknown>
+) {
+  const { data, error } = await supabase
+    .from("pools")
+    .update(updates)
+    .eq("id", poolId)
+    .eq("owner_id", ownerId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  return data;
+}
+
 export async function deletePool(poolId: string) {
   const { error: picksError } = await supabase
     .from("draft_picks")
@@ -80,7 +166,23 @@ export async function deletePool(poolId: string) {
   }
 }
 
-export async function saveDraftPick(pick: any) {
+export async function deleteOwnedPool(poolId: string, ownerId: string) {
+  const { data: pool, error: poolError } = await supabase
+    .from("pools")
+    .select("id")
+    .eq("id", poolId)
+    .eq("owner_id", ownerId)
+    .single();
+
+  if (poolError || !pool) {
+    console.error(poolError);
+    throw poolError || new Error("Pool not found for organizer.");
+  }
+
+  await deletePool(poolId);
+}
+
+export async function saveDraftPick(pick: DraftPickRow) {
   const { data, error } = await supabase.from("draft_picks").insert([pick]);
 
   if (error) {
@@ -118,6 +220,27 @@ export async function getDraftPicks(poolId: string) {
   }
 
   return data || [];
+}
+
+export async function updateDraftPick(
+  poolId: string,
+  pickIndex: number,
+  updates: Pick<DraftPickRow, "golfer_name" | "golfer_rank">
+) {
+  const { data, error } = await supabase
+    .from("draft_picks")
+    .update(updates)
+    .eq("pool_id", poolId)
+    .eq("pick_index", pickIndex)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  return data;
 }
 
 export async function loadGolfers(eventId: string) {
