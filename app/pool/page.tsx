@@ -127,9 +127,7 @@ const currentTeam = draftComplete
               {pool.golfEvent}
             </p>
 
-            <h1 className="mt-2 text-4xl font-black uppercase leading-none md:text-6xl">
-              {pool.poolName}
-            </h1>
+            <h1 className="mt-2 text-5xl font-black">{pool.poolName}</h1>
 
             <p className="mt-4 text-slate-400">
               Snake draft • {pool.numberOfTeams} teams • {pool.golfersPerTeam} golfers per team • Best {pool.scoresToCount} scores count

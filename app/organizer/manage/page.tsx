@@ -241,7 +241,7 @@ export default function ManagePoolPage() {
           <p className="text-sm font-extrabold uppercase text-emerald-400">
             Manage Pool
           </p>
-          <h1 className="mt-2 text-4xl font-black uppercase leading-none md:text-6xl">
+          <h1 className="mt-2 text-4xl font-black tracking-tight md:text-6xl">
             {pool.pool_name}
           </h1>
           <p className="mt-3 text-slate-400">

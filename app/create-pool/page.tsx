@@ -148,9 +148,7 @@ export default function CreatePoolPage() {
           </Link>
         </div>
 
-        <h1 className="mt-8 text-4xl font-black uppercase leading-none text-white md:text-6xl">
-          Create a Golf Pool
-        </h1>
+        <h1 className="mt-8 text-5xl font-black">Create a Golf Pool</h1>
 
         <p className="mt-4 text-lg text-slate-400">
           Set up your pool, add your teams, choose the draft order, and run a

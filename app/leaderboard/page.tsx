@@ -295,7 +295,7 @@ export default function LeaderboardPage() {
             </p>
           </div>
 
-          <h1 className="text-4xl font-black uppercase leading-none sm:text-6xl lg:text-7xl">
+          <h1 className="text-4xl font-black tracking-tight sm:text-6xl lg:text-7xl">
             Leaderboard
           </h1>
 

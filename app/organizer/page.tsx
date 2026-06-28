@@ -67,7 +67,7 @@ export default function OrganizerPage() {
           <p className="text-sm font-extrabold uppercase text-emerald-400">
             Organizer
           </p>
-          <h1 className="mt-2 text-4xl font-black uppercase leading-none md:text-6xl">
+          <h1 className="mt-2 text-4xl font-black tracking-tight md:text-6xl">
             Pool Dashboard
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-400">
