@@ -54,7 +54,7 @@ export default function OrganizerSignInPage() {
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-10">
         <div className="flex items-center justify-between gap-4">
           <Link href="/" aria-label="Draft With Friends home">
-            <BrandMark size="md" />
+            <BrandMark size="lg" />
           </Link>
 
           <Link href="/" className="text-sm font-medium text-emerald-300">
@@ -67,7 +67,7 @@ export default function OrganizerSignInPage() {
             <p className="text-sm font-extrabold uppercase text-emerald-400">
               Organizer Portal
             </p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight md:text-6xl">
+            <h1 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">
               Secure commissioner access.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-400">

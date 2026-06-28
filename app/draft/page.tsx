@@ -354,7 +354,7 @@ export default function DraftPage() {
       <div className="mx-auto max-w-[1700px] px-3 py-4 md:px-6 md:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
-            <BrandMark size="md" />
+            <BrandMark size="lg" />
           </Link>
 
           <a
@@ -376,7 +376,7 @@ export default function DraftPage() {
                   )}`}
             </p>
 
-            <h1 className="mt-2 text-3xl font-black leading-tight md:text-5xl">
+            <h1 className="mt-2 text-3xl font-black leading-tight md:text-4xl">
               Draft Room
             </h1>
 
@@ -393,18 +393,18 @@ export default function DraftPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:flex">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:flex md:gap-4">
             <button
               onClick={undoLastPick}
               disabled={isSavingPick}
-              className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-[#111827] disabled:cursor-not-allowed disabled:opacity-50 md:px-5 md:text-base"
+              className="rounded-2xl border border-white/20 bg-[#111827] px-6 py-4 text-base font-black text-slate-100 shadow-xl shadow-black/40 transition hover:border-emerald-400/40 hover:bg-[#1F2937] disabled:cursor-not-allowed disabled:opacity-50 md:px-7 md:py-5 md:text-lg"
             >
               Undo Pick
             </button>
 
             <a
               href={`/leaderboard?id=${activePool.id}`}
-              className="rounded-xl bg-emerald-400 px-4 py-3 text-center text-sm font-bold text-slate-950 md:px-6 md:text-base"
+              className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 shadow-xl shadow-emerald-950/40 transition hover:bg-emerald-300 md:px-8 md:py-5 md:text-lg"
             >
               Finish Draft
             </a>

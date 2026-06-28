@@ -196,7 +196,7 @@ export default function CreatePoolPage() {
       <div className="mx-auto max-w-4xl px-6 py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
-            <BrandMark size="md" />
+            <BrandMark size="lg" />
           </Link>
 
           <Link href="/" className="text-sm font-medium text-emerald-300">
@@ -204,7 +204,9 @@ export default function CreatePoolPage() {
           </Link>
         </div>
 
-        <h1 className="mt-8 text-5xl font-black">Create a Golf Pool</h1>
+        <h1 className="mt-8 text-4xl font-black md:text-5xl">
+          Create a Golf Pool
+        </h1>
 
         <p className="mt-4 text-lg text-slate-400">
           Set up your pool, add your teams, choose the draft order, and manage

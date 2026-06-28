@@ -113,7 +113,7 @@ const currentTeam = draftComplete
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
-            <BrandMark size="md" />
+            <BrandMark size="lg" />
           </Link>
 
           <a href="/create-pool" className="text-sm font-medium text-emerald-300">
@@ -127,7 +127,9 @@ const currentTeam = draftComplete
               {pool.golfEvent}
             </p>
 
-            <h1 className="mt-2 text-5xl font-black">{pool.poolName}</h1>
+            <h1 className="mt-2 text-4xl font-black md:text-5xl">
+              {pool.poolName}
+            </h1>
 
             <p className="mt-4 text-slate-400">
               Snake draft • {pool.numberOfTeams} teams • {pool.golfersPerTeam} golfers per team • Best {pool.scoresToCount} scores count

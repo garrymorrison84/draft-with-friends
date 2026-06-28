@@ -65,7 +65,7 @@ export default function OrganizerPage() {
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
-            <BrandMark size="md" />
+            <BrandMark size="lg" />
           </Link>
 
           <div className="flex flex-wrap items-center gap-4">
@@ -92,7 +92,7 @@ export default function OrganizerPage() {
           <p className="text-sm font-extrabold uppercase text-emerald-400">
             Organizer
           </p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight md:text-6xl">
+          <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
             Pool Dashboard
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-400">

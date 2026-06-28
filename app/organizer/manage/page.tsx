@@ -375,7 +375,7 @@ export default function ManagePoolPage() {
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
-            <BrandMark size="md" />
+            <BrandMark size="lg" />
           </Link>
 
           <Link href="/organizer" className="text-sm font-medium text-emerald-300">
@@ -387,7 +387,7 @@ export default function ManagePoolPage() {
           <p className="text-sm font-extrabold uppercase text-emerald-400">
             Manage Pool
           </p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight md:text-6xl">
+          <h1 className="mt-2 text-3xl font-black tracking-tight md:text-5xl">
             {pool.pool_name}
           </h1>
           <p className="mt-3 text-slate-400">

@@ -287,7 +287,7 @@ export default function LeaderboardPage() {
         <div className="mb-5">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <Link href="/" aria-label="Draft With Friends home">
-              <BrandMark size="md" />
+              <BrandMark size="lg" />
             </Link>
 
             <p className="text-sm font-extrabold text-emerald-400">
@@ -295,7 +295,7 @@ export default function LeaderboardPage() {
             </p>
           </div>
 
-          <h1 className="text-4xl font-black tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="text-3xl font-black tracking-tight sm:text-5xl lg:text-6xl">
             Leaderboard
           </h1>
 
