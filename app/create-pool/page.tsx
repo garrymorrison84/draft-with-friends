@@ -13,6 +13,38 @@ import {
 import BrandMark from "../components/BrandMark";
 import type { User } from "@supabase/supabase-js";
 
+function getCreatePoolErrorMessage(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+      ? String((error as { message?: unknown }).message)
+      : "";
+
+  if (message.toLowerCase().includes("invalid api key")) {
+    return "Supabase rejected the API key. Check NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in Vercel and .env.local.";
+  }
+
+  if (
+    message.includes("owner_id") ||
+    message.includes("draft_locked") ||
+    message.includes("archived")
+  ) {
+    return "Supabase is missing the organizer columns. Run supabase-organizer-auth.sql in the Supabase SQL editor, then try again.";
+  }
+
+  if (
+    message.toLowerCase().includes("row-level security") ||
+    message.toLowerCase().includes("violates row-level security")
+  ) {
+    return "Supabase row-level security blocked pool creation. Run supabase-organizer-auth.sql and make sure you are signed in.";
+  }
+
+  return message
+    ? `Could not create pool: ${message}`
+    : "Something went wrong creating the pool. Try again.";
+}
+
 export default function CreatePoolPage() {
   const [organizer, setOrganizer] = useState<User | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -154,7 +186,7 @@ export default function CreatePoolPage() {
       window.location.href = `/pool?id=${poolId}`;
     } catch (error) {
       console.error(error);
-      setErrorMessage("Something went wrong creating the pool. Try again.");
+      setErrorMessage(getCreatePoolErrorMessage(error));
       setIsCreating(false);
     }
   }
