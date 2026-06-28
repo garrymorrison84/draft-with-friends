@@ -33,11 +33,18 @@ export default function CreatePoolPage() {
 
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  function getFinalTeamNames() {
+    return Array.from({ length: numberOfTeams }).map((_, index) => {
+      const trimmedName = teamNames[index]?.trim();
+      return trimmedName || `Team ${index + 1}`;
+    });
+  }
+
   function updateNumberOfTeams(value: number) {
     setNumberOfTeams(value);
 
     const updatedTeams = Array.from({ length: value }).map(
-      (_, index) => teamNames[index] || `Team ${index + 1}`
+      (_, index) => teamNames[index] ?? `Team ${index + 1}`
     );
 
     setTeamNames(updatedTeams);
@@ -45,16 +52,20 @@ export default function CreatePoolPage() {
   }
 
   function updateTeamName(index: number, value: string) {
+    const previousName = teamNames[index];
     const updatedTeams = [...teamNames];
-    const newName = value || `Team ${index + 1}`;
 
-    updatedTeams[index] = newName;
+    updatedTeams[index] = value;
     setTeamNames(updatedTeams);
-    setDraftOrder(updatedTeams);
+
+    setDraftOrder((currentOrder) =>
+      currentOrder.map((team) => (team === previousName ? value : team))
+    );
   }
 
   function randomizeDraftOrder() {
-    const shuffled = [...teamNames].sort(() => Math.random() - 0.5);
+    const finalizedTeams = getFinalTeamNames();
+    const shuffled = [...finalizedTeams].sort(() => Math.random() - 0.5);
     setDraftOrder(shuffled);
   }
 
@@ -80,6 +91,12 @@ export default function CreatePoolPage() {
     setErrorMessage("");
 
     const poolId = createPoolId();
+    const finalTeamNames = getFinalTeamNames();
+
+    const finalDraftOrder =
+      draftOrder.length === finalTeamNames.length
+        ? draftOrder.map((team, index) => team?.trim() || finalTeamNames[index])
+        : finalTeamNames;
 
     const localPool = {
       id: poolId,
@@ -88,8 +105,8 @@ export default function CreatePoolPage() {
       numberOfTeams,
       golfersPerTeam,
       scoresToCount,
-      teamNames,
-      draftOrder,
+      teamNames: finalTeamNames,
+      draftOrder: finalDraftOrder,
     };
 
     const supabasePool = {
@@ -99,8 +116,8 @@ export default function CreatePoolPage() {
       number_of_teams: numberOfTeams,
       golfers_per_team: golfersPerTeam,
       scores_to_count: scoresToCount,
-      team_names: teamNames,
-      draft_order: draftOrder,
+      team_names: finalTeamNames,
+      draft_order: finalDraftOrder,
     };
 
     try {
@@ -215,9 +232,10 @@ export default function CreatePoolPage() {
                     </label>
                     <input
                       type="text"
-                      value={team}
+                      value={team ?? ""}
                       onChange={(e) => updateTeamName(index, e.target.value)}
-                      className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
+                      placeholder={`Team ${index + 1}`}
+                      className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none placeholder:text-slate-600"
                     />
                   </div>
                 ))}
@@ -336,7 +354,9 @@ export default function CreatePoolPage() {
                       }`}
                     >
                       <div>
-                        <p className="font-bold">{team}</p>
+                        <p className="font-bold">
+                          {team?.trim() || `Team ${index + 1}`}
+                        </p>
                         <p className="text-sm text-slate-500">
                           {draftOrderMethod === "manual"
                             ? "Drag to rearrange"
