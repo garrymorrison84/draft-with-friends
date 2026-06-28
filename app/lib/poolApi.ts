@@ -26,6 +26,60 @@ export async function getPool(poolId: string) {
   return data;
 }
 
+export async function getPoolsByIds(poolIds: string[]) {
+  if (poolIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("pools")
+    .select("*")
+    .in("id", poolIds);
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function updatePool(
+  poolId: string,
+  updates: Record<string, unknown>
+) {
+  const { data, error } = await supabase
+    .from("pools")
+    .update(updates)
+    .eq("id", poolId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function deletePool(poolId: string) {
+  const { error: picksError } = await supabase
+    .from("draft_picks")
+    .delete()
+    .eq("pool_id", poolId);
+
+  if (picksError) {
+    console.error(picksError);
+    throw picksError;
+  }
+
+  const { error } = await supabase.from("pools").delete().eq("id", poolId);
+
+  if (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
 export async function saveDraftPick(pick: any) {
   const { data, error } = await supabase.from("draft_picks").insert([pick]);
 

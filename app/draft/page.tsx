@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   getPool,
@@ -9,6 +10,7 @@ import {
   loadGolfers,
 } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
+import { getOrganizerPoolMeta } from "../lib/organizerStorage";
 
 const CURRENT_EVENT_ID = "TRAVELERS2026";
 
@@ -27,6 +29,7 @@ type Pool = {
   scoresToCount: number;
   teamNames: string[];
   draftOrder: string[];
+  draftLocked: boolean;
 };
 
 type DraftPick = {
@@ -126,6 +129,9 @@ export default function DraftPage() {
         scoresToCount: savedPool.scores_to_count,
         teamNames: savedPool.team_names || [],
         draftOrder: savedPool.draft_order || savedPool.team_names || [],
+        draftLocked: Boolean(
+          savedPool.draft_locked || getOrganizerPoolMeta(savedPool.id).draftLocked
+        ),
       };
 
       setPool(formattedPool);
@@ -253,6 +259,7 @@ export default function DraftPage() {
   }
 
   function draftGolfer(golfer: Golfer) {
+    if (activePool.draftLocked) return;
     if (draftComplete) return;
     if (isSavingPick) return;
     if (isGolferTaken(golfer)) return;
@@ -346,9 +353,9 @@ export default function DraftPage() {
     <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-[1700px] px-3 py-4 md:px-6 md:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <a href="/" aria-label="Draft With Friends home">
+          <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="md" />
-          </a>
+          </Link>
 
           <a
             href={`/pool?id=${activePool.id}`}
@@ -374,7 +381,9 @@ export default function DraftPage() {
             </h1>
 
             <p className="mt-3 text-base font-semibold text-slate-200 md:mt-4 md:text-xl">
-              {draftComplete
+              {activePool.draftLocked
+                ? "This draft is locked by the organizer."
+                : draftComplete
                 ? "All picks are complete."
                 : `${currentTeam} is on the clock.`}
             </p>
@@ -427,7 +436,12 @@ export default function DraftPage() {
                   <button
                     key={golfer.name}
                     onClick={() => draftGolfer(golfer)}
-                    disabled={draftComplete || isTaken || isSavingPick}
+                    disabled={
+                      activePool.draftLocked ||
+                      draftComplete ||
+                      isTaken ||
+                      isSavingPick
+                    }
                     className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition md:p-4 ${
                       isTaken
                         ? "cursor-not-allowed border-white/5 bg-[#030712]/60 opacity-45"

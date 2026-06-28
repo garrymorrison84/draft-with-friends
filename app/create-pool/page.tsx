@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   createPoolId,
@@ -138,13 +139,13 @@ export default function CreatePoolPage() {
     <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-4xl px-6 py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <a href="/" aria-label="Draft With Friends home">
+          <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="md" />
-          </a>
+          </Link>
 
-          <a href="/" className="text-sm font-medium text-emerald-300">
+          <Link href="/" className="text-sm font-medium text-emerald-300">
             ← Back Home
-          </a>
+          </Link>
         </div>
 
         <h1 className="mt-8 text-5xl font-black">Create a Golf Pool</h1>

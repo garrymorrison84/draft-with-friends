@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks, getGolferScores } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
@@ -285,9 +286,9 @@ export default function LeaderboardPage() {
       <section className="mx-auto max-w-7xl">
         <div className="mb-5">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <a href="/" aria-label="Draft With Friends home">
+            <Link href="/" aria-label="Draft With Friends home">
               <BrandMark size="md" />
-            </a>
+            </Link>
 
             <p className="text-sm font-extrabold text-emerald-400">
               Live Standings

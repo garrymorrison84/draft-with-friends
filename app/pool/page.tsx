@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
@@ -111,9 +112,9 @@ const currentTeam = draftComplete
     <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <a href="/" aria-label="Draft With Friends home">
+          <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="md" />
-          </a>
+          </Link>
 
           <a href="/create-pool" className="text-sm font-medium text-emerald-300">
             ← Create Another Pool
@@ -151,6 +152,13 @@ const currentTeam = draftComplete
                 View Leaderboard
               </a>
             )}
+
+            <a
+              href={`/organizer/manage?id=${pool.id}`}
+              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 transition hover:bg-emerald-400/20"
+            >
+              Manage Pool
+            </a>
           </div>
         </div>
 

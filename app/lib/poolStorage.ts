@@ -19,6 +19,7 @@ export type DraftPick = {
 };
 
 const CURRENT_POOL_KEY = "draft-with-friends-current-pool";
+const ORGANIZER_POOL_IDS_KEY = "draft-with-friends-organizer-pool-ids";
 
 function getPoolKey(poolId: string) {
   return `draft-with-friends-pool-${poolId}`;
@@ -35,6 +36,16 @@ export function createPoolId() {
 export function savePool(pool: PoolData) {
   localStorage.setItem(getPoolKey(pool.id), JSON.stringify(pool));
   localStorage.setItem(CURRENT_POOL_KEY, pool.id);
+  const savedPoolIds = localStorage.getItem(ORGANIZER_POOL_IDS_KEY);
+  const poolIds = savedPoolIds ? (JSON.parse(savedPoolIds) as string[]) : [];
+
+  if (!poolIds.includes(pool.id)) {
+    localStorage.setItem(
+      ORGANIZER_POOL_IDS_KEY,
+      JSON.stringify([...poolIds, pool.id])
+    );
+  }
+
   localStorage.removeItem(getPicksKey(pool.id));
 }
 
