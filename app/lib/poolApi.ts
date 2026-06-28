@@ -23,14 +23,25 @@ export type DraftPickRow = {
 };
 
 export async function getCurrentOrganizerUser() {
-  const { data, error } = await supabase.auth.getUser();
+  const { data: sessionData } = await supabase.auth.getSession();
 
-  if (error) {
-    console.error(error);
+  if (!sessionData.session) {
     return null;
   }
 
-  return data.user;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    return data.user;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 }
 
 export async function savePool(pool: SupabasePool) {
