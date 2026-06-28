@@ -1,3 +1,5 @@
+import BrandMark from "./components/BrandMark";
+
 function DraftBoardPreview() {
   return (
     <div className="rounded-3xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40">
@@ -132,9 +134,7 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#030712] text-white">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-8">
-        <div className="text-3xl font-black tracking-tight md:text-4xl">
-          DRAFT <span className="text-emerald-400">WITH</span> FRIENDS
-        </div>
+        <BrandMark size="lg" />
       </nav>
 
       <section className="relative mx-auto grid min-h-[calc(100vh-104px)] max-w-7xl items-center gap-12 px-6 py-14 lg:grid-cols-2">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks, getGolferScores } from "../lib/poolApi";
+import BrandMark from "../components/BrandMark";
 
 type Pool = {
   id: string;
@@ -197,6 +198,7 @@ export default function LeaderboardPage() {
   if (isLoading) {
     return (
       <main className="min-h-screen bg-[#030712] px-4 py-8 text-white">
+        <BrandMark size="md" />
         <p className="text-slate-400">Loading leaderboard...</p>
       </main>
     );
@@ -205,6 +207,7 @@ export default function LeaderboardPage() {
   if (!pool) {
     return (
       <main className="min-h-screen bg-[#030712] px-4 py-8 text-white">
+        <BrandMark size="md" />
         <p className="text-slate-400">Pool not found.</p>
       </main>
     );
@@ -281,9 +284,15 @@ export default function LeaderboardPage() {
     <main className="min-h-screen bg-[#030712] px-3 py-5 text-white sm:px-6 lg:px-10">
       <section className="mx-auto max-w-7xl">
         <div className="mb-5">
-          <p className="mb-1 text-sm font-extrabold text-emerald-400">
-            Live Standings
-          </p>
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <a href="/" aria-label="Draft With Friends home">
+              <BrandMark size="md" />
+            </a>
+
+            <p className="text-sm font-extrabold text-emerald-400">
+              Live Standings
+            </p>
+          </div>
 
           <h1 className="text-4xl font-black tracking-tight sm:text-6xl lg:text-7xl">
             Leaderboard

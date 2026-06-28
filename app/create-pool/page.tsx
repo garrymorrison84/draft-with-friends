@@ -6,6 +6,7 @@ import {
   savePool as saveLocalPool,
 } from "../lib/poolStorage";
 import { savePool as savePoolToSupabase } from "../lib/poolApi";
+import BrandMark from "../components/BrandMark";
 
 export default function CreatePoolPage() {
   const [poolName, setPoolName] = useState("");
@@ -136,9 +137,15 @@ export default function CreatePoolPage() {
   return (
     <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-4xl px-6 py-12">
-        <a href="/" className="text-sm font-medium text-emerald-300">
-          ← Back Home
-        </a>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <a href="/" aria-label="Draft With Friends home">
+            <BrandMark size="md" />
+          </a>
+
+          <a href="/" className="text-sm font-medium text-emerald-300">
+            ← Back Home
+          </a>
+        </div>
 
         <h1 className="mt-8 text-5xl font-black">Create a Golf Pool</h1>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks } from "../lib/poolApi";
+import BrandMark from "../components/BrandMark";
 
 type Pool = {
   id: string;
@@ -68,6 +69,7 @@ return () => clearInterval(interval);
     return (
       <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="md" />
           <h1 className="text-4xl font-black">Loading pool...</h1>
         </div>
       </main>
@@ -78,6 +80,7 @@ return () => clearInterval(interval);
     return (
       <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="md" />
           <h1 className="text-4xl font-black">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
             Create a pool →
@@ -107,9 +110,15 @@ const currentTeam = draftComplete
   return (
     <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-6xl px-6 py-12">
-        <a href="/create-pool" className="text-sm font-medium text-emerald-300">
-          ← Create Another Pool
-        </a>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <a href="/" aria-label="Draft With Friends home">
+            <BrandMark size="md" />
+          </a>
+
+          <a href="/create-pool" className="text-sm font-medium text-emerald-300">
+            ← Create Another Pool
+          </a>
+        </div>
 
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>

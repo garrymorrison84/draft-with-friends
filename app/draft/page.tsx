@@ -8,6 +8,7 @@ import {
   deleteLastDraftPick,
   loadGolfers,
 } from "../lib/poolApi";
+import BrandMark from "../components/BrandMark";
 
 const CURRENT_EVENT_ID = "TRAVELERS2026";
 
@@ -210,6 +211,7 @@ export default function DraftPage() {
     return (
       <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
+          <BrandMark size="md" />
           <h1 className="text-2xl font-black md:text-4xl">Loading draft...</h1>
         </div>
       </main>
@@ -220,6 +222,7 @@ export default function DraftPage() {
     return (
       <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
+          <BrandMark size="md" />
           <h1 className="text-2xl font-black md:text-4xl">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
             Create a pool →
@@ -342,12 +345,18 @@ export default function DraftPage() {
   return (
     <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-[1700px] px-3 py-4 md:px-6 md:py-8">
-        <a
-          href={`/pool?id=${activePool.id}`}
-          className="text-sm font-medium text-emerald-300"
-        >
-          ← Back to Pool Lobby
-        </a>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <a href="/" aria-label="Draft With Friends home">
+            <BrandMark size="md" />
+          </a>
+
+          <a
+            href={`/pool?id=${activePool.id}`}
+            className="text-sm font-medium text-emerald-300"
+          >
+            ← Back to Pool Lobby
+          </a>
+        </div>
 
         <div className="mt-4 flex flex-col gap-4 md:mt-6 md:flex-row md:items-end md:justify-between md:gap-6">
           <div>
