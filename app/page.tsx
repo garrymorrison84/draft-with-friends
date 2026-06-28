@@ -1,3 +1,133 @@
+function DraftBoardPreview() {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">Draft Board</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Picks fill in automatically as golfers are selected.
+            </p>
+          </div>
+
+          <span className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-xs font-black text-emerald-300">
+            Snake Draft
+          </span>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-slate-700">
+          <div className="grid grid-cols-4 bg-emerald-700">
+            {["Andrew", "Mark", "Garry", "Steve"].map((team) => (
+              <div
+                key={team}
+                className="border-r border-emerald-400/20 p-3 text-center last:border-r-0"
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100/80">
+                  Team
+                </p>
+                <p className="text-sm font-black sm:text-base">{team}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-4">
+            {[
+              ["Drafted", "Scottie Scheffler", "1.1", "bg-slate-800"],
+              ["Drafted", "Xander Schauffele", "1.2", "bg-slate-800"],
+              ["Drafted", "Tommy Fleetwood", "1.3", "bg-slate-800"],
+              ["On the clock", "Awaiting selection", "1.4", "bg-emerald-400/15"],
+              ["Open", "Awaiting selection", "2.4", "bg-slate-950"],
+              ["Open", "Awaiting selection", "2.3", "bg-slate-950"],
+              ["Open", "Awaiting selection", "2.2", "bg-slate-950"],
+              ["Open", "Awaiting selection", "2.1", "bg-slate-950"],
+            ].map(([status, name, pick, bg], index) => (
+              <div
+                key={`${status}-${pick}-${index}`}
+                className={`${bg} min-h-24 border-r border-t border-slate-800 p-3 last:border-r-0`}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p
+                    className={`text-xs font-black ${
+                      status === "On the clock"
+                        ? "text-emerald-300"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {status}
+                  </p>
+
+                  <span className="rounded-full bg-slate-700 px-2 py-1 text-[10px] font-black text-slate-300">
+                    {pick}
+                  </span>
+                </div>
+
+                <p className="truncate text-xs font-black text-white sm:text-sm">
+                  {name}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardPreview() {
+  const golfers = [
+    ["2", "Scottie Scheffler", "-6", "-10", "-3", "-", "-19", true],
+    ["T10", "Sam Burns", "-4", "-4", "-4", "-", "-12", true],
+    ["T10", "Justin Rose", "-5", "-4", "-3", "-", "-12", true],
+    ["T14", "Collin Morikawa", "-1", "-4", "-6", "-", "-11", false],
+  ];
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
+      <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black">Live Leaderboard</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Scores update automatically as the tournament unfolds.
+            </p>
+          </div>
+
+          <span className="text-xl font-black text-emerald-300">-43</span>
+        </div>
+
+        <div className="grid grid-cols-[44px_1fr_42px_42px_42px_42px_54px] border-b border-slate-700 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
+          <div>Pos</div>
+          <div>Golfer</div>
+          <div className="text-right">R1</div>
+          <div className="text-right">R2</div>
+          <div className="text-right">R3</div>
+          <div className="text-right">R4</div>
+          <div className="text-right">Total</div>
+        </div>
+
+        {golfers.map(([pos, name, r1, r2, r3, r4, total, counts]) => (
+          <div
+            key={name.toString()}
+            className={`grid grid-cols-[44px_1fr_42px_42px_42px_42px_54px] items-center border-b border-slate-800 py-3 text-xs last:border-b-0 ${
+              counts ? "text-white" : "text-slate-500 line-through"
+            }`}
+          >
+            <div className="font-black text-slate-400">{pos}</div>
+            <div className="min-w-0 truncate font-black">{name}</div>
+            <div className="text-right font-bold">{r1}</div>
+            <div className="text-right font-bold">{r2}</div>
+            <div className="text-right font-bold">{r3}</div>
+            <div className="text-right font-bold">{r4}</div>
+            <div className="text-right font-black text-emerald-300">
+              {total}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white">
@@ -48,21 +178,8 @@ export default function Home() {
 
         <div className="relative z-10 flex justify-center lg:justify-end">
           <div className="w-full max-w-[500px] space-y-4">
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
-              <img
-                src="/images/draft-board-home.png"
-                alt="Draft With Friends snake draft board"
-                className="w-full rounded-2xl border border-white/10"
-              />
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur">
-              <img
-                src="/images/leaderboard-home.png"
-                alt="Draft With Friends live leaderboard"
-                className="w-full rounded-2xl border border-white/10"
-              />
-            </div>
+            <DraftBoardPreview />
+            <LeaderboardPreview />
           </div>
         </div>
       </section>
@@ -72,7 +189,8 @@ export default function Home() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7">
             <h3 className="text-xl font-bold">Customize Your Pool</h3>
             <p className="mt-3 leading-7 text-slate-400">
-              Build the exact format your group wants. Choose how many golfers to draft, how many scores count, and let the competition begin.
+              Build the exact format your group wants. Choose how many golfers
+              to draft, how many scores count, and let the competition begin.
             </p>
           </div>
 
@@ -85,9 +203,13 @@ export default function Home() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-7">
-            <h3 className="text-xl font-bold">Golf First. More Sports Coming...</h3>
+            <h3 className="text-xl font-bold">
+              Golf First. More Sports Coming...
+            </h3>
             <p className="mt-3 leading-7 text-slate-400">
-              We're starting with golf drafts and live leaderboards, with plans to bring the same customizable experience to football, baseball, college sports, and beyond.
+              We're starting with golf drafts and live leaderboards, with plans
+              to bring the same customizable experience to football, baseball,
+              college sports, and beyond.
             </p>
           </div>
         </div>
