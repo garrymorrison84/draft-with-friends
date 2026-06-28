@@ -66,7 +66,7 @@ return () => clearInterval(interval);
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
+      <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <h1 className="text-4xl font-black">Loading pool...</h1>
         </div>
@@ -76,7 +76,7 @@ return () => clearInterval(interval);
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
+      <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <h1 className="text-4xl font-black">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
@@ -105,7 +105,7 @@ const currentTeam = draftComplete
   : pool.draftOrder[currentTeamIndex];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <a href="/create-pool" className="text-sm font-medium text-emerald-300">
           ← Create Another Pool
@@ -137,7 +137,7 @@ const currentTeam = draftComplete
             {pickCount > 0 && (
               <a
                 href={`/leaderboard?id=${pool.id}`}
-                className="rounded-2xl border border-white/15 px-8 py-4 text-center text-lg font-black text-white transition hover:bg-white/10"
+                className="rounded-2xl border border-white/15 px-8 py-4 text-center text-lg font-black text-white transition hover:bg-[#111827]"
               >
                 View Leaderboard
               </a>
@@ -151,7 +151,7 @@ const currentTeam = draftComplete
           <StatCard label="Scores Count" value={String(pool.scoresToCount)} />
         </section>
 
-        <section className="mt-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold">Draft Progress</h2>
@@ -165,7 +165,7 @@ const currentTeam = draftComplete
             </div>
           </div>
 
-          <div className="mt-6 h-4 overflow-hidden rounded-full bg-slate-800">
+          <div className="mt-6 h-4 overflow-hidden rounded-full bg-[#1F2937]">
             <div
               className="h-full rounded-full bg-emerald-400"
               style={{ width: `${draftPercent}%` }}
@@ -188,7 +188,7 @@ const currentTeam = draftComplete
         </section>
 
         <section className="mt-10 grid gap-6 lg:grid-cols-3">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 lg:col-span-2">
+          <div className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40 lg:col-span-2">
             <h2 className="text-2xl font-bold">Draft Order</h2>
             <p className="mt-2 text-sm text-slate-400">
               Teams draft in this order. The order reverses each round.
@@ -198,7 +198,7 @@ const currentTeam = draftComplete
               {pool.draftOrder.map((team, index) => (
                 <div
                   key={`${team}-${index}`}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-900 p-4"
+                  className="flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] p-4"
                 >
                   <p className="font-bold">{team}</p>
 
@@ -210,14 +210,14 @@ const currentTeam = draftComplete
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+          <div className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
             <h2 className="text-2xl font-bold">Invite Friends</h2>
 
             <p className="mt-3 text-slate-400">
               Share this link so everyone can follow the pool.
             </p>
 
-            <div className="mt-6 rounded-xl border border-white/10 bg-slate-900 p-4 text-sm text-slate-300">
+            <div className="mt-6 rounded-xl border border-white/5 bg-[#1F2937] p-4 text-sm text-slate-300">
               {`draftwithfriends.com/pool?id=${pool.id}`}
             </div>
 
@@ -241,7 +241,7 @@ const currentTeam = draftComplete
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+    <div className="rounded-2xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
       <p className="text-sm text-slate-400">{label}</p>
       <p className="mt-2 text-4xl font-black">{value}</p>
     </div>

@@ -23,10 +23,10 @@ export default async function TestSavePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-10 text-white">
+    <main className="min-h-screen bg-[#030712] p-10 text-white">
       <h1 className="text-4xl font-black">Test Save Pool</h1>
 
-      <pre className="mt-6 rounded-xl bg-slate-900 p-4 text-emerald-300">
+      <pre className="mt-6 rounded-xl bg-[#111827] p-4 text-emerald-300">
         {JSON.stringify({ result, savedPool }, null, 2)}
       </pre>
     </main>

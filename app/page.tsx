@@ -56,7 +56,7 @@ function DraftBoardPreview() {
                     {status}
                   </p>
 
-                  <span className="rounded-full bg-slate-700 px-2 py-1 text-[10px] font-black text-slate-300">
+                  <span className="rounded-full bg-[#1F2937] px-2 py-1 text-[10px] font-black text-slate-300">
                     {pick}
                   </span>
                 </div>
@@ -186,7 +186,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-6 pb-20">
         <div className="grid gap-5 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/30">
+          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/40">
             <h3 className="text-xl font-bold">Customize Your Pool</h3>
             <p className="mt-3 leading-7 text-slate-400">
               Build the exact format your group wants. Choose how many golfers
@@ -194,7 +194,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/30">
+          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/40">
             <h3 className="text-xl font-bold">Built For Friend Groups</h3>
             <p className="mt-3 leading-7 text-slate-400">
               No more messy spreadsheets, screenshots, or group text chaos.
@@ -202,7 +202,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/30">
+          <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/40">
             <h3 className="text-xl font-bold">
               Golf First. More Sports Coming...
             </h3>

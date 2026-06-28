@@ -196,7 +196,7 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
+      <main className="min-h-screen bg-[#030712] px-4 py-8 text-white">
         <p className="text-slate-400">Loading leaderboard...</p>
       </main>
     );
@@ -204,7 +204,7 @@ export default function LeaderboardPage() {
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-[#020617] px-4 py-8 text-white">
+      <main className="min-h-screen bg-[#030712] px-4 py-8 text-white">
         <p className="text-slate-400">Pool not found.</p>
       </main>
     );
@@ -278,7 +278,7 @@ export default function LeaderboardPage() {
   const rankedTeams = [...teamsWithGolfers].sort((a, b) => a.total - b.total);
 
   return (
-    <main className="min-h-screen bg-[#020617] px-3 py-5 text-white sm:px-6 lg:px-10">
+    <main className="min-h-screen bg-[#030712] px-3 py-5 text-white sm:px-6 lg:px-10">
       <section className="mx-auto max-w-7xl">
         <div className="mb-5">
           <p className="mb-1 text-sm font-extrabold text-emerald-400">
@@ -313,7 +313,7 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
-          <aside className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-5">
+          <aside className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/40">
             <h2 className="mb-3 text-lg font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
@@ -322,7 +322,7 @@ export default function LeaderboardPage() {
               {rankedTeams.map((team, index) => (
                 <div
                   key={team.teamName}
-                  className="flex items-center justify-between border-b border-slate-800 py-3 last:border-b-0"
+                  className="flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] px-3 py-3"
                 >
                   <div className="flex items-center gap-4">
                     <span className="text-lg font-black text-slate-400">
@@ -345,9 +345,9 @@ export default function LeaderboardPage() {
             {rankedTeams.map((team, teamIndex) => (
               <article
                 key={team.teamName}
-                className="rounded-2xl border border-slate-700 bg-slate-900/60 p-4 sm:p-5"
+                className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/40"
               >
-                <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-700 pb-4">
+                <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-700/60 pb-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="text-xl font-black text-slate-400 sm:text-2xl">
                       {teamIndex + 1}
@@ -363,7 +363,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="hidden md:block">
-                  <div className="grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] border-b border-slate-700 pb-3 text-sm font-black uppercase tracking-wide text-slate-400">
+                  <div className="grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] border-b border-slate-700/60 pb-3 text-sm font-black uppercase tracking-wide text-slate-400">
                     <div>Pos</div>
                     <div>Golfer</div>
                     <div className="text-right">R1</div>
@@ -377,7 +377,7 @@ export default function LeaderboardPage() {
                     {team.golfers.map((golfer, golferIndex) => (
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
-                        className={`grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center border-b border-slate-800 py-3 last:border-b-0 ${
+                        className={`mt-2 grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center rounded-xl border border-white/5 bg-[#1F2937] px-3 py-3 ${
                           golfer.counts
                             ? "text-white"
                             : "text-slate-500 line-through"
@@ -414,7 +414,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="md:hidden">
-                  <div className="grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] gap-1 border-b border-slate-700 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                  <div className="grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] gap-1 border-b border-slate-700/60 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
                     <div>Pos</div>
                     <div>Golfer</div>
                     <div className="text-right">R1</div>
@@ -428,7 +428,7 @@ export default function LeaderboardPage() {
                     {team.golfers.map((golfer, golferIndex) => (
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
-                        className={`grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] items-center gap-1 border-b border-slate-800 py-2.5 last:border-b-0 ${
+                        className={`mt-2 grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] items-center gap-1 rounded-xl border border-white/5 bg-[#1F2937] px-2 py-2.5 ${
                           golfer.counts
                             ? "text-white"
                             : "text-slate-500 line-through"

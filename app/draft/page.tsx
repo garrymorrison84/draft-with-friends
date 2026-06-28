@@ -208,7 +208,7 @@ export default function DraftPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
+      <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
           <h1 className="text-2xl font-black md:text-4xl">Loading draft...</h1>
         </div>
@@ -218,7 +218,7 @@ export default function DraftPage() {
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white">
+      <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
           <h1 className="text-2xl font-black md:text-4xl">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
@@ -340,7 +340,7 @@ export default function DraftPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-[1700px] px-3 py-4 md:px-6 md:py-8">
         <a
           href={`/pool?id=${activePool.id}`}
@@ -379,7 +379,7 @@ export default function DraftPage() {
             <button
               onClick={undoLastPick}
               disabled={isSavingPick}
-              className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 md:px-5 md:text-base"
+              className="rounded-xl border border-white/15 px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-[#111827] disabled:cursor-not-allowed disabled:opacity-50 md:px-5 md:text-base"
             >
               Undo Pick
             </button>
@@ -394,7 +394,7 @@ export default function DraftPage() {
         </div>
 
         <div className="mt-5 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:gap-6">
-          <aside className="w-full shrink-0 rounded-2xl border border-white/10 bg-white/[0.04] p-4 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
+          <aside className="w-full shrink-0 rounded-2xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
             <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers</h2>
 
             <p className="mt-2 text-sm text-slate-400">
@@ -407,7 +407,7 @@ export default function DraftPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search golfers..."
-              className="mt-4 w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none md:mt-5 md:text-base"
+              className="mt-4 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-sm text-white outline-none md:mt-5 md:text-base"
             />
 
             <div className="mt-4 max-h-[42vh] space-y-3 overflow-y-auto pr-1 lg:h-[calc(100vh-240px)] lg:max-h-none">
@@ -421,8 +421,8 @@ export default function DraftPage() {
                     disabled={draftComplete || isTaken || isSavingPick}
                     className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition md:p-4 ${
                       isTaken
-                        ? "cursor-not-allowed border-white/5 bg-slate-950/60 opacity-45"
-                        : "border-emerald-400/30 bg-slate-900 hover:border-emerald-400/70 hover:bg-emerald-400/10"
+                        ? "cursor-not-allowed border-white/5 bg-[#030712]/60 opacity-45"
+                        : "border-emerald-400/30 bg-[#1F2937] hover:border-emerald-400/70 hover:bg-emerald-400/10"
                     }`}
                   >
                     <div>
@@ -446,7 +446,7 @@ export default function DraftPage() {
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
                         isTaken
-                          ? "bg-slate-800 text-slate-500"
+                          ? "bg-[#1F2937] text-slate-500"
                           : "bg-emerald-400/15 text-emerald-300"
                       }`}
                     >
@@ -458,7 +458,7 @@ export default function DraftPage() {
             </div>
           </aside>
 
-          <section className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] p-3 md:rounded-3xl md:p-5">
+          <section className="min-w-0 flex-1 rounded-2xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center justify-between gap-3 md:mb-5">
               <div>
                 <h2 className="text-xl font-bold md:text-2xl">Draft Board</h2>
@@ -473,7 +473,7 @@ export default function DraftPage() {
               </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-auto rounded-2xl border border-white/10">
+            <div className="max-h-[70vh] overflow-auto rounded-2xl border border-white/5">
               <div style={{ minWidth: `${teams.length * 150}px` }}>
                 <div
                   className="sticky top-0 z-20 grid bg-gradient-to-r from-emerald-900 to-emerald-700"
@@ -523,12 +523,12 @@ export default function DraftPage() {
                       return (
                         <div
                           key={`${roundIndex}-${team}`}
-                          className={`relative min-h-[92px] border-r border-t border-white/10 p-3 last:border-r-0 md:min-h-[118px] md:p-4 ${
+                          className={`relative min-h-[92px] border-r border-t border-white/5 p-3 last:border-r-0 md:min-h-[118px] md:p-4 ${
                             pick
                               ? "bg-blue-500/15"
                               : isCurrentPick
                               ? "bg-emerald-400/15"
-                              : "bg-slate-950"
+                              : "bg-[#030712]"
                           }`}
                         >
                           <div
@@ -537,7 +537,7 @@ export default function DraftPage() {
                                 ? "bg-blue-400/20 text-blue-200"
                                 : isCurrentPick
                                 ? "bg-emerald-400 text-slate-950"
-                                : "bg-white/10 text-slate-400"
+                                : "bg-[#1F2937] text-slate-400"
                             }`}
                           >
                             {getRoundPickLabel(
@@ -585,8 +585,8 @@ export default function DraftPage() {
       </div>
 
       {pendingGolfer && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
             <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
               Confirm Pick
             </p>
@@ -603,7 +603,7 @@ export default function DraftPage() {
               <button
                 onClick={cancelDraftGolfer}
                 disabled={isSavingPick}
-                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 No
               </button>

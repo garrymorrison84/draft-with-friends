@@ -117,7 +117,7 @@ export default function CreatePoolPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-4xl px-6 py-12">
         <a href="/" className="text-sm font-medium text-emerald-300">
           ← Back Home
@@ -130,7 +130,7 @@ export default function CreatePoolPage() {
           live snake draft with friends.
         </p>
 
-        <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+        <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="grid gap-6">
             <div>
               <label className="mb-2 block text-sm font-semibold">
@@ -141,7 +141,7 @@ export default function CreatePoolPage() {
                 value={poolName}
                 onChange={(e) => setPoolName(e.target.value)}
                 placeholder="2026 U.S. Open Draft"
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
+                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function CreatePoolPage() {
                 value={golfEvent}
                 onChange={(e) => setGolfEvent(e.target.value)}
                 placeholder="U.S. Open, Masters, Memorial Tournament..."
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
+                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
               />
             </div>
 
@@ -166,7 +166,7 @@ export default function CreatePoolPage() {
                 <select
                   value={numberOfTeams}
                   onChange={(e) => updateNumberOfTeams(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white"
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
                 >
                   {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
                     <option key={num} value={num}>
@@ -184,7 +184,7 @@ export default function CreatePoolPage() {
                   type="number"
                   value={golfersPerTeam}
                   onChange={(e) => setGolfersPerTeam(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white"
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
                 />
               </div>
 
@@ -196,12 +196,12 @@ export default function CreatePoolPage() {
                   type="number"
                   value={scoresToCount}
                   onChange={(e) => setScoresToCount(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white"
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
                 />
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-6">
+            <div className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
               <h2 className="text-2xl font-bold">Team Names</h2>
               <p className="mt-2 text-sm text-slate-400">
                 Team fields automatically match the number of teams selected.
@@ -217,14 +217,14 @@ export default function CreatePoolPage() {
                       type="text"
                       value={team}
                       onChange={(e) => updateTeamName(index, e.target.value)}
-                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none"
+                      className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-6">
+            <div className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
               <h2 className="text-2xl font-bold">Draft Order</h2>
               <p className="mt-2 text-sm text-slate-400">
                 Choose how the first round draft order should be set.
@@ -235,7 +235,7 @@ export default function CreatePoolPage() {
                   className={`cursor-pointer rounded-2xl border p-5 ${
                     draftOrderMethod === "random"
                       ? "border-emerald-400/40 bg-emerald-400/10"
-                      : "border-white/10 bg-slate-950"
+                      : "border-white/5 bg-[#111827]"
                   }`}
                 >
                   <input
@@ -268,7 +268,7 @@ export default function CreatePoolPage() {
                   className={`cursor-pointer rounded-2xl border p-5 ${
                     draftOrderMethod === "manual"
                       ? "border-emerald-400/40 bg-emerald-400/10"
-                      : "border-white/10 bg-slate-950"
+                      : "border-white/5 bg-[#111827]"
                   }`}
                 >
                   <input
@@ -295,7 +295,7 @@ export default function CreatePoolPage() {
                 </label>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950 p-5">
+              <div className="mt-6 rounded-2xl border border-white/5 bg-[#030712] p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="font-bold">
@@ -314,7 +314,7 @@ export default function CreatePoolPage() {
                     <button
                       type="button"
                       onClick={randomizeDraftOrder}
-                      className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/10"
+                      className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#111827]"
                     >
                       Randomize Again
                     </button>
@@ -329,7 +329,7 @@ export default function CreatePoolPage() {
                       onDragStart={() => handleDragStart(index)}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => handleDrop(index)}
-                      className={`flex items-center justify-between rounded-xl border border-white/10 bg-slate-900 p-4 ${
+                      className={`flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] p-4 ${
                         draftOrderMethod === "manual"
                           ? "cursor-grab active:cursor-grabbing"
                           : ""
