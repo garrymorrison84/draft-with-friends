@@ -136,6 +136,20 @@ export default function CreatePoolPage() {
     setDraggedIndex(null);
   }
 
+  function moveDraftTeam(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+
+    if (nextIndex < 0 || nextIndex >= draftOrder.length) return;
+
+    const updatedOrder = [...draftOrder];
+    const currentTeam = updatedOrder[index];
+
+    updatedOrder[index] = updatedOrder[nextIndex];
+    updatedOrder[nextIndex] = currentTeam;
+
+    setDraftOrder(updatedOrder);
+  }
+
   async function createPool() {
     if (!organizer) {
       window.location.href = "/organizer/sign-in?redirect=/create-pool";
@@ -389,7 +403,7 @@ export default function CreatePoolPage() {
                     </p>
                     <p className="mt-1 text-sm text-slate-500">
                       {draftOrderMethod === "manual"
-                        ? "Drag teams to rearrange the order."
+                        ? "Drag teams on desktop, or use the order controls on mobile."
                         : "Click Randomize Draft Order again to reshuffle."}
                     </p>
                   </div>
@@ -419,19 +433,43 @@ export default function CreatePoolPage() {
                           : ""
                       }`}
                     >
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-bold">
                           {team?.trim() || `Team ${index + 1}`}
                         </p>
                         <p className="text-sm text-slate-500">
                           {draftOrderMethod === "manual"
-                            ? "Drag to rearrange"
+                            ? "Set the draft position"
                             : "Randomized order"}
                         </p>
                       </div>
 
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
-                        {index + 1}
+                      <div className="flex items-center gap-3">
+                        {draftOrderMethod === "manual" && (
+                          <div className="flex gap-2 md:hidden">
+                            <button
+                              type="button"
+                              onClick={() => moveDraftTeam(index, -1)}
+                              disabled={index === 0}
+                              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              Up
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => moveDraftTeam(index, 1)}
+                              disabled={index === draftOrder.length - 1}
+                              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              Down
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
+                          {index + 1}
+                        </div>
                       </div>
                     </div>
                   ))}
