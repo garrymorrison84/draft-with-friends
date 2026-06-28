@@ -213,24 +213,6 @@ export default function CreatePoolPage() {
           it from your organizer dashboard.
         </p>
 
-        {!isCheckingAuth && !organizer && (
-          <div className="mt-8 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
-            <p className="font-bold text-emerald-300">
-              Organizer account required
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Sign in before creating a pool so it appears in your organizer
-              dashboard and only you can manage commissioner tools.
-            </p>
-            <Link
-              href="/organizer/sign-in?redirect=/create-pool"
-              className="mt-4 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
-            >
-              Sign In to Continue
-            </Link>
-          </div>
-        )}
-
         <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="grid gap-6">
             <div>
