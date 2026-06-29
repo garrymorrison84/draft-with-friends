@@ -367,7 +367,7 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
-          <aside className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/40">
+          <aside className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
             <h2 className="mb-3 text-lg font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
