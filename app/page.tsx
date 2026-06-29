@@ -34,14 +34,14 @@ function DraftBoardPreview() {
 
           <div className="grid grid-cols-4">
             {[
-              ["Drafted", "Scottie Scheffler", "1.1", "bg-[#1F2937]"],
-              ["Drafted", "Xander Schauffele", "1.2", "bg-[#1F2937]"],
-              ["Drafted", "Tommy Fleetwood", "1.3", "bg-[#1F2937]"],
-              ["On the clock", "Awaiting selection", "1.4", "bg-emerald-400/15"],
-              ["Open", "Awaiting selection", "2.4", "bg-[#030712]"],
-              ["Open", "Awaiting selection", "2.3", "bg-[#030712]"],
-              ["Open", "Awaiting selection", "2.2", "bg-[#030712]"],
-              ["Open", "Awaiting selection", "2.1", "bg-[#030712]"],
+              ["Drafted", "Scheffler", "1.1", "bg-[#1F2937]"],
+              ["Drafted", "Schauffele", "1.2", "bg-[#1F2937]"],
+              ["Drafted", "Fleetwood", "1.3", "bg-[#1F2937]"],
+              ["On the clock", "Awaiting...", "1.4", "bg-emerald-400/15"],
+              ["Open", "Awaiting...", "2.4", "bg-[#030712]"],
+              ["Open", "Awaiting...", "2.3", "bg-[#030712]"],
+              ["Open", "Awaiting...", "2.2", "bg-[#030712]"],
+              ["Open", "Awaiting...", "2.1", "bg-[#030712]"],
             ].map(([status, name, pick, bg], index) => (
               <div
                 key={`${status}-${pick}-${index}`}
@@ -63,7 +63,7 @@ function DraftBoardPreview() {
                   </span>
                 </div>
 
-                <p className="truncate text-xs font-black text-white sm:text-sm">
+                <p className="text-xs font-black text-white sm:text-sm">
                   {name}
                 </p>
               </div>
