@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +87,12 @@ function getPlayerOdds(player: any) {
   );
 }
 
-async function importField(apiKey: string, eventId: string, tournamentId: number) {
+async function importField(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  apiKey: string,
+  eventId: string,
+  tournamentId: number
+) {
   const response = await fetch(
     "https://api.sportsdata.io/golf/v2/json/Leaderboard/" +
       tournamentId +
@@ -130,7 +135,7 @@ async function importField(apiKey: string, eventId: string, tournamentId: number
     return { importedCount: 0, playerCount: players.length };
   }
 
-  const { data: upsertedGolfers, error } = await supabase
+  const { data: upsertedGolfers, error } = await supabaseAdmin
     .from("golfers")
     .upsert(golfersToUpsert, { onConflict: "event_id,name" })
     .select("id,event_id,name");
@@ -146,6 +151,7 @@ async function importField(apiKey: string, eventId: string, tournamentId: number
 }
 
 export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
   const apiKey = process.env.SPORTSDATA_API_KEY;
 
   if (!apiKey) {
@@ -186,7 +192,7 @@ export async function GET() {
   const startDate = toDateOnly(tournament.StartDate);
   const endDate = toDateOnly(tournament.EndDate);
 
-  const { error: deactivateError } = await supabase
+  const { error: deactivateError } = await supabaseAdmin
     .from("events")
     .update({ is_active: false })
     .neq("id", eventId);
@@ -202,7 +208,7 @@ export async function GET() {
     );
   }
 
-  const { data: activeEvent, error: upsertError } = await supabase
+  const { data: activeEvent, error: upsertError } = await supabaseAdmin
     .from("events")
     .upsert(
       {
@@ -231,6 +237,7 @@ export async function GET() {
 
   try {
     const fieldImport = await importField(
+      supabaseAdmin,
       apiKey,
       eventId,
       tournament.TournamentID

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { data: activeEvent, error } = await supabase
+  const supabaseAdmin = getSupabaseAdmin();
+  const { data: activeEvent, error } = await supabaseAdmin
     .from("events")
     .select("id,name,sportsdata_tournament_id,start_date,end_date,is_active")
     .eq("is_active", true)

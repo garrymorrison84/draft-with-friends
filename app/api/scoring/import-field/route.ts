@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
   const apiKey = process.env.SPORTSDATA_API_KEY;
 
   if (!apiKey) {
@@ -11,7 +12,7 @@ export async function GET() {
     );
   }
 
-  const { data: activeEvent, error: eventError } = await supabase
+  const { data: activeEvent, error: eventError } = await supabaseAdmin
     .from("events")
     .select("id, name, sportsdata_tournament_id")
     .eq("is_active", true)
@@ -94,7 +95,7 @@ export async function GET() {
       };
     });
 
-  const { data: upsertedGolfers, error: upsertError } = await supabase
+  const { data: upsertedGolfers, error: upsertError } = await supabaseAdmin
     .from("golfers")
     .upsert(golfersToUpsert, {
       onConflict: "event_id,name",

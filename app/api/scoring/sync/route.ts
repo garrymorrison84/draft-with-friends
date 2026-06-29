@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +102,7 @@ function completedRoundCount(rounds: any[]) {
 }
 
 export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
   const apiKey = process.env.SPORTSDATA_API_KEY;
 
   if (!apiKey) {
@@ -111,7 +112,7 @@ export async function GET() {
     );
   }
 
-  const { data: activeEvent, error: activeEventError } = await supabase
+  const { data: activeEvent, error: activeEventError } = await supabaseAdmin
     .from("events")
     .select("*")
     .eq("is_active", true)
@@ -131,7 +132,7 @@ export async function GET() {
   const eventId = activeEvent.id;
   const tournamentId = activeEvent.sportsdata_tournament_id;
 
-  const { data: dbGolfers, error: golfersError } = await supabase
+  const { data: dbGolfers, error: golfersError } = await supabaseAdmin
     .from("golfers")
     .select("id,event_id,name")
     .eq("event_id", eventId);
@@ -287,7 +288,7 @@ export async function GET() {
       continue;
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("golfers")
       .update({
         tournament_score: player.tournament_score,
