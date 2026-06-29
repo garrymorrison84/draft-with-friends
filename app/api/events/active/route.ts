@@ -4,7 +4,14 @@ import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const supabaseAdmin = getSupabaseAdmin();
+  const { client: supabaseAdmin, error: adminError } = getSupabaseAdmin();
+
+  if (adminError || !supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: adminError || "Missing Supabase admin client" },
+      { status: 500 }
+    );
+  }
   const { data: activeEvent, error } = await supabaseAdmin
     .from("events")
     .select("id,name,sportsdata_tournament_id,start_date,end_date,is_active")

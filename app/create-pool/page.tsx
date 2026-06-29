@@ -269,11 +269,6 @@ export default function CreatePoolPage() {
                 placeholder="U.S. Open, Masters, Memorial Tournament..."
                 className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
               />
-              {activeEventLabel && (
-                <p className="mt-2 text-xs font-semibold text-emerald-300">
-                  Current PGA Tour event
-                </p>
-              )}
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">

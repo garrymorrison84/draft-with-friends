@@ -102,7 +102,14 @@ function completedRoundCount(rounds: any[]) {
 }
 
 export async function GET() {
-  const supabaseAdmin = getSupabaseAdmin();
+  const { client: supabaseAdmin, error: adminError } = getSupabaseAdmin();
+
+  if (adminError || !supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: adminError || "Missing Supabase admin client" },
+      { status: 500 }
+    );
+  }
   const apiKey = process.env.SPORTSDATA_API_KEY;
 
   if (!apiKey) {

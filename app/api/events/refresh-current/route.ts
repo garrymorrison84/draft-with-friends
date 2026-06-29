@@ -88,7 +88,7 @@ function getPlayerOdds(player: any) {
 }
 
 async function importField(
-  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  supabaseAdmin: NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>,
   apiKey: string,
   eventId: string,
   tournamentId: number
@@ -151,7 +151,14 @@ async function importField(
 }
 
 export async function GET() {
-  const supabaseAdmin = getSupabaseAdmin();
+  const { client: supabaseAdmin, error: adminError } = getSupabaseAdmin();
+
+  if (adminError || !supabaseAdmin) {
+    return NextResponse.json(
+      { success: false, error: adminError || "Missing Supabase admin client" },
+      { status: 500 }
+    );
+  }
   const apiKey = process.env.SPORTSDATA_API_KEY;
 
   if (!apiKey) {
