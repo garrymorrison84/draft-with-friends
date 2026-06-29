@@ -11,6 +11,11 @@ import {
 } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
 import { getOrganizerPoolMeta } from "../lib/organizerStorage";
+import {
+  loadPool as loadLocalPool,
+  loadDraftPicks as loadLocalDraftPicks,
+  saveDraftPicks as saveLocalDraftPicks,
+} from "../lib/poolStorage";
 
 const CURRENT_EVENT_ID = "TRAVELERS2026";
 
@@ -102,6 +107,7 @@ export default function DraftPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
   const [isSavingPick, setIsSavingPick] = useState(false);
+  const [isLocalPool, setIsLocalPool] = useState(false);
 
   useEffect(() => {
     async function loadDraft() {
@@ -114,48 +120,71 @@ export default function DraftPage() {
       }
 
       const savedPool = await getPool(poolId);
+      const localPool = savedPool ? null : loadLocalPool(poolId);
 
-      if (!savedPool) {
+      if (!savedPool && !localPool) {
         setIsLoading(false);
         return;
       }
 
-      const formattedPool: Pool = {
-        id: savedPool.id,
-        poolName: savedPool.pool_name,
-        golfEvent: savedPool.golf_event,
-        numberOfTeams: savedPool.number_of_teams,
-        golfersPerTeam: savedPool.golfers_per_team,
-        scoresToCount: savedPool.scores_to_count,
-        teamNames: savedPool.team_names || [],
-        draftOrder: savedPool.draft_order || savedPool.team_names || [],
-        draftLocked: Boolean(
-          savedPool.draft_locked || getOrganizerPoolMeta(savedPool.id).draftLocked
-        ),
-      };
+      const formattedPool: Pool = savedPool
+        ? {
+            id: savedPool.id,
+            poolName: savedPool.pool_name,
+            golfEvent: savedPool.golf_event,
+            numberOfTeams: savedPool.number_of_teams,
+            golfersPerTeam: savedPool.golfers_per_team,
+            scoresToCount: savedPool.scores_to_count,
+            teamNames: savedPool.team_names || [],
+            draftOrder: savedPool.draft_order || savedPool.team_names || [],
+            draftLocked: Boolean(
+              savedPool.draft_locked ||
+                getOrganizerPoolMeta(savedPool.id).draftLocked
+            ),
+          }
+        : {
+            id: localPool!.id,
+            poolName: localPool!.poolName,
+            golfEvent: localPool!.golfEvent,
+            numberOfTeams: localPool!.numberOfTeams,
+            golfersPerTeam: localPool!.golfersPerTeam,
+            scoresToCount: localPool!.scoresToCount,
+            teamNames: localPool!.teamNames || [],
+            draftOrder: localPool!.draftOrder || localPool!.teamNames || [],
+            draftLocked: false,
+          };
 
+      setIsLocalPool(!savedPool);
       setPool(formattedPool);
 
       const totalPicks =
         formattedPool.draftOrder.length * formattedPool.golfersPerTeam;
 
-      const savedPicks = await getDraftPicks(formattedPool.id);
+      const savedPicks = savedPool
+        ? await getDraftPicks(formattedPool.id)
+        : loadLocalDraftPicks(formattedPool.id) || [];
       const picksArray: (DraftPick | null)[] = Array(totalPicks).fill(null);
 
-      savedPicks.forEach((pick: any) => {
+      savedPicks.forEach((pick: any, index: number) => {
+        const pickIndex = pick?.pick_index ?? pick?.pickIndex ?? index;
+        const golferName = pick?.golfer_name ?? pick?.golfer?.name;
+
         if (
-          typeof pick.pick_index === "number" &&
-          pick.pick_index >= 0 &&
-          pick.pick_index < totalPicks
+          typeof pickIndex === "number" &&
+          pickIndex >= 0 &&
+          pickIndex < totalPicks &&
+          golferName
         ) {
-          picksArray[pick.pick_index] = {
+          const golferRank = pick?.golfer_rank ?? pick?.golfer?.rank ?? 999999;
+
+          picksArray[pickIndex] = {
             team: pick.team,
             golfer: {
-              name: pick.golfer_name,
-              rank: pick.golfer_rank ?? 999999,
-              vegasOdds: formatOdds(pick.golfer_rank),
+              name: golferName,
+              rank: golferRank,
+              vegasOdds: formatOdds(golferRank),
             },
-            pickIndex: pick.pick_index,
+            pickIndex,
           };
         }
       });
@@ -307,13 +336,17 @@ export default function DraftPage() {
     setPendingGolfer(null);
 
     try {
-      await saveDraftPick({
-        pool_id: activePool.id,
-        team: nextTeam,
-        golfer_name: golfer.name,
-        golfer_rank: golfer.rank,
-        pick_index: nextPickIndex,
-      });
+      if (isLocalPool) {
+        saveLocalDraftPicks(activePool.id, nextPicks);
+      } else {
+        await saveDraftPick({
+          pool_id: activePool.id,
+          team: nextTeam,
+          golfer_name: golfer.name,
+          golfer_rank: golfer.rank,
+          pick_index: nextPickIndex,
+        });
+      }
     } catch (error) {
       setDraftPicks(previousPicks);
       console.error(error);
@@ -342,7 +375,11 @@ export default function DraftPage() {
     setDraftPicks(nextPicks);
 
     try {
-      await deleteLastDraftPick(activePool.id, lastPick.index);
+      if (isLocalPool) {
+        saveLocalDraftPicks(activePool.id, nextPicks);
+      } else {
+        await deleteLastDraftPick(activePool.id, lastPick.index);
+      }
     } catch (error) {
       setDraftPicks(previousPicks);
       console.error(error);

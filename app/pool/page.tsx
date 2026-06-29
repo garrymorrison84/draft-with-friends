@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks } from "../lib/poolApi";
+import { loadPool as loadLocalPool, loadDraftPicks as loadLocalDraftPicks } from "../lib/poolStorage";
 import BrandMark from "../components/BrandMark";
 
 type Pool = {
@@ -32,27 +33,41 @@ export default function PoolPage() {
       }
 
       const savedPool = await getPool(poolId);
+      const localPool = savedPool ? null : loadLocalPool(poolId);
 
-      if (!savedPool) {
+      if (!savedPool && !localPool) {
         setIsLoading(false);
         return;
       }
 
-      const formattedPool: Pool = {
-        id: savedPool.id,
-        poolName: savedPool.pool_name,
-        golfEvent: savedPool.golf_event,
-        numberOfTeams: savedPool.number_of_teams,
-        golfersPerTeam: savedPool.golfers_per_team,
-        scoresToCount: savedPool.scores_to_count,
-        teamNames: savedPool.team_names,
-        draftOrder: savedPool.draft_order,
-      };
+      const formattedPool: Pool = savedPool
+        ? {
+            id: savedPool.id,
+            poolName: savedPool.pool_name,
+            golfEvent: savedPool.golf_event,
+            numberOfTeams: savedPool.number_of_teams,
+            golfersPerTeam: savedPool.golfers_per_team,
+            scoresToCount: savedPool.scores_to_count,
+            teamNames: savedPool.team_names,
+            draftOrder: savedPool.draft_order,
+          }
+        : {
+            id: localPool!.id,
+            poolName: localPool!.poolName,
+            golfEvent: localPool!.golfEvent,
+            numberOfTeams: localPool!.numberOfTeams,
+            golfersPerTeam: localPool!.golfersPerTeam,
+            scoresToCount: localPool!.scoresToCount,
+            teamNames: localPool!.teamNames,
+            draftOrder: localPool!.draftOrder,
+          };
 
       setPool(formattedPool);
 
-      const picks = await getDraftPicks(formattedPool.id);
-      setPickCount(picks.length);
+      const picks = savedPool
+        ? await getDraftPicks(formattedPool.id)
+        : loadLocalDraftPicks(formattedPool.id) || [];
+      setPickCount(picks.filter(Boolean).length);
 
       setIsLoading(false);
     }

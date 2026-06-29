@@ -151,11 +151,6 @@ export default function CreatePoolPage() {
   }
 
   async function createPool() {
-    if (!organizer) {
-      window.location.href = "/organizer/sign-in?redirect=/create-pool";
-      return;
-    }
-
     setIsCreating(true);
     setErrorMessage("");
 
@@ -178,22 +173,22 @@ export default function CreatePoolPage() {
       draftOrder: finalDraftOrder,
     };
 
-    const supabasePool = {
-      id: poolId,
-      pool_name: localPool.poolName,
-      golf_event: localPool.golfEvent,
-      number_of_teams: numberOfTeams,
-      golfers_per_team: golfersPerTeam,
-      scores_to_count: scoresToCount,
-      team_names: finalTeamNames,
-      draft_order: finalDraftOrder,
-      owner_id: organizer.id,
-      draft_locked: false,
-      archived: false,
-    };
-
     try {
-      await savePoolToSupabase(supabasePool);
+      if (organizer) {
+        await savePoolToSupabase({
+          id: poolId,
+          pool_name: localPool.poolName,
+          golf_event: localPool.golfEvent,
+          number_of_teams: numberOfTeams,
+          golfers_per_team: golfersPerTeam,
+          scores_to_count: scoresToCount,
+          team_names: finalTeamNames,
+          draft_order: finalDraftOrder,
+          owner_id: organizer.id,
+          draft_locked: false,
+          archived: false,
+        });
+      }
 
       saveLocalPool(localPool);
 
@@ -279,8 +274,14 @@ export default function CreatePoolPage() {
                 </label>
                 <input
                   type="number"
-                  value={golfersPerTeam}
-                  onChange={(e) => setGolfersPerTeam(Number(e.target.value))}
+                  min="1"
+                  value={golfersPerTeam || ""}
+                  onChange={(e) =>
+                    setGolfersPerTeam(
+                      e.target.value === "" ? 0 : Number(e.target.value)
+                    )
+                  }
+                  onFocus={(e) => e.target.select()}
                   className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
                 />
               </div>
@@ -497,11 +498,7 @@ export default function CreatePoolPage() {
               disabled={isCreating || isCheckingAuth}
               className="mt-4 block rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isCreating
-                ? "Creating Pool..."
-                : organizer
-                ? "Create Pool & Continue"
-                : "Sign In to Create Pool"}
+              {isCreating ? "Creating Pool..." : "Create Pool & Continue"}
             </button>
           </div>
         </div>

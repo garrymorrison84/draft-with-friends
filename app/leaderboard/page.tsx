@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks, getGolferScores } from "../lib/poolApi";
+import { loadPool as loadLocalPool, loadDraftPicks as loadLocalDraftPicks } from "../lib/poolStorage";
 import BrandMark from "../components/BrandMark";
 
 type Pool = {
@@ -141,27 +142,52 @@ export default function LeaderboardPage() {
     }
 
     const savedPool = await getPool(poolId);
+    const localPool = savedPool ? null : loadLocalPool(poolId);
 
-    if (!savedPool) {
+    if (!savedPool && !localPool) {
       setIsLoading(false);
       return;
     }
 
-    const formattedPool: Pool = {
-      id: savedPool.id,
-      poolName: savedPool.pool_name,
-      golfEvent: savedPool.golf_event,
-      numberOfTeams: savedPool.number_of_teams,
-      golfersPerTeam: savedPool.golfers_per_team,
-      scoresToCount: savedPool.scores_to_count,
-      teamNames: savedPool.team_names || [],
-      draftOrder: savedPool.draft_order || [],
-    };
+    const formattedPool: Pool = savedPool
+      ? {
+          id: savedPool.id,
+          poolName: savedPool.pool_name,
+          golfEvent: savedPool.golf_event,
+          numberOfTeams: savedPool.number_of_teams,
+          golfersPerTeam: savedPool.golfers_per_team,
+          scoresToCount: savedPool.scores_to_count,
+          teamNames: savedPool.team_names || [],
+          draftOrder: savedPool.draft_order || [],
+        }
+      : {
+          id: localPool!.id,
+          poolName: localPool!.poolName,
+          golfEvent: localPool!.golfEvent,
+          numberOfTeams: localPool!.numberOfTeams,
+          golfersPerTeam: localPool!.golfersPerTeam,
+          scoresToCount: localPool!.scoresToCount,
+          teamNames: localPool!.teamNames || [],
+          draftOrder: localPool!.draftOrder || [],
+        };
 
     setPool(formattedPool);
 
-    const savedPicks = await getDraftPicks(formattedPool.id);
-    setDraftPicks(savedPicks || []);
+    const savedPicks = savedPool
+      ? await getDraftPicks(formattedPool.id)
+      : loadLocalDraftPicks(formattedPool.id) || [];
+    setDraftPicks(
+      (savedPicks || [])
+        .filter(Boolean)
+        .map((pick: any, index: number) => ({
+          pool_id: formattedPool.id,
+          team: pick.team,
+          golfer_name: pick.golfer_name ?? pick.golfer?.name,
+          golfer_rank: pick.golfer_rank ?? pick.golfer?.rank ?? 999999,
+          pick_index: pick.pick_index ?? pick.pickIndex ?? index,
+        }))
+        .filter((pick: DraftPickRow) => pick.golfer_name)
+    );
 
     const scores = await getGolferScores(CURRENT_EVENT_ID);
     setGolferScores(scores || []);
