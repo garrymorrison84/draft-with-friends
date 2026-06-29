@@ -2,6 +2,7 @@ export type PoolData = {
   id: string;
   poolName: string;
   golfEvent: string;
+  eventId?: string;
   numberOfTeams: number;
   golfersPerTeam: number;
   scoresToCount: number;

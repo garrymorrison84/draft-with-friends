@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks, getGolferScores } from "../lib/poolApi";
-import { loadPool as loadLocalPool, loadDraftPicks as loadLocalDraftPicks } from "../lib/poolStorage";
+import {
+  loadPool as loadLocalPool,
+  loadDraftPicks as loadLocalDraftPicks,
+} from "../lib/poolStorage";
 import BrandMark from "../components/BrandMark";
 
 type Pool = {
   id: string;
   poolName: string;
   golfEvent: string;
+  eventId?: string | null;
   numberOfTeams: number;
   golfersPerTeam: number;
   scoresToCount: number;
@@ -53,7 +57,7 @@ type TeamResult = {
   golfers: TeamGolfer[];
 };
 
-const CURRENT_EVENT_ID = "TRAVELERS2026";
+const FALLBACK_EVENT_ID = "TRAVELERS2026";
 
 function normalizeName(name: string) {
   return name
@@ -154,6 +158,7 @@ export default function LeaderboardPage() {
           id: savedPool.id,
           poolName: savedPool.pool_name,
           golfEvent: savedPool.golf_event,
+          eventId: savedPool.event_id,
           numberOfTeams: savedPool.number_of_teams,
           golfersPerTeam: savedPool.golfers_per_team,
           scoresToCount: savedPool.scores_to_count,
@@ -164,6 +169,7 @@ export default function LeaderboardPage() {
           id: localPool!.id,
           poolName: localPool!.poolName,
           golfEvent: localPool!.golfEvent,
+          eventId: localPool!.eventId,
           numberOfTeams: localPool!.numberOfTeams,
           golfersPerTeam: localPool!.golfersPerTeam,
           scoresToCount: localPool!.scoresToCount,
@@ -189,7 +195,19 @@ export default function LeaderboardPage() {
         .filter((pick: DraftPickRow) => pick.golfer_name)
     );
 
-    const scores = await getGolferScores(CURRENT_EVENT_ID);
+    let eventId = formattedPool.eventId || FALLBACK_EVENT_ID;
+
+    if (!formattedPool.eventId) {
+      try {
+        const response = await fetch("/api/events/active", { cache: "no-store" });
+        const data = await response.json();
+        eventId = data?.activeEvent?.id || FALLBACK_EVENT_ID;
+      } catch (error) {
+        console.error("Could not load active golf event", error);
+      }
+    }
+
+    const scores = await getGolferScores(eventId);
     setGolferScores(scores || []);
 
     setIsLoading(false);

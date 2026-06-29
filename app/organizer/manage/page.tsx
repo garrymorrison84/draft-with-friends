@@ -15,12 +15,13 @@ import {
   type DraftPickRow,
 } from "../../lib/poolApi";
 
-const CURRENT_EVENT_ID = "TRAVELERS2026";
+const FALLBACK_EVENT_ID = "TRAVELERS2026";
 
 type ManagePool = {
   id: string;
   pool_name: string;
   golf_event: string;
+  event_id?: string | null;
   number_of_teams: number;
   golfers_per_team: number;
   scores_to_count: number;
@@ -104,6 +105,7 @@ export default function ManagePoolPage() {
         id: savedPool.id,
         pool_name: savedPool.pool_name,
         golf_event: savedPool.golf_event,
+        event_id: savedPool.event_id,
         number_of_teams: savedPool.number_of_teams,
         golfers_per_team: savedPool.golfers_per_team,
         scores_to_count: savedPool.scores_to_count,
@@ -115,7 +117,7 @@ export default function ManagePoolPage() {
 
       const [savedPicks, golfers] = await Promise.all([
         getDraftPicks(formattedPool.id),
-        loadGolfers(CURRENT_EVENT_ID),
+        loadGolfers(formattedPool.event_id || FALLBACK_EVENT_ID),
       ]);
 
       const formattedGolfers = golfers

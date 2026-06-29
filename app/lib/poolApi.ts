@@ -4,6 +4,7 @@ export type SupabasePool = {
   id: string;
   pool_name: string;
   golf_event: string;
+  event_id?: string | null;
   number_of_teams: number;
   golfers_per_team: number;
   scores_to_count: number;

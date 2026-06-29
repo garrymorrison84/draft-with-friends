@@ -50,6 +50,8 @@ export default function CreatePoolPage() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [poolName, setPoolName] = useState("");
   const [golfEvent, setGolfEvent] = useState("");
+  const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [activeEventLabel, setActiveEventLabel] = useState("");
   const [numberOfTeams, setNumberOfTeams] = useState(4);
   const [golfersPerTeam, setGolfersPerTeam] = useState(8);
   const [scoresToCount, setScoresToCount] = useState(4);
@@ -80,7 +82,24 @@ export default function CreatePoolPage() {
       setIsCheckingAuth(false);
     }
 
+    async function loadActiveEvent() {
+      try {
+        const response = await fetch("/api/events/active", { cache: "no-store" });
+        const data = await response.json();
+        const activeEvent = data?.activeEvent;
+
+        if (activeEvent?.id && activeEvent?.name) {
+          setActiveEventId(activeEvent.id);
+          setActiveEventLabel(activeEvent.name);
+          setGolfEvent((current) => current || activeEvent.name);
+        }
+      } catch (error) {
+        console.error("Could not load active golf event", error);
+      }
+    }
+
     loadOrganizer();
+    loadActiveEvent();
   }, []);
 
   function getFinalTeamNames() {
@@ -165,7 +184,8 @@ export default function CreatePoolPage() {
     const localPool = {
       id: poolId,
       poolName: poolName || "Untitled Golf Pool",
-      golfEvent: golfEvent || "Golf Event",
+      golfEvent: golfEvent || activeEventLabel || "Golf Event",
+      eventId: activeEventId || undefined,
       numberOfTeams,
       golfersPerTeam,
       scoresToCount,
@@ -179,6 +199,7 @@ export default function CreatePoolPage() {
           id: poolId,
           pool_name: localPool.poolName,
           golf_event: localPool.golfEvent,
+          event_id: localPool.eventId || null,
           number_of_teams: numberOfTeams,
           golfers_per_team: golfersPerTeam,
           scores_to_count: scoresToCount,
@@ -248,6 +269,11 @@ export default function CreatePoolPage() {
                 placeholder="U.S. Open, Masters, Memorial Tournament..."
                 className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
               />
+              {activeEventLabel && (
+                <p className="mt-2 text-xs font-semibold text-emerald-300">
+                  Current PGA Tour event
+                </p>
+              )}
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">

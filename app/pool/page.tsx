@@ -3,13 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getPool, getDraftPicks } from "../lib/poolApi";
-import { loadPool as loadLocalPool, loadDraftPicks as loadLocalDraftPicks } from "../lib/poolStorage";
+import {
+  loadPool as loadLocalPool,
+  loadDraftPicks as loadLocalDraftPicks,
+} from "../lib/poolStorage";
 import BrandMark from "../components/BrandMark";
 
 type Pool = {
   id: string;
   poolName: string;
   golfEvent: string;
+  eventId?: string | null;
   numberOfTeams: number;
   golfersPerTeam: number;
   scoresToCount: number;
@@ -45,6 +49,7 @@ export default function PoolPage() {
             id: savedPool.id,
             poolName: savedPool.pool_name,
             golfEvent: savedPool.golf_event,
+            eventId: savedPool.event_id,
             numberOfTeams: savedPool.number_of_teams,
             golfersPerTeam: savedPool.golfers_per_team,
             scoresToCount: savedPool.scores_to_count,
@@ -55,6 +60,7 @@ export default function PoolPage() {
             id: localPool!.id,
             poolName: localPool!.poolName,
             golfEvent: localPool!.golfEvent,
+            eventId: localPool!.eventId,
             numberOfTeams: localPool!.numberOfTeams,
             golfersPerTeam: localPool!.golfersPerTeam,
             scoresToCount: localPool!.scoresToCount,

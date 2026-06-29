@@ -84,3 +84,20 @@ create policy "Organizers can update picks in owned pools"
         and pools.owner_id = auth.uid()
     )
   );
+
+
+-- Weekly golf event automation.
+alter table public.events
+  add column if not exists start_date date,
+  add column if not exists end_date date;
+
+alter table public.pools
+  add column if not exists event_id text references public.events(id) on delete set null;
+
+create index if not exists pools_event_id_idx on public.pools(event_id);
+create index if not exists events_is_active_idx on public.events(is_active);
+
+alter table public.golfers
+  add column if not exists odds numeric,
+  add column if not exists odds_sort numeric,
+  add column if not exists vegas_odds text;

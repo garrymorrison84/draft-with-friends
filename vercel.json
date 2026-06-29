@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/events/refresh-current",
+      "schedule": "0 10 * * 1"
+    },
+    {
       "path": "/api/scoring/sync",
       "schedule": "*/2 * * * *"
     }
