@@ -283,8 +283,11 @@ export default function ManagePoolPage() {
             This pool either does not exist or is not owned by your organizer
             account.
           </p>
-          <Link href="/organizer" className="mt-6 inline-block text-emerald-300">
-            Back to organizer dashboard →
+          <Link
+            href="/organizer"
+            className="mt-6 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/20"
+          >
+            Organizer Dashboard
           </Link>
         </div>
       </main>
@@ -301,7 +304,7 @@ export default function ManagePoolPage() {
 
           <Link
             href={`/pool?id=${pool.id}`}
-            className="text-sm font-medium text-emerald-300"
+            className="inline-flex rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/20"
           >
             Pool Lobby
           </Link>
@@ -315,8 +318,8 @@ export default function ManagePoolPage() {
             {pool.pool_name}
           </h1>
           <p className="mt-3 text-slate-400">
-            {pool.golf_event} • {pool.number_of_teams} teams •{" "}
-            {pool.golfers_per_team} golfers per team
+            {pool.golf_event} • {pool.number_of_teams} Teams •{" "}
+            {pool.golfers_per_team} Golfers Per Team
           </p>
         </div>
 
@@ -399,9 +402,9 @@ export default function ManagePoolPage() {
 
             <Link
               href={`/leaderboard?id=${pool.id}`}
-              className="text-sm font-medium text-emerald-300"
+              className="inline-flex rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/20"
             >
-              View Leaderboard →
+              View Leaderboard
             </Link>
           </div>
 
