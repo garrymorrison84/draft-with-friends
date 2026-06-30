@@ -236,26 +236,30 @@ const currentTeam = draftComplete
           </div>
 
           <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
-            <p className="font-bold text-emerald-300">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-bold text-emerald-300">
   {draftComplete
     ? "Draft Complete"
     : `${currentTeam} is on the clock`}
 </p>
 
-<p className="mt-2 text-sm leading-6 text-slate-300">
+                <p className="mt-2 text-sm leading-6 text-slate-300">
   {draftComplete
     ? "Teams are locked. View the leaderboard to track standings."
     : `Round ${currentRound} • Pick ${pickInRound} of ${pool.numberOfTeams} this round • Overall pick ${currentPickIndex + 1} of ${totalPicks}`}
 </p>
+              </div>
 
-            {draftComplete && (
-              <a
-                href={`/organizer/manage?id=${pool.id}`}
-                className="mt-5 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/20"
-              >
-                Commissioner Tools
-              </a>
-            )}
+              {draftComplete && (
+                <a
+                  href={`/organizer/manage?id=${pool.id}`}
+                  className="inline-flex justify-center rounded-xl bg-emerald-400 px-7 py-4 text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 sm:min-w-[240px]"
+                >
+                  Commissioner Tools →
+                </a>
+              )}
+            </div>
           </div>
         </section>
 
