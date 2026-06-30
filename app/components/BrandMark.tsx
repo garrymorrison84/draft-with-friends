@@ -49,14 +49,14 @@ export default function BrandMark({
 
 function SnakeLetter() {
   return (
-    <span className="relative inline-block pr-[0.08em]">
+    <span className="relative inline-block pr-[0.28em]">
       S
       <span
         aria-hidden="true"
-        className="absolute right-[0.02em] top-[0.17em] flex gap-[0.06em]"
+        className="absolute right-[0.02em] top-[0.18em] flex h-[0.24em] w-[0.42em] items-center justify-center gap-[0.05em] rounded-full bg-emerald-400"
       >
-        <span className="block h-[0.09em] w-[0.09em] rounded-full bg-[#030712]" />
-        <span className="block h-[0.09em] w-[0.09em] rounded-full bg-[#030712]" />
+        <span className="block h-[0.07em] w-[0.07em] rounded-full bg-[#030712]" />
+        <span className="block h-[0.07em] w-[0.07em] rounded-full bg-[#030712]" />
       </span>
     </span>
   );
