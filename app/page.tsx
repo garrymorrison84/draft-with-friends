@@ -151,13 +151,11 @@ export default function Home() {
           </h1>
 
           <p className="mt-5 text-lg font-semibold text-emerald-300">
-            No spreadsheets. No season long commitments. No headaches.
+            No spreadsheets. No manual tracking. Just snake drafts with friends.
           </p>
 
           <p className="mt-6 max-w-3xl text-xl leading-9 text-slate-300">
-            The easiest end-to-end drafting and tracking experience for sports
-            pools. Create a contest, invite your friends, draft your players,
-            and follow the leaderboard in real time.
+            Snake drafts are the best part of any pool. Draft With Friends makes it easy to create a contest, invite your friends, draft your players, and follow the leaderboard in real time.
           </p>
 
           <div className="mt-10">
