@@ -169,7 +169,7 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="mt-10 flex flex-wrap gap-6 text-lg font-semibold text-slate-300 md:text-xl">
+          <div className="mt-10 flex flex-wrap gap-6 text-base font-semibold text-slate-300 md:text-lg">
             <span>✓ Snake Drafts</span>
             <span>✓ Custom Scoring</span>
             <span>✓ Live Leaderboard</span>
