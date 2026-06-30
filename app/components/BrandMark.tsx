@@ -40,9 +40,24 @@ export default function BrandMark({
           With
         </span>
         <span className={`${classes.words} font-black uppercase leading-none text-emerald-400 drop-shadow-[0_10px_24px_rgba(16,185,129,0.16)]`}>
-          Friends
+          Friend<SnakeLetter />
         </span>
       </div>
     </div>
+  );
+}
+
+function SnakeLetter() {
+  return (
+    <span className="relative inline-block pr-[0.08em]">
+      S
+      <span
+        aria-hidden="true"
+        className="absolute right-[0.02em] top-[0.17em] flex gap-[0.06em]"
+      >
+        <span className="block h-[0.09em] w-[0.09em] rounded-full bg-[#030712]" />
+        <span className="block h-[0.09em] w-[0.09em] rounded-full bg-[#030712]" />
+      </span>
+    </span>
   );
 }
