@@ -547,7 +547,7 @@ export default function ManagePoolPage() {
                 return (
                   <div
                     key={`${pick.pool_id}-${pick.pick_index}`}
-                    className="grid gap-3 rounded-2xl border border-white/5 bg-[#1F2937] p-4 lg:grid-cols-[90px_1fr_1.5fr_120px_120px] lg:items-end"
+                    className="grid gap-3 rounded-2xl border border-white/5 bg-[#1F2937] p-4 lg:grid-cols-[90px_1fr_2fr_120px] lg:items-end"
                   >
                     <div>
                       <p className="text-xs font-bold uppercase text-slate-500">
@@ -569,8 +569,7 @@ export default function ManagePoolPage() {
                       <label className="mb-2 block text-xs font-bold uppercase text-slate-500">
                         Golfer
                       </label>
-                      <input
-                        list={`golfers-${pick.pick_index}`}
+                      <select
                         value={edit.golferName}
                         onChange={(event) =>
                           selectGolferForPick(
@@ -579,28 +578,13 @@ export default function ManagePoolPage() {
                           )
                         }
                         className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
-                      />
-                      <datalist id={`golfers-${pick.pick_index}`}>
+                      >
                         {golferOptions.map((golfer) => (
-                          <option key={golfer.name} value={golfer.name} />
+                          <option key={golfer.name} value={golfer.name}>
+                            {golfer.name}
+                          </option>
                         ))}
-                      </datalist>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-xs font-bold uppercase text-slate-500">
-                        Rank/Odds
-                      </label>
-                      <input
-                        type="number"
-                        value={edit.golferRank}
-                        onChange={(event) =>
-                          updatePickEdit(pick.pick_index, {
-                            golferRank: Number(event.target.value),
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
-                      />
+                      </select>
                     </div>
 
                     <button
