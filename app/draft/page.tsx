@@ -100,6 +100,21 @@ function getSortValue(golfer: any) {
   return Number.isFinite(oddsNumber) ? oddsNumber : 999999;
 }
 
+function formatEligibleField(eventId?: string | null, golfEvent?: string) {
+  const rawValue = eventId || golfEvent || FALLBACK_EVENT_ID;
+
+  if (rawValue.toUpperCase().includes("JOHN_DEERE")) {
+    return "John Deere";
+  }
+
+  return rawValue
+    .replace(/\d{4}$/g, "")
+    .replace(/_/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export default function DraftPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [allGolfers, setAllGolfers] = useState<Golfer[]>([]);
@@ -275,7 +290,7 @@ export default function DraftPage() {
           <BrandMark size="md" />
           <h1 className="text-2xl font-black md:text-4xl">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
-            Create a pool →
+            Create a pool
           </a>
         </div>
       </main>
@@ -413,7 +428,7 @@ export default function DraftPage() {
             href={`/pool?id=${activePool.id}`}
             className="text-sm font-medium text-emerald-300"
           >
-            ← Back to Pool Lobby
+            Back to Pool Lobby
           </a>
         </div>
 
@@ -441,7 +456,8 @@ export default function DraftPage() {
             </p>
 
             <p className="mt-2 text-xs font-semibold text-slate-500">
-              Eligible field: {activePool.eventId || FALLBACK_EVENT_ID}
+              Eligible field:{" "}
+              {formatEligibleField(activePool.eventId, activePool.golfEvent)}
             </p>
           </div>
 

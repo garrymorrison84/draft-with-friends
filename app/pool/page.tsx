@@ -105,7 +105,7 @@ return () => clearInterval(interval);
           <BrandMark size="md" />
           <h1 className="text-4xl font-black">No pool found</h1>
           <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
-            Create a pool →
+            Create a pool
           </a>
         </div>
       </main>
@@ -138,7 +138,7 @@ const currentTeam = draftComplete
           </Link>
 
           <a href="/create-pool" className="text-sm font-medium text-emerald-300">
-            ← Create Another Pool
+            Create Another Pool
           </a>
         </div>
 
@@ -163,7 +163,7 @@ const currentTeam = draftComplete
                 href={`/draft?id=${pool.id}`}
                 className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
               >
-                {pickCount > 0 ? "Continue Draft →" : "Start Draft →"}
+                {pickCount > 0 ? "Continue Draft" : "Start Draft"}
               </a>
             )}
 

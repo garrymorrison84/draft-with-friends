@@ -238,7 +238,7 @@ export default function CreatePoolPage() {
           </Link>
 
           <Link href="/" className="text-sm font-medium text-emerald-300">
-            ← Back Home
+            Back Home
           </Link>
         </div>
 

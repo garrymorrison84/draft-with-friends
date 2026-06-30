@@ -163,7 +163,7 @@ export default function Home() {
               href="/create-pool"
               className="inline-flex rounded-2xl bg-emerald-400 px-7 py-4 text-base font-bold text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
             >
-              Create Your Pool →
+              Create Your Pool
             </a>
           </div>
 
