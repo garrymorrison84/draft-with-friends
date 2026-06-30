@@ -155,7 +155,7 @@ export default function Home() {
           </p>
 
           <p className="mt-6 max-w-3xl text-xl leading-9 text-slate-300">
-            Snake drafts are the best part of any pool. Draft With Friends makes it easy to create a contest, invite your friends, draft your players, and follow the leaderboard in real time.
+            Snake drafts are the best part of a pool. Draft With Friends is the easiest end-to-end drafting and tracking experience for sports pools. Create a contest, invite your friends, draft your players, and follow the leaderboard in real time.
           </p>
 
           <div className="mt-10">
