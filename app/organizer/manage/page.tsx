@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import BrandMark from "../../components/BrandMark";
 import {
-  deleteOwnedPool,
   getCurrentOrganizerUser,
   getDraftPicks,
   getOwnedPool,
@@ -64,11 +63,9 @@ export default function ManagePoolPage() {
   const [scoresToCount, setScoresToCount] = useState(4);
   const [teamNames, setTeamNames] = useState<string[]>([]);
   const [draftOrder, setDraftOrder] = useState<string[]>([]);
-  const [draftLocked, setDraftLocked] = useState(false);
   const [draftPicks, setDraftPicks] = useState<DraftPickRow[]>([]);
   const [golferOptions, setGolferOptions] = useState<GolferOption[]>([]);
   const [pickEdits, setPickEdits] = useState<Record<number, PickEdit>>({});
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [savingPickIndex, setSavingPickIndex] = useState<number | null>(null);
@@ -143,7 +140,6 @@ export default function ManagePoolPage() {
       setScoresToCount(formattedPool.scores_to_count);
       setTeamNames(formattedPool.team_names);
       setDraftOrder(formattedPool.draft_order);
-      setDraftLocked(Boolean(formattedPool.draft_locked));
       setDraftPicks(savedPicks as DraftPickRow[]);
       setGolferOptions(formattedGolfers);
       setPickEdits(edits);
@@ -167,23 +163,6 @@ export default function ManagePoolPage() {
     setDraftOrder((currentOrder) =>
       currentOrder.map((team) => (team === previousName ? value : team))
     );
-  }
-
-  function handleDragStart(index: number) {
-    setDraggedIndex(index);
-  }
-
-  function handleDrop(dropIndex: number) {
-    if (draggedIndex === null) return;
-
-    const nextOrder = [...draftOrder];
-    const draggedTeam = nextOrder[draggedIndex];
-
-    nextOrder.splice(draggedIndex, 1);
-    nextOrder.splice(dropIndex, 0, draggedTeam);
-
-    setDraftOrder(nextOrder);
-    setDraggedIndex(null);
   }
 
   function getFinalTeamNames() {
@@ -213,7 +192,6 @@ export default function ManagePoolPage() {
       setPool({
         ...pool,
         ...updatedPool,
-        draft_locked: draftLocked,
       });
       setTeamNames(finalTeamNames);
       setDraftOrder(finalDraftOrder);
@@ -223,65 +201,6 @@ export default function ManagePoolPage() {
       setErrorMessage("Could not save pool settings. Try again.");
     } finally {
       setIsSaving(false);
-    }
-  }
-
-  async function toggleDraftLock() {
-    if (!pool || !organizer) return;
-
-    const nextLocked = !draftLocked;
-    setDraftLocked(nextLocked);
-    setStatusMessage("");
-    setErrorMessage("");
-
-    try {
-      await updateOwnedPool(pool.id, organizer.id, { draft_locked: nextLocked });
-      setPool({ ...pool, draft_locked: nextLocked });
-      setStatusMessage(nextLocked ? "Draft locked." : "Draft unlocked.");
-    } catch (error) {
-      setDraftLocked(!nextLocked);
-      console.error(error);
-      setErrorMessage("Could not update draft lock.");
-    }
-  }
-
-  async function toggleArchive() {
-    if (!pool || !organizer) return;
-
-    const nextArchived = !pool.archived;
-    const confirmed = window.confirm(
-      nextArchived
-        ? "Archive this pool? It will move to your archived dashboard."
-        : "Restore this pool to your active dashboard?"
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await updateOwnedPool(pool.id, organizer.id, { archived: nextArchived });
-      setPool({ ...pool, archived: nextArchived });
-      setStatusMessage(nextArchived ? "Pool archived." : "Pool restored.");
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("Could not update archive status.");
-    }
-  }
-
-  async function removePool() {
-    if (!pool || !organizer) return;
-
-    const confirmed = window.confirm(
-      "Delete this pool and its draft picks? This cannot be undone."
-    );
-
-    if (!confirmed) return;
-
-    try {
-      await deleteOwnedPool(pool.id, organizer.id);
-      window.location.href = "/organizer";
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("Could not delete the pool. Try archive instead.");
     }
   }
 
@@ -449,31 +368,6 @@ export default function ManagePoolPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-700/60 bg-[#1F2937] p-5">
-              <h2 className="text-2xl font-black">Draft Order</h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Drag teams to update the first-round draft order.
-              </p>
-
-              <div className="mt-5 space-y-3">
-                {draftOrder.map((team, index) => (
-                  <div
-                    key={`${team}-${index}`}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => handleDrop(index)}
-                    className="flex cursor-grab items-center justify-between rounded-xl border border-white/5 bg-[#030712] p-4 active:cursor-grabbing"
-                  >
-                    <p className="font-black">{team}</p>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
-                      {index + 1}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
@@ -482,30 +376,6 @@ export default function ManagePoolPage() {
                 className="rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? "Saving..." : "Save Settings"}
-              </button>
-
-              <button
-                type="button"
-                onClick={toggleDraftLock}
-                className="rounded-xl border border-white/15 px-5 py-3 font-black text-white transition hover:bg-[#1F2937]"
-              >
-                {draftLocked ? "Unlock Draft" : "Lock Draft"}
-              </button>
-
-              <button
-                type="button"
-                onClick={toggleArchive}
-                className="rounded-xl border border-yellow-300/30 px-5 py-3 font-black text-yellow-200 transition hover:bg-yellow-300/10"
-              >
-                {pool.archived ? "Restore" : "Archive"}
-              </button>
-
-              <button
-                type="button"
-                onClick={removePool}
-                className="rounded-xl border border-red-400/30 px-5 py-3 font-black text-red-200 transition hover:bg-red-400/10"
-              >
-                Delete
               </button>
             </div>
           </div>
