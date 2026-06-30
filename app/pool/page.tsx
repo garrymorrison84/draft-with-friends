@@ -185,10 +185,39 @@ const currentTeam = draftComplete
           </div>
         </div>
 
-        <section className="mt-10 grid gap-6 md:grid-cols-3">
-          <StatCard label="Teams" value={String(pool.numberOfTeams)} />
-          <StatCard label="Golfers Per Team" value={String(pool.golfersPerTeam)} />
-          <StatCard label="Scores Count" value={String(pool.scoresToCount)} />
+        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+          <div className="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
+              <StatBlock label="Golfers Per Team" value={String(pool.golfersPerTeam)} />
+              <StatBlock label="Scores Count" value={String(pool.scoresToCount)} />
+            </div>
+
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-emerald-300">
+                    Invite Link
+                  </p>
+                  <p className="mt-1 truncate text-sm text-slate-200">
+                    {`draftwithfriends.com/pool?id=${pool.id}`}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/pool?id=${pool.id}`
+                    )
+                  }
+                  className="rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-200"
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
@@ -227,8 +256,8 @@ const currentTeam = draftComplete
           </div>
         </section>
 
-        <section className="mt-10 grid gap-6 lg:grid-cols-3">
-          <div className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40 lg:col-span-2">
+        <section className="mt-10">
+          <div className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
             <h2 className="text-2xl font-bold">Draft Order</h2>
             <p className="mt-2 text-sm text-slate-400">
               Teams draft in this order. The order reverses each round.
@@ -249,39 +278,15 @@ const currentTeam = draftComplete
               ))}
             </div>
           </div>
-
-          <div className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-            <h2 className="text-2xl font-bold">Invite Friends</h2>
-
-            <p className="mt-3 text-slate-400">
-              Share this link so everyone can follow the pool.
-            </p>
-
-            <div className="mt-6 rounded-xl border border-white/5 bg-[#1F2937] p-4 text-sm text-slate-300">
-              {`draftwithfriends.com/pool?id=${pool.id}`}
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                navigator.clipboard.writeText(
-                  `${window.location.origin}/pool?id=${pool.id}`
-                )
-              }
-              className="mt-4 w-full rounded-xl bg-white px-5 py-3 font-bold text-slate-950"
-            >
-              Copy Invite Link
-            </button>
-          </div>
         </section>
       </div>
     </main>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
       <p className="text-sm text-slate-400">{label}</p>
       <p className="mt-2 text-4xl font-black">{value}</p>
     </div>
