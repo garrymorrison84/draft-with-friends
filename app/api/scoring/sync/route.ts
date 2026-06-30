@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+const MISSED_CUT_ROUND_PENALTY = 8;
+
 type SupabaseGolfer = {
   id: number;
   event_id: string;
@@ -242,38 +244,27 @@ export async function GET() {
     });
   }
 
-  const scoredPlayers = preparedPlayers.filter(
-    (player) => player.tournament_score !== null
-  );
-
-  const weekendPlayers = scoredPlayers.filter(
-    (player) => player.has_weekend_score
-  );
-
-  const worstMadeCutScore =
-    weekendPlayers.length > 0
-      ? Math.max(
-          ...weekendPlayers
-            .map((player) => player.tournament_score)
-            .filter((score): score is number => score !== null)
-        )
-      : null;
-
-  const cutPenaltyScore =
-    worstMadeCutScore !== null ? worstMadeCutScore + 1 : null;
-
   const finalPlayers = preparedPlayers.map((player) => {
     const shouldApplyCutPenalty =
-      cutPenaltyScore !== null &&
       player.completed_round_count >= 2 &&
       !player.has_weekend_score &&
       player.tournament_score !== null;
 
+    const round3 = shouldApplyCutPenalty
+      ? player.round_3 ?? MISSED_CUT_ROUND_PENALTY
+      : player.round_3;
+    const round4 = shouldApplyCutPenalty
+      ? player.round_4 ?? MISSED_CUT_ROUND_PENALTY
+      : player.round_4;
+    const tournamentScore = shouldApplyCutPenalty
+      ? (player.round_1 ?? 0) + (player.round_2 ?? 0) + (round3 ?? 0) + (round4 ?? 0)
+      : player.tournament_score;
+
     return {
       ...player,
-      tournament_score: shouldApplyCutPenalty
-        ? cutPenaltyScore
-        : player.tournament_score,
+      tournament_score: tournamentScore,
+      round_3: round3,
+      round_4: round4,
     };
   });
 
@@ -319,7 +310,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-normalized-name-sync-v3",
+    scoringVersion: "active-event-normalized-name-sync-v4-cut-penalty",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
@@ -331,8 +322,7 @@ export async function GET() {
     skippedPlayers: skippedPlayers.slice(0, 30),
     unmatchedSportsDataCount: unmatchedSportsDataPlayers.length,
     unmatchedSportsDataPlayers: unmatchedSportsDataPlayers.slice(0, 30),
-    worstMadeCutScore,
-    cutPenaltyScore,
+    missedCutRoundPenalty: MISSED_CUT_ROUND_PENALTY,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
     watchedPlayers: finalPlayers

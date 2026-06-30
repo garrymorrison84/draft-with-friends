@@ -439,10 +439,8 @@ export default function ManagePoolPage() {
                     </div>
 
                     <div>
-                      <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
-                        Golfer
-                      </label>
                       <select
+                        aria-label={`Golfer for pick ${pick.pick_index + 1}`}
                         value={edit.golferName}
                         onChange={(event) =>
                           selectGolferForPick(
