@@ -176,12 +176,6 @@ const currentTeam = draftComplete
               </a>
             )}
 
-            <a
-              href={`/organizer/manage?id=${pool.id}`}
-              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 transition hover:bg-emerald-400/20"
-            >
-              Manage Pool
-            </a>
           </div>
         </div>
 
@@ -253,6 +247,15 @@ const currentTeam = draftComplete
     ? "Teams are locked. View the leaderboard to track standings."
     : `Round ${currentRound} • Pick ${pickInRound} of ${pool.numberOfTeams} this round • Overall pick ${currentPickIndex + 1} of ${totalPicks}`}
 </p>
+
+            {draftComplete && (
+              <a
+                href={`/organizer/manage?id=${pool.id}`}
+                className="mt-5 inline-flex rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/20"
+              >
+                Commissioner Tools
+              </a>
+            )}
           </div>
         </section>
 
