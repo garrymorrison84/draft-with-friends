@@ -299,8 +299,11 @@ export default function ManagePoolPage() {
             <BrandMark size="lg" />
           </Link>
 
-          <Link href="/organizer" className="text-sm font-medium text-emerald-300">
-            ← Organizer Dashboard
+          <Link
+            href={`/pool?id=${pool.id}`}
+            className="text-sm font-medium text-emerald-300"
+          >
+            Pool Lobby
           </Link>
         </div>
 
@@ -381,7 +384,7 @@ export default function ManagePoolPage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+        <section className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-sm font-extrabold uppercase text-emerald-400">
@@ -403,11 +406,11 @@ export default function ManagePoolPage() {
           </div>
 
           {sortedDraftPicks.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-white/5 bg-[#1F2937] p-5 text-slate-400">
+            <div className="mt-5 rounded-2xl border border-white/5 bg-[#1F2937] p-4 text-slate-400">
               No golfers have been drafted yet.
             </div>
           ) : (
-            <div className="mt-6 grid gap-3">
+            <div className="mt-5 grid gap-2">
               {sortedDraftPicks.map((pick) => {
                 const edit = pickEdits[pick.pick_index] || {
                   golferName: pick.golfer_name,
@@ -417,13 +420,13 @@ export default function ManagePoolPage() {
                 return (
                   <div
                     key={`${pick.pool_id}-${pick.pick_index}`}
-                    className="grid gap-3 rounded-2xl border border-white/5 bg-[#1F2937] p-4 lg:grid-cols-[90px_1fr_2fr_120px] lg:items-end"
+                    className="grid gap-3 rounded-xl border border-white/5 bg-[#1F2937] p-3 lg:grid-cols-[70px_1fr_2fr_110px] lg:items-end"
                   >
                     <div>
                       <p className="text-xs font-bold uppercase text-slate-500">
                         Pick
                       </p>
-                      <p className="mt-1 font-black text-white">
+                      <p className="font-black text-white">
                         {pick.pick_index + 1}
                       </p>
                     </div>
@@ -432,11 +435,11 @@ export default function ManagePoolPage() {
                       <p className="text-xs font-bold uppercase text-slate-500">
                         Team
                       </p>
-                      <p className="mt-1 font-black text-white">{pick.team}</p>
+                      <p className="font-black text-white">{pick.team}</p>
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-xs font-bold uppercase text-slate-500">
+                      <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
                         Golfer
                       </label>
                       <select
@@ -447,7 +450,7 @@ export default function ManagePoolPage() {
                             event.target.value
                           )
                         }
-                        className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 text-white outline-none"
+                        className="w-full rounded-lg border border-white/5 bg-[#030712] px-3 py-2.5 text-white outline-none"
                       >
                         {golferOptions.map((golfer) => (
                           <option key={golfer.name} value={golfer.name}>
@@ -461,7 +464,7 @@ export default function ManagePoolPage() {
                       type="button"
                       onClick={() => savePickOverride(pick)}
                       disabled={savingPickIndex === pick.pick_index}
-                      className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-lg bg-emerald-400 px-4 py-2.5 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {savingPickIndex === pick.pick_index ? "Saving..." : "Save"}
                     </button>
