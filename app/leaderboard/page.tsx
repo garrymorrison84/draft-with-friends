@@ -344,8 +344,8 @@ export default function LeaderboardPage() {
           </h1>
 
           <p className="mt-2 text-base font-semibold text-slate-400 sm:text-xl">
-            {pool.golfEvent} • Draft {pool.golfersPerTeam} golfers • Best{" "}
-            {pool.scoresToCount} scores count
+            {pool.golfEvent} • Draft {pool.golfersPerTeam} Golfers • Best{" "}
+            {pool.scoresToCount} Scores Count
           </p>
 
           <div className="mt-4 flex flex-wrap gap-3">
@@ -361,7 +361,7 @@ export default function LeaderboardPage() {
               href={`/pool?id=${pool.id}`}
               className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-base font-black text-emerald-300 transition hover:bg-emerald-400/20"
             >
-              {pool.poolName}
+              {pool.poolName} Lobby
             </a>
           </div>
         </div>
