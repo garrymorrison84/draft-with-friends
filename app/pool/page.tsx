@@ -256,7 +256,7 @@ const currentTeam = draftComplete
                   href={`/organizer/manage?id=${pool.id}`}
                   className="inline-flex justify-center rounded-xl bg-emerald-400 px-7 py-4 text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 sm:min-w-[240px]"
                 >
-                  Commissioner Tools →
+                  Commissioner Tools
                 </a>
               )}
             </div>
