@@ -321,8 +321,14 @@ export default function CreatePoolPage() {
                 </label>
                 <input
                   type="number"
-                  value={scoresToCount}
-                  onChange={(e) => setScoresToCount(Number(e.target.value))}
+                  min="1"
+                  value={scoresToCount || ""}
+                  onChange={(e) =>
+                    setScoresToCount(
+                      e.target.value === "" ? 0 : Number(e.target.value)
+                    )
+                  }
+                  onFocus={(e) => e.target.select()}
                   className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
                 />
               </div>

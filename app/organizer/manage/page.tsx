@@ -2,15 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { User } from "@supabase/supabase-js";
 import BrandMark from "../../components/BrandMark";
 import {
-  getCurrentOrganizerUser,
   getDraftPicks,
-  getOwnedPool,
+  getPool,
   loadGolfers,
-  updateDraftPick,
-  updateOwnedPool,
   type DraftPickRow,
 } from "../../lib/poolApi";
 
@@ -57,7 +53,6 @@ function getSortValue(golfer: Record<string, unknown>) {
 }
 
 export default function ManagePoolPage() {
-  const [organizer, setOrganizer] = useState<User | null>(null);
   const [pool, setPool] = useState<ManagePool | null>(null);
   const [poolName, setPoolName] = useState("");
   const [scoresToCount, setScoresToCount] = useState(4);
@@ -74,15 +69,6 @@ export default function ManagePoolPage() {
 
   useEffect(() => {
     async function loadPoolForManagement() {
-      const user = await getCurrentOrganizerUser();
-
-      if (!user) {
-        window.location.href = "/organizer/sign-in?redirect=/organizer";
-        return;
-      }
-
-      setOrganizer(user);
-
       const params = new URLSearchParams(window.location.search);
       const poolId = params.get("id");
 
@@ -91,7 +77,7 @@ export default function ManagePoolPage() {
         return;
       }
 
-      const savedPool = await getOwnedPool(poolId, user.id);
+      const savedPool = await getPool(poolId);
 
       if (!savedPool) {
         setIsLoading(false);
@@ -170,7 +156,7 @@ export default function ManagePoolPage() {
   }
 
   async function saveSettings() {
-    if (!pool || !organizer) return;
+    if (!pool) return;
 
     setIsSaving(true);
     setStatusMessage("");
@@ -182,16 +168,32 @@ export default function ManagePoolPage() {
     );
 
     try {
-      const updatedPool = await updateOwnedPool(pool.id, organizer.id, {
-        pool_name: poolName.trim() || "Untitled Golf Pool",
-        team_names: finalTeamNames,
-        draft_order: finalDraftOrder,
-        scores_to_count: scoresToCount,
+      const response = await fetch("/api/commissioner", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "settings",
+          poolId: pool.id,
+          updates: {
+            pool_name: poolName.trim() || "Untitled Golf Pool",
+            team_names: finalTeamNames,
+            draft_order: finalDraftOrder,
+            scores_to_count: scoresToCount,
+          },
+        }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Could not save pool settings.");
+      }
 
       setPool({
         ...pool,
-        ...updatedPool,
+        ...result.pool,
       });
       setTeamNames(finalTeamNames);
       setDraftOrder(finalDraftOrder);
@@ -241,15 +243,30 @@ export default function ManagePoolPage() {
     setErrorMessage("");
 
     try {
-      const updatedPick = await updateDraftPick(pool.id, pick.pick_index, {
-        golfer_name: edit.golferName.trim(),
-        golfer_rank: Number(edit.golferRank) || 999999,
+      const response = await fetch("/api/commissioner", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "pick",
+          poolId: pool.id,
+          pickIndex: pick.pick_index,
+          golferName: edit.golferName.trim(),
+          golferRank: Number(edit.golferRank) || 999999,
+        }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Could not update that draft pick.");
+      }
 
       setDraftPicks((current) =>
         current.map((currentPick) =>
           currentPick.pick_index === pick.pick_index
-            ? (updatedPick as DraftPickRow)
+            ? (result.pick as DraftPickRow)
             : currentPick
         )
       );
@@ -280,8 +297,7 @@ export default function ManagePoolPage() {
           <BrandMark size="md" />
           <h1 className="mt-8 text-4xl font-black">Pool not found</h1>
           <p className="mt-3 text-slate-400">
-            This pool either does not exist or is not owned by your organizer
-            account.
+            This pool either does not exist or is not available for editing.
           </p>
           <Link
             href="/organizer"
@@ -345,10 +361,15 @@ export default function ManagePoolPage() {
                   type="number"
                   min={1}
                   max={pool.golfers_per_team}
-                  value={scoresToCount}
+                  value={scoresToCount || ""}
                   onChange={(event) =>
-                    setScoresToCount(Number(event.target.value))
+                    setScoresToCount(
+                      event.target.value === ""
+                        ? 0
+                        : Number(event.target.value)
+                    )
                   }
+                  onFocus={(event) => event.target.select()}
                   className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
                 />
               </div>
