@@ -8,7 +8,6 @@ import {
 } from "../lib/poolStorage";
 import {
   getCurrentOrganizerUser,
-  savePool as savePoolToSupabase,
 } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
 import type { User } from "@supabase/supabase-js";
@@ -43,6 +42,37 @@ function getCreatePoolErrorMessage(error: unknown) {
   return message
     ? `Could not create pool: ${message}`
     : "Something went wrong creating the pool. Try again.";
+}
+
+async function createSharedPool(pool: {
+  id: string;
+  pool_name: string;
+  golf_event: string;
+  event_id?: string | null;
+  number_of_teams: number;
+  golfers_per_team: number;
+  scores_to_count: number;
+  team_names: string[];
+  draft_order: string[];
+  owner_id?: string | null;
+  draft_locked: boolean;
+  archived: boolean;
+}) {
+  const response = await fetch("/api/pools", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(pool),
+  });
+
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.error || "Could not save pool to the database.");
+  }
+
+  return result.pool;
 }
 
 export default function CreatePoolPage() {
@@ -202,22 +232,20 @@ export default function CreatePoolPage() {
     };
 
     try {
-      if (organizer) {
-        await savePoolToSupabase({
-          id: poolId,
-          pool_name: localPool.poolName,
-          golf_event: localPool.golfEvent,
-          event_id: localPool.eventId || null,
-          number_of_teams: numberOfTeams,
-          golfers_per_team: golfersPerTeam,
-          scores_to_count: scoresToCount,
-          team_names: finalTeamNames,
-          draft_order: finalDraftOrder,
-          owner_id: organizer.id,
-          draft_locked: false,
-          archived: false,
-        });
-      }
+      await createSharedPool({
+        id: poolId,
+        pool_name: localPool.poolName,
+        golf_event: localPool.golfEvent,
+        event_id: localPool.eventId || null,
+        number_of_teams: numberOfTeams,
+        golfers_per_team: golfersPerTeam,
+        scores_to_count: scoresToCount,
+        team_names: finalTeamNames,
+        draft_order: finalDraftOrder,
+        owner_id: organizer?.id || null,
+        draft_locked: false,
+        archived: false,
+      });
 
       saveLocalPool(localPool);
 
