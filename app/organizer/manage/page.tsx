@@ -197,10 +197,17 @@ export default function ManagePoolPage() {
       });
       setTeamNames(finalTeamNames);
       setDraftOrder(finalDraftOrder);
+      if (Array.isArray(result.picks)) {
+        setDraftPicks(result.picks as DraftPickRow[]);
+      }
       setStatusMessage("Pool settings saved.");
     } catch (error) {
       console.error(error);
-      setErrorMessage("Could not save pool settings. Try again.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not save pool settings. Try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -273,7 +280,11 @@ export default function ManagePoolPage() {
       setStatusMessage("Draft pick updated.");
     } catch (error) {
       console.error(error);
-      setErrorMessage("Could not update that draft pick.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not update that draft pick."
+      );
     } finally {
       setSavingPickIndex(null);
     }
