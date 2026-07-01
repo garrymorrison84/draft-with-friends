@@ -25,6 +25,9 @@ export default function PoolPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [pickCount, setPickCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle"
+  );
 
   useEffect(() => {
     async function loadPoolPage() {
@@ -80,12 +83,22 @@ export default function PoolPage() {
 
     loadPoolPage();
 
-const interval = setInterval(() => {
-  loadPoolPage();
-}, 3000);
+    const interval = setInterval(() => {
+      loadPoolPage();
+    }, 3000);
 
-return () => clearInterval(interval);
-}, []);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (copyStatus === "idle") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setCopyStatus("idle"), 1800);
+
+    return () => window.clearTimeout(timeout);
+  }, [copyStatus]);
 
   if (isLoading) {
     return (
@@ -113,21 +126,25 @@ return () => clearInterval(interval);
   }
 
   const totalPicks = pool.numberOfTeams * pool.golfersPerTeam;
-const draftPercent = Math.round((pickCount / totalPicks) * 100);
-const draftComplete = pickCount === totalPicks;
+  const inviteLink =
+    typeof window === "undefined"
+      ? `https://draftwithfriends.com/pool?id=${pool.id}`
+      : `${window.location.origin}/pool?id=${pool.id}`;
+  const draftPercent = Math.round((pickCount / totalPicks) * 100);
+  const draftComplete = pickCount === totalPicks;
 
-const currentPickIndex = pickCount;
-const currentRound = Math.floor(currentPickIndex / pool.numberOfTeams) + 1;
-const pickInRound = (currentPickIndex % pool.numberOfTeams) + 1;
-const isSnakeRound = (currentRound - 1) % 2 === 1;
+  const currentPickIndex = pickCount;
+  const currentRound = Math.floor(currentPickIndex / pool.numberOfTeams) + 1;
+  const pickInRound = (currentPickIndex % pool.numberOfTeams) + 1;
+  const isSnakeRound = (currentRound - 1) % 2 === 1;
 
-const currentTeamIndex = isSnakeRound
-  ? pool.draftOrder.length - pickInRound
-  : pickInRound - 1;
+  const currentTeamIndex = isSnakeRound
+    ? pool.draftOrder.length - pickInRound
+    : pickInRound - 1;
 
-const currentTeam = draftComplete
-  ? "Draft Complete"
-  : pool.draftOrder[currentTeamIndex];
+  const currentTeam = draftComplete
+    ? "Draft Complete"
+    : pool.draftOrder[currentTeamIndex];
 
   return (
     <main className="min-h-screen bg-[#030712] text-white">
@@ -155,7 +172,7 @@ const currentTeam = draftComplete
                 href={`/draft?id=${pool.id}`}
                 className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
               >
-                {pickCount > 0 ? "Continue Draft" : "Start Draft"}
+                {pickCount > 0 ? "Continue Draft" : "Enter Draft"}
               </a>
             )}
 
@@ -192,14 +209,27 @@ const currentTeam = draftComplete
 
                 <button
                   type="button"
-                  onClick={() =>
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/pool?id=${pool.id}`
-                    )
-                  }
-                  className="rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-200"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(inviteLink);
+                      setCopyStatus("copied");
+                    } catch {
+                      setCopyStatus("failed");
+                    }
+                  }}
+                  className={`min-w-[112px] rounded-xl px-5 py-3 text-sm font-black transition ${
+                    copyStatus === "copied"
+                      ? "bg-emerald-300 text-slate-950"
+                      : copyStatus === "failed"
+                        ? "bg-red-300 text-slate-950"
+                        : "bg-white text-slate-950 hover:bg-slate-200"
+                  }`}
                 >
-                  Copy Link
+                  {copyStatus === "copied"
+                    ? "Copied"
+                    : copyStatus === "failed"
+                      ? "Try Again"
+                      : "Copy Link"}
                 </button>
               </div>
             </div>
