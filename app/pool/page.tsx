@@ -136,10 +136,6 @@ const currentTeam = draftComplete
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
           </Link>
-
-          <a href="/create-pool" className="text-sm font-medium text-emerald-300">
-            Create Another Pool
-          </a>
         </div>
 
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
