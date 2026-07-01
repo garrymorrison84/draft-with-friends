@@ -9,6 +9,12 @@ import {
   loadGolfers,
   type DraftPickRow,
 } from "../../lib/poolApi";
+import {
+  loadDraftPicks as loadLocalDraftPicks,
+  loadPool as loadLocalPool,
+  saveDraftPicks as saveLocalDraftPicks,
+  updatePool as updateLocalPool,
+} from "../../lib/poolStorage";
 
 const FALLBACK_EVENT_ID = "TRAVELERS2026";
 
@@ -52,8 +58,17 @@ function getSortValue(golfer: Record<string, unknown>) {
   return Number.isFinite(parsedValue) ? parsedValue : 999999;
 }
 
+function getTeamIndexForPick(pickNumber: number, teamCount: number) {
+  const roundIndex = Math.floor(pickNumber / teamCount);
+  const pickInRound = pickNumber % teamCount;
+  const isSnakeRound = roundIndex % 2 === 1;
+
+  return isSnakeRound ? teamCount - 1 - pickInRound : pickInRound;
+}
+
 export default function ManagePoolPage() {
   const [pool, setPool] = useState<ManagePool | null>(null);
+  const [isLocalPool, setIsLocalPool] = useState(false);
   const [poolName, setPoolName] = useState("");
   const [scoresToCount, setScoresToCount] = useState(4);
   const [teamNames, setTeamNames] = useState<string[]>([]);
@@ -70,38 +85,64 @@ export default function ManagePoolPage() {
   useEffect(() => {
     async function loadPoolForManagement() {
       const params = new URLSearchParams(window.location.search);
-      const poolId = params.get("id");
+      const poolId = params.get("id") || undefined;
 
-      if (!poolId) {
+      const savedPool = poolId ? await getPool(poolId) : null;
+      const localPool = savedPool ? null : loadLocalPool(poolId);
+
+      if (!savedPool && !localPool) {
         setIsLoading(false);
         return;
       }
 
-      const savedPool = await getPool(poolId);
+      const formattedPool: ManagePool = savedPool
+        ? {
+            id: savedPool.id,
+            pool_name: savedPool.pool_name,
+            golf_event: savedPool.golf_event,
+            event_id: savedPool.event_id,
+            number_of_teams: savedPool.number_of_teams,
+            golfers_per_team: savedPool.golfers_per_team,
+            scores_to_count: savedPool.scores_to_count,
+            team_names: savedPool.team_names || [],
+            draft_order: savedPool.draft_order || savedPool.team_names || [],
+            draft_locked: Boolean(savedPool.draft_locked),
+            archived: Boolean(savedPool.archived),
+          }
+        : {
+            id: localPool!.id,
+            pool_name: localPool!.poolName,
+            golf_event: localPool!.golfEvent,
+            event_id: localPool!.eventId,
+            number_of_teams: localPool!.numberOfTeams,
+            golfers_per_team: localPool!.golfersPerTeam,
+            scores_to_count: localPool!.scoresToCount,
+            team_names: localPool!.teamNames || [],
+            draft_order: localPool!.draftOrder || localPool!.teamNames || [],
+            draft_locked: false,
+            archived: false,
+          };
 
-      if (!savedPool) {
-        setIsLoading(false);
-        return;
-      }
+      setIsLocalPool(!savedPool);
 
-      const formattedPool: ManagePool = {
-        id: savedPool.id,
-        pool_name: savedPool.pool_name,
-        golf_event: savedPool.golf_event,
-        event_id: savedPool.event_id,
-        number_of_teams: savedPool.number_of_teams,
-        golfers_per_team: savedPool.golfers_per_team,
-        scores_to_count: savedPool.scores_to_count,
-        team_names: savedPool.team_names || [],
-        draft_order: savedPool.draft_order || savedPool.team_names || [],
-        draft_locked: Boolean(savedPool.draft_locked),
-        archived: Boolean(savedPool.archived),
-      };
-
-      const [savedPicks, golfers] = await Promise.all([
-        getDraftPicks(formattedPool.id),
+      const [remotePicks, golfers] = await Promise.all([
+        savedPool ? getDraftPicks(formattedPool.id) : Promise.resolve([]),
         loadGolfers(formattedPool.event_id || FALLBACK_EVENT_ID),
       ]);
+
+      const localPicks = savedPool
+        ? []
+        : (loadLocalDraftPicks(formattedPool.id) || [])
+            .filter((pick): pick is NonNullable<typeof pick> => pick !== null)
+            .map((pick) => ({
+              pool_id: formattedPool.id,
+              team: pick.team,
+              golfer_name: pick.golfer.name,
+              golfer_rank: pick.golfer.rank,
+              pick_index: pick.pickIndex,
+            }));
+
+      const savedPicks = savedPool ? remotePicks : localPicks;
 
       const formattedGolfers = golfers
         .map((golfer: Record<string, unknown>) => ({
@@ -168,6 +209,67 @@ export default function ManagePoolPage() {
     );
 
     try {
+      if (isLocalPool) {
+        const updatedPool = {
+          id: pool.id,
+          poolName: poolName.trim() || "Untitled Golf Pool",
+          golfEvent: pool.golf_event,
+          eventId: pool.event_id || undefined,
+          numberOfTeams: pool.number_of_teams,
+          golfersPerTeam: pool.golfers_per_team,
+          scoresToCount: scoresToCount || 1,
+          teamNames: finalTeamNames,
+          draftOrder: finalDraftOrder,
+        };
+
+        const updatedPicks = draftPicks.map((pick) => {
+          const teamIndex = getTeamIndexForPick(
+            pick.pick_index,
+            finalDraftOrder.length
+          );
+
+          return {
+            ...pick,
+            team: finalDraftOrder[teamIndex] || pick.team,
+          };
+        });
+
+        const localPickArray = Array.from({
+          length: pool.number_of_teams * pool.golfers_per_team,
+        }).map((_, index) => {
+          const pick = updatedPicks.find(
+            (draftPick) => draftPick.pick_index === index
+          );
+
+          return pick
+            ? {
+                team: pick.team,
+                golfer: {
+                  name: pick.golfer_name,
+                  rank: pick.golfer_rank,
+                },
+                pickIndex: pick.pick_index,
+              }
+            : null;
+        });
+
+        updateLocalPool(updatedPool);
+        saveLocalDraftPicks(pool.id, localPickArray);
+
+        setPool({
+          ...pool,
+          pool_name: updatedPool.poolName,
+          scores_to_count: updatedPool.scoresToCount,
+          team_names: finalTeamNames,
+          draft_order: finalDraftOrder,
+        });
+        setTeamNames(finalTeamNames);
+        setDraftOrder(finalDraftOrder);
+        setDraftPicks(updatedPicks);
+        setStatusMessage("Pool settings saved.");
+        return;
+      }
+
       const response = await fetch("/api/commissioner", {
         method: "POST",
         headers: {
@@ -250,6 +352,44 @@ export default function ManagePoolPage() {
     setErrorMessage("");
 
     try {
+      if (isLocalPool) {
+        const updatedPick = {
+          ...pick,
+          golfer_name: edit.golferName.trim(),
+          golfer_rank: Number(edit.golferRank) || 999999,
+        };
+
+        const updatedPicks = draftPicks.map((currentPick) =>
+          currentPick.pick_index === pick.pick_index
+            ? updatedPick
+            : currentPick
+        );
+
+        const localPickArray = Array.from({
+          length: (pool?.number_of_teams || 0) * (pool?.golfers_per_team || 0),
+        }).map((_, index) => {
+          const draftPick = updatedPicks.find(
+            (currentPick) => currentPick.pick_index === index
+          );
+
+          return draftPick
+            ? {
+                team: draftPick.team,
+                golfer: {
+                  name: draftPick.golfer_name,
+                  rank: draftPick.golfer_rank,
+                },
+                pickIndex: draftPick.pick_index,
+              }
+            : null;
+        });
+
+        saveLocalDraftPicks(pool.id, localPickArray);
+        setDraftPicks(updatedPicks);
+        setStatusMessage("Draft pick updated.");
+        return;
+      }
+
       const response = await fetch("/api/commissioner", {
         method: "POST",
         headers: {

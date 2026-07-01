@@ -50,6 +50,20 @@ export function savePool(pool: PoolData) {
   localStorage.removeItem(getPicksKey(pool.id));
 }
 
+export function updatePool(pool: PoolData) {
+  localStorage.setItem(getPoolKey(pool.id), JSON.stringify(pool));
+  localStorage.setItem(CURRENT_POOL_KEY, pool.id);
+  const savedPoolIds = localStorage.getItem(ORGANIZER_POOL_IDS_KEY);
+  const poolIds = savedPoolIds ? (JSON.parse(savedPoolIds) as string[]) : [];
+
+  if (!poolIds.includes(pool.id)) {
+    localStorage.setItem(
+      ORGANIZER_POOL_IDS_KEY,
+      JSON.stringify([...poolIds, pool.id])
+    );
+  }
+}
+
 export function loadPool(poolId?: string): PoolData | null {
   const id = poolId || localStorage.getItem(CURRENT_POOL_KEY);
 
