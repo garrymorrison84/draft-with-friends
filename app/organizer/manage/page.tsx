@@ -595,22 +595,26 @@ export default function ManagePoolPage() {
                 return (
                   <div
                     key={`${pick.pool_id}-${pick.pick_index}`}
-                    className="grid gap-3 rounded-xl border border-white/5 bg-[#1F2937] p-3 lg:grid-cols-[70px_1fr_2fr_110px] lg:items-end"
+                    className="grid gap-3 rounded-xl border border-white/5 bg-[#1F2937] p-3 sm:grid-cols-[1fr_2fr_110px] sm:items-end lg:grid-cols-[70px_1fr_2fr_110px]"
                   >
-                    <div>
-                      <p className="text-xs font-bold uppercase text-slate-500">
-                        Pick
-                      </p>
-                      <p className="font-black text-white">
-                        {pick.pick_index + 1}
-                      </p>
-                    </div>
+                    <div className="flex items-center justify-between gap-3 sm:contents">
+                      <div>
+                        <p className="text-[11px] font-bold uppercase text-slate-500">
+                          Pick
+                        </p>
+                        <p className="text-sm font-black text-white sm:text-base">
+                          {pick.pick_index + 1}
+                        </p>
+                      </div>
 
-                    <div>
-                      <p className="text-xs font-bold uppercase text-slate-500">
-                        Team
-                      </p>
-                      <p className="font-black text-white">{pick.team}</p>
+                      <div className="text-right sm:text-left">
+                        <p className="text-[11px] font-bold uppercase text-slate-500">
+                          Team
+                        </p>
+                        <p className="text-sm font-black text-white sm:text-base">
+                          {pick.team}
+                        </p>
+                      </div>
                     </div>
 
                     <div>
@@ -623,7 +627,7 @@ export default function ManagePoolPage() {
                             event.target.value
                           )
                         }
-                        className="w-full rounded-lg border border-white/5 bg-[#030712] px-3 py-2.5 text-white outline-none"
+                        className="w-full rounded-lg border border-white/5 bg-[#030712] px-3 py-2.5 text-sm text-white outline-none sm:text-base"
                       >
                         {golferOptions.map((golfer) => (
                           <option key={golfer.name} value={golfer.name}>
@@ -637,7 +641,7 @@ export default function ManagePoolPage() {
                       type="button"
                       onClick={() => savePickOverride(pick)}
                       disabled={savingPickIndex === pick.pick_index}
-                      className="rounded-lg bg-emerald-400 px-4 py-2.5 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-lg bg-emerald-400 px-4 py-2.5 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
                     >
                       {savingPickIndex === pick.pick_index ? "Saving..." : "Save"}
                     </button>
