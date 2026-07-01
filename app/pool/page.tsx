@@ -170,7 +170,7 @@ const currentTeam = draftComplete
             {pickCount > 0 && (
               <a
                 href={`/leaderboard?id=${pool.id}`}
-                className="rounded-2xl border border-white/15 px-8 py-4 text-center text-lg font-black text-white transition hover:bg-[#111827]"
+                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
               >
                 View Leaderboard
               </a>
