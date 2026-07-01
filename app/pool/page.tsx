@@ -145,16 +145,12 @@ const currentTeam = draftComplete
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="text-sm font-semibold text-emerald-300">
-              {pool.golfEvent}
+              {pool.golfEvent} Snake Draft
             </p>
 
             <h1 className="mt-2 text-4xl font-black md:text-5xl">
               {pool.poolName}
             </h1>
-
-            <p className="mt-4 text-slate-400">
-              Snake draft • {pool.numberOfTeams} teams • {pool.golfersPerTeam} golfers per team • Best {pool.scoresToCount} scores count
-            </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
