@@ -474,10 +474,38 @@ export default function DraftPage() {
               href={`/leaderboard?id=${activePool.id}`}
               className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 shadow-xl shadow-emerald-950/40 transition hover:bg-emerald-300 md:px-8 md:py-5 md:text-lg"
             >
-              Finish Draft
+              View Leaderboard
             </a>
           </div>
         </div>
+
+        {draftComplete && (
+          <section className="mt-5 rounded-3xl border border-emerald-400/30 bg-emerald-400/10 p-5 shadow-xl shadow-emerald-950/20 md:mt-8 md:p-6">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-wide text-emerald-300">
+                  Draft Complete
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">
+                  All picks are locked in.
+                </h2>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300 md:text-base">
+                  The draft board is complete. Head to the leaderboard to track
+                  live scoring and standings.
+                </p>
+              </div>
+
+              <a
+                href={`/leaderboard?id=${activePool.id}`}
+                className="inline-flex justify-center rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:min-w-[220px]"
+              >
+                Go to Leaderboard
+              </a>
+            </div>
+          </section>
+        )}
 
         <div className="mt-5 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:gap-6">
           <aside className="w-full shrink-0 rounded-2xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">

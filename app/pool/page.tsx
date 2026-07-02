@@ -167,19 +167,25 @@ export default function PoolPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            {!draftComplete && (
-              <a
-                href={`/draft?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
-              >
-                {pickCount > 0 ? "Continue Draft" : "Enter Draft"}
-              </a>
-            )}
+            <a
+              href={
+                draftComplete
+                  ? `/leaderboard?id=${pool.id}`
+                  : `/draft?id=${pool.id}`
+              }
+              className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+            >
+              {draftComplete
+                ? "View Leaderboard"
+                : pickCount > 0
+                  ? "Continue Draft"
+                  : "Enter Draft"}
+            </a>
 
-            {pickCount > 0 && (
+            {pickCount > 0 && !draftComplete && (
               <a
                 href={`/leaderboard?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+                className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 shadow-lg shadow-black/20 transition hover:scale-105 hover:bg-emerald-400/20"
               >
                 View Leaderboard
               </a>
