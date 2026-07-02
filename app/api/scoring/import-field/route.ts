@@ -88,7 +88,7 @@ export async function GET() {
   const golfersToUpsert = players
     .filter((player: any) => player.Name)
     .map((player: any) => {
-      const odds = getPlayerOdds(player);
+      const odds = asInteger(getPlayerOdds(player));
 
       return {
         event_id: eventId,
