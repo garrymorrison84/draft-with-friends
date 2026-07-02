@@ -35,6 +35,7 @@ type ManagePool = {
 type GolferOption = {
   name: string;
   rank: number;
+  hasOdds: boolean;
 };
 
 type PickEdit = {
@@ -43,19 +44,17 @@ type PickEdit = {
 };
 
 function getSortValue(golfer: Record<string, unknown>) {
-  const rawValue =
-    golfer.odds ??
-    golfer.odds_sort ??
-    golfer.vegas_odds ??
-    golfer.rank ??
-    golfer.world_rank;
-
-  const parsedValue =
-    typeof rawValue === "number"
-      ? rawValue
-      : Number(String(rawValue ?? "").replace("+", ""));
+  const parsedValue = getOddsNumber(golfer);
 
   return Number.isFinite(parsedValue) ? parsedValue : 999999;
+}
+
+function getOddsNumber(golfer: Record<string, unknown>) {
+  const rawValue = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
+
+  return typeof rawValue === "number"
+    ? rawValue
+    : Number(String(rawValue ?? "").replace("+", ""));
 }
 
 function getTeamIndexForPick(pickNumber: number, teamCount: number) {
@@ -148,9 +147,13 @@ export default function ManagePoolPage() {
         .map((golfer: Record<string, unknown>) => ({
           name: String(golfer.name || ""),
           rank: getSortValue(golfer),
+          hasOdds: Number.isFinite(getOddsNumber(golfer)),
         }))
         .filter((golfer: GolferOption) => golfer.name)
-        .sort((a: GolferOption, b: GolferOption) => a.rank - b.rank);
+        .sort((a: GolferOption, b: GolferOption) => {
+          if (a.hasOdds !== b.hasOdds) return a.hasOdds ? -1 : 1;
+          return a.rank - b.rank;
+        });
 
       const edits = (savedPicks as DraftPickRow[]).reduce<
         Record<number, PickEdit>

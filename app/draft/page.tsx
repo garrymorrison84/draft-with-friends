@@ -22,6 +22,7 @@ const FALLBACK_EVENT_ID = "TRAVELERS2026";
 type Golfer = {
   name: string;
   rank: number;
+  hasOdds?: boolean;
   vegasOdds?: string;
 };
 
@@ -68,36 +69,30 @@ function getRoundPickLabel(pickNumber: number, teamCount: number) {
 }
 
 function formatOdds(rawOdds: unknown) {
-  if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
-    return "Odds TBD";
-  }
-
   const oddsNumber =
     typeof rawOdds === "number"
       ? rawOdds
       : Number(String(rawOdds).replace("+", ""));
 
   if (!Number.isFinite(oddsNumber)) {
-    return String(rawOdds);
+    return "Odds TBD";
   }
 
-  return `+${oddsNumber}`;
+  return oddsNumber > 0 ? `+${oddsNumber}` : String(oddsNumber);
 }
 
 function getSortValue(golfer: any) {
-  const odds =
-    golfer.odds ??
-    golfer.odds_sort ??
-    golfer.vegas_odds ??
-    golfer.rank ??
-    golfer.world_rank;
-
-  const oddsNumber =
-    typeof odds === "number"
-      ? odds
-      : Number(String(odds ?? "").replace("+", ""));
+  const oddsNumber = getOddsNumber(golfer);
 
   return Number.isFinite(oddsNumber) ? oddsNumber : 999999;
+}
+
+function getOddsNumber(golfer: any) {
+  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
+
+  return typeof rawOdds === "number"
+    ? rawOdds
+    : Number(String(rawOdds ?? "").replace("+", ""));
 }
 
 function formatEligibleField(eventId?: string | null, golfEvent?: string) {
@@ -226,17 +221,22 @@ export default function DraftPage() {
       const formattedGolfers = golfers
         .map((golfer: any) => {
           const sortValue = getSortValue(golfer);
+          const hasOdds = Number.isFinite(getOddsNumber(golfer));
 
           return {
             name: golfer.name,
             rank: sortValue,
+            hasOdds,
             vegasOdds: formatOdds(
               golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds
             ),
           };
         })
         .filter((golfer: Golfer) => golfer.name)
-        .sort((a: Golfer, b: Golfer) => a.rank - b.rank);
+        .sort((a: Golfer, b: Golfer) => {
+          if (a.hasOdds !== b.hasOdds) return a.hasOdds ? -1 : 1;
+          return a.rank - b.rank;
+        });
 
       setAllGolfers(formattedGolfers);
       setIsLoading(false);
