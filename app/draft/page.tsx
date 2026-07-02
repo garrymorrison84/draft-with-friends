@@ -85,19 +85,23 @@ function formatOdds(rawOdds: unknown) {
 }
 
 function getSortValue(golfer: any) {
-  const odds =
-    golfer.odds ??
-    golfer.odds_sort ??
-    golfer.vegas_odds ??
-    golfer.rank ??
-    golfer.world_rank;
-
+  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
   const oddsNumber =
-    typeof odds === "number"
-      ? odds
-      : Number(String(odds ?? "").replace("+", ""));
+    typeof rawOdds === "number"
+      ? rawOdds
+      : Number(String(rawOdds ?? "").replace("+", ""));
 
-  return Number.isFinite(oddsNumber) ? oddsNumber : 999999;
+  if (Number.isFinite(oddsNumber)) {
+    return oddsNumber;
+  }
+
+  const rawWorldRank = golfer.world_rank ?? golfer.rank;
+  const worldRank =
+    typeof rawWorldRank === "number"
+      ? rawWorldRank
+      : Number(String(rawWorldRank ?? "").replace("+", ""));
+
+  return Number.isFinite(worldRank) ? 1000000 + worldRank : 9999999;
 }
 
 function formatEligibleField(eventId?: string | null, golfEvent?: string) {
