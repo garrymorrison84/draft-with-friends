@@ -244,8 +244,13 @@ export async function GET() {
     });
   }
 
+  const weekendScoringHasStarted = preparedPlayers.some(
+    (player) => player.has_weekend_score
+  );
+
   const finalPlayers = preparedPlayers.map((player) => {
     const shouldApplyCutPenalty =
+      weekendScoringHasStarted &&
       player.completed_round_count >= 2 &&
       !player.has_weekend_score &&
       player.tournament_score !== null;
@@ -323,6 +328,7 @@ export async function GET() {
     unmatchedSportsDataCount: unmatchedSportsDataPlayers.length,
     unmatchedSportsDataPlayers: unmatchedSportsDataPlayers.slice(0, 30),
     missedCutRoundPenalty: MISSED_CUT_ROUND_PENALTY,
+    weekendScoringHasStarted,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
     watchedPlayers: finalPlayers
