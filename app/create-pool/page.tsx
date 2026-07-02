@@ -125,12 +125,12 @@ export default function CreatePoolPage() {
           return;
         }
 
-        setActiveEventId("JOHN_DEERE_2026");
+        setActiveEventId(null);
         setActiveEventLabel("John Deere Classic");
         setGolfEvent((current) => current || "John Deere Classic");
       } catch (error) {
         console.error("Could not load active golf event", error);
-        setActiveEventId("JOHN_DEERE_2026");
+        setActiveEventId(null);
         setActiveEventLabel("John Deere Classic");
         setGolfEvent((current) => current || "John Deere Classic");
       }

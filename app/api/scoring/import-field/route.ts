@@ -68,6 +68,12 @@ export async function GET() {
     return null;
   }
 
+  function asInteger(value: unknown) {
+    const number = asNumber(value);
+
+    return number === null ? null : Math.round(number);
+  }
+
   function getPlayerOdds(player: any) {
     return (
       asNumber(player.OddsToWin) ??
@@ -87,10 +93,7 @@ export async function GET() {
       return {
         event_id: eventId,
         name: player.Name,
-        world_rank:
-          typeof player.WorldGolfRank === "number"
-            ? player.WorldGolfRank
-            : null,
+        world_rank: asInteger(player.WorldGolfRank),
         odds,
         odds_sort: odds,
         vegas_odds: odds === null ? null : "+" + odds,

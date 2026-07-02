@@ -94,6 +94,31 @@ function calculateGolferTotal(scoreData?: GolferScoreRow) {
   };
 }
 
+function hasUsableScore(scores: GolferScoreRow[]) {
+  return scores.some((score) =>
+    [
+      score.tournament_score,
+      score.round_1,
+      score.round_2,
+      score.round_3,
+      score.round_4,
+    ].some((value) => typeof value === "number")
+  );
+}
+
+function sameEventName(first?: string | null, second?: string | null) {
+  if (!first || !second) return false;
+
+  const firstName = normalizeName(first);
+  const secondName = normalizeName(second);
+
+  return (
+    firstName === secondName ||
+    firstName.includes(secondName) ||
+    secondName.includes(firstName)
+  );
+}
+
 function getRankMap(scores: GolferScoreRow[]) {
   const validScores = scores
     .map((score) => {
@@ -207,7 +232,27 @@ export default function LeaderboardPage() {
       }
     }
 
-    const scores = await getGolferScores(eventId);
+    let scores = await getGolferScores(eventId);
+
+    if (formattedPool.eventId && !hasUsableScore(scores)) {
+      try {
+        const response = await fetch("/api/events/active", { cache: "no-store" });
+        const data = await response.json();
+        const activeEvent = data?.activeEvent;
+
+        if (
+          activeEvent?.id &&
+          activeEvent.id !== formattedPool.eventId &&
+          sameEventName(activeEvent.name, formattedPool.golfEvent)
+        ) {
+          eventId = activeEvent.id;
+          scores = await getGolferScores(eventId);
+        }
+      } catch (error) {
+        console.error("Could not retry scores against active golf event", error);
+      }
+    }
+
     setGolferScores(scores || []);
 
     setIsLoading(false);
