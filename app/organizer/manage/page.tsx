@@ -42,12 +42,21 @@ type PickEdit = {
   golferRank: number;
 };
 
-function getSortValue(golfer: Record<string, unknown>) {
-  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
-  const oddsValue =
+function parseOdds(rawOdds: unknown) {
+  const parsed =
     typeof rawOdds === "number"
       ? rawOdds
       : Number(String(rawOdds ?? "").replace("+", ""));
+
+  if (!Number.isFinite(parsed)) return Number.NaN;
+  if (parsed > 1 && parsed < 100) return Math.round((parsed - 1) * 100);
+
+  return parsed;
+}
+
+function getSortValue(golfer: Record<string, unknown>) {
+  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
+  const oddsValue = parseOdds(rawOdds);
 
   if (Number.isFinite(oddsValue)) {
     return oddsValue;

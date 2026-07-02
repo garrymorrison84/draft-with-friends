@@ -72,10 +72,7 @@ function formatOdds(rawOdds: unknown) {
     return "Odds TBD";
   }
 
-  const oddsNumber =
-    typeof rawOdds === "number"
-      ? rawOdds
-      : Number(String(rawOdds).replace("+", ""));
+  const oddsNumber = parseOdds(rawOdds);
 
   if (!Number.isFinite(oddsNumber)) {
     return String(rawOdds);
@@ -84,12 +81,21 @@ function formatOdds(rawOdds: unknown) {
   return `+${oddsNumber}`;
 }
 
-function getSortValue(golfer: any) {
-  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
-  const oddsNumber =
+function parseOdds(rawOdds: unknown) {
+  const parsed =
     typeof rawOdds === "number"
       ? rawOdds
       : Number(String(rawOdds ?? "").replace("+", ""));
+
+  if (!Number.isFinite(parsed)) return Number.NaN;
+  if (parsed > 1 && parsed < 100) return Math.round((parsed - 1) * 100);
+
+  return parsed;
+}
+
+function getSortValue(golfer: any) {
+  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
+  const oddsNumber = parseOdds(rawOdds);
 
   if (Number.isFinite(oddsNumber)) {
     return oddsNumber;
