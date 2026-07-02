@@ -43,23 +43,19 @@ type PickEdit = {
 };
 
 function getSortValue(golfer: Record<string, unknown>) {
-  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
-  const oddsValue =
-    typeof rawOdds === "number"
-      ? rawOdds
-      : Number(String(rawOdds ?? "").replace("+", ""));
+  const rawValue =
+    golfer.odds ??
+    golfer.odds_sort ??
+    golfer.vegas_odds ??
+    golfer.rank ??
+    golfer.world_rank;
 
-  if (Number.isFinite(oddsValue)) {
-    return oddsValue;
-  }
+  const parsedValue =
+    typeof rawValue === "number"
+      ? rawValue
+      : Number(String(rawValue ?? "").replace("+", ""));
 
-  const rawWorldRank = golfer.world_rank ?? golfer.rank;
-  const worldRank =
-    typeof rawWorldRank === "number"
-      ? rawWorldRank
-      : Number(String(rawWorldRank ?? "").replace("+", ""));
-
-  return Number.isFinite(worldRank) ? 1000000 + worldRank : 9999999;
+  return Number.isFinite(parsedValue) ? parsedValue : 999999;
 }
 
 function getTeamIndexForPick(pickNumber: number, teamCount: number) {
