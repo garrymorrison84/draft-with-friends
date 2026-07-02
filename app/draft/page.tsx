@@ -22,7 +22,6 @@ const FALLBACK_EVENT_ID = "TRAVELERS2026";
 type Golfer = {
   name: string;
   rank: number;
-  hasOdds?: boolean;
   vegasOdds?: string;
 };
 
@@ -69,13 +68,17 @@ function getRoundPickLabel(pickNumber: number, teamCount: number) {
 }
 
 function formatOdds(rawOdds: unknown) {
-  const oddsNumber = parseOdds(rawOdds);
-
-  if (!Number.isFinite(oddsNumber)) {
+  if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
     return "Odds TBD";
   }
 
-  return oddsNumber > 0 ? `+${oddsNumber}` : String(oddsNumber);
+  const oddsNumber = parseOdds(rawOdds);
+
+  if (!Number.isFinite(oddsNumber)) {
+    return String(rawOdds);
+  }
+
+  return `+${oddsNumber}`;
 }
 
 function parseOdds(rawOdds: unknown) {
@@ -105,12 +108,6 @@ function getSortValue(golfer: any) {
       : Number(String(rawWorldRank ?? "").replace("+", ""));
 
   return Number.isFinite(worldRank) ? 1000000 + worldRank : 9999999;
-}
-
-function hasUsableOdds(golfer: any) {
-  return Number.isFinite(
-    parseOdds(golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds)
-  );
 }
 
 function formatEligibleField(eventId?: string | null, golfEvent?: string) {
@@ -239,22 +236,17 @@ export default function DraftPage() {
       const formattedGolfers = golfers
         .map((golfer: any) => {
           const sortValue = getSortValue(golfer);
-          const hasOdds = hasUsableOdds(golfer);
 
           return {
             name: golfer.name,
             rank: sortValue,
-            hasOdds,
             vegasOdds: formatOdds(
               golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds
             ),
           };
         })
         .filter((golfer: Golfer) => golfer.name)
-        .sort((a: Golfer, b: Golfer) => {
-          if (a.hasOdds !== b.hasOdds) return a.hasOdds ? -1 : 1;
-          return a.rank - b.rank;
-        });
+        .sort((a: Golfer, b: Golfer) => a.rank - b.rank);
 
       setAllGolfers(formattedGolfers);
       setIsLoading(false);
