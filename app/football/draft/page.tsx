@@ -1,0 +1,273 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import BrandMark from "../../components/BrandMark";
+import {
+  FootballDraftPick,
+  FootballPlayer,
+  FootballPool,
+  footballPlayers,
+  getTotalRosterSlots,
+  loadFootballDraftPicks,
+  loadFootballPool,
+  saveFootballDraftPicks,
+} from "../lib/storage";
+
+const positions = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"];
+
+export default function FootballDraftPage() {
+  const [pool, setPool] = useState<FootballPool | null>(null);
+  const [picks, setPicks] = useState<FootballDraftPick[]>([]);
+  const [position, setPosition] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [showCompleted, setShowCompleted] = useState(false);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (!id) return;
+
+    const savedPool = loadFootballPool(id);
+    if (savedPool) {
+      setPool(savedPool);
+      setPicks(loadFootballDraftPicks(savedPool.id));
+    }
+  }, []);
+
+  const rosterSlots = getTotalRosterSlots(pool?.scoring);
+  const totalPicks = (pool?.numberOfTeams || 0) * rosterSlots;
+  const draftComplete = totalPicks > 0 && picks.length >= totalPicks;
+  const draftedIds = new Set(picks.map((pick) => pick.playerId));
+
+  const currentTeam = useMemo(() => {
+    if (!pool || draftComplete) return "Draft Complete";
+    const pickIndex = picks.length;
+    const round = Math.floor(pickIndex / pool.numberOfTeams);
+    const pickInRound = pickIndex % pool.numberOfTeams;
+    return round % 2 === 1
+      ? pool.draftOrder[pool.numberOfTeams - pickInRound - 1]
+      : pool.draftOrder[pickInRound];
+  }, [draftComplete, picks.length, pool]);
+
+  const filteredPlayers = footballPlayers.filter((player) => {
+    const matchesPosition = position === "ALL" || player.position === position;
+    const matchesSearch =
+      player.name.toLowerCase().includes(search.toLowerCase()) ||
+      player.school.toLowerCase().includes(search.toLowerCase());
+    return matchesPosition && matchesSearch;
+  });
+
+  function draftPlayer(player: FootballPlayer) {
+    if (!pool || draftedIds.has(player.id) || draftComplete) return;
+
+    const nextPicks = [
+      ...picks,
+      { playerId: player.id, team: currentTeam, pickNumber: picks.length + 1 },
+    ];
+    setPicks(nextPicks);
+    saveFootballDraftPicks(pool.id, nextPicks);
+
+    if (nextPicks.length >= totalPicks) {
+      setShowCompleted(true);
+    }
+  }
+
+  function undoPick() {
+    if (!pool) return;
+    const nextPicks = picks.slice(0, -1);
+    setPicks(nextPicks);
+    saveFootballDraftPicks(pool.id, nextPicks);
+    setShowCompleted(false);
+  }
+
+  if (!pool) {
+    return (
+      <main className="min-h-screen bg-[#030712] text-white">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="md" />
+          <h1 className="mt-8 text-4xl font-black">No football pool found</h1>
+          <Link href="/football/create" className="mt-6 inline-block text-emerald-300">
+            Create a football pool
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#030712] text-white">
+      <div className="mx-auto max-w-[1500px] px-6 py-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <Link href="/" aria-label="Draft With Friends home">
+              <BrandMark size="md" />
+            </Link>
+            <h1 className="mt-6 text-4xl font-black md:text-5xl">
+              College Football Draft Room
+            </h1>
+            <p className="mt-4 text-lg font-bold text-slate-300">
+              {draftComplete ? "All picks are complete." : `${currentTeam} is on the clock`}
+            </p>
+            <p className="mt-2 text-sm font-bold text-slate-500">
+              {pool.season} • Pick {Math.min(picks.length + 1, totalPicks)} of {totalPicks}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={undoPick}
+              disabled={picks.length === 0}
+              className="rounded-2xl border border-slate-700 px-8 py-4 text-lg font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Undo Pick
+            </button>
+            {draftComplete && (
+              <Link
+                href={`/football/leaderboard?id=${pool.id}`}
+                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300"
+              >
+                Live Leaderboard
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-[420px_1fr]">
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <h2 className="text-3xl font-black">Eligible Players</h2>
+            <p className="mt-3 text-slate-400">
+              Filter by position, search player or school, then draft from the list.
+            </p>
+
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search players..."
+              className="mt-6 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-4 text-white outline-none placeholder:text-slate-500"
+            />
+
+            <select
+              value={position}
+              onChange={(event) => setPosition(event.target.value)}
+              className="mt-4 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-4 text-white"
+            >
+              {positions.map((item) => (
+                <option key={item} value={item}>
+                  {item === "ALL" ? "All Positions" : item}
+                </option>
+              ))}
+            </select>
+
+            <div className="mt-6 space-y-4">
+              {filteredPlayers.map((player) => {
+                const drafted = draftedIds.has(player.id);
+                return (
+                  <button
+                    key={player.id}
+                    type="button"
+                    onClick={() => draftPlayer(player)}
+                    disabled={drafted || draftComplete}
+                    className={`w-full rounded-2xl border p-5 text-left transition ${
+                      drafted
+                        ? "border-white/5 bg-[#030712] opacity-45"
+                        : "border-emerald-400/30 bg-[#1F2937] hover:border-emerald-400"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xl font-black">{player.name}</p>
+                        <p className="mt-2 font-bold text-slate-400">
+                          {player.position} • {player.school}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-400/15 px-4 py-2 text-sm font-black text-emerald-300">
+                        {drafted ? "Taken" : "Draft"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-black">Draft Board</h2>
+                <p className="mt-2 text-slate-400">
+                  Snake draft order reverses each round.
+                </p>
+              </div>
+              <span className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
+                Snake Draft
+              </span>
+            </div>
+
+            <div className="mt-8 overflow-hidden rounded-3xl border border-slate-700/60">
+              <div className="grid" style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(180px, 1fr))` }}>
+                {pool.draftOrder.map((team) => (
+                  <div key={team} className="border-r border-emerald-400/20 bg-emerald-700 p-6 text-center last:border-r-0">
+                    <p className="text-sm font-black uppercase tracking-widest text-emerald-100/80">Team</p>
+                    <p className="mt-2 text-2xl font-black">{team}</p>
+                  </div>
+                ))}
+
+                {Array.from({ length: totalPicks }).map((_, index) => {
+                  const round = Math.floor(index / pool.numberOfTeams);
+                  const spot = index % pool.numberOfTeams;
+                  const boardTeamIndex = round % 2 === 1 ? pool.numberOfTeams - spot - 1 : spot;
+                  const pick = picks[index];
+                  const player = footballPlayers.find((item) => item.id === pick?.playerId);
+
+                  return (
+                    <div
+                      key={index}
+                      className="min-h-36 border-r border-t border-slate-700/60 bg-[#1b3458] p-5 last:border-r-0"
+                      style={{ gridColumnStart: boardTeamIndex + 1 }}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-black text-slate-300">
+                          {player ? "Drafted" : index === picks.length ? "On the clock" : "Open"}
+                        </p>
+                        <span className="rounded-full bg-blue-500/30 px-3 py-1 text-sm font-black text-slate-200">
+                          {round + 1}.{boardTeamIndex + 1}
+                        </span>
+                      </div>
+                      <p className="mt-4 text-xl font-black">
+                        {player?.name || "Awaiting pick"}
+                      </p>
+                      {player && (
+                        <p className="mt-2 text-sm font-bold text-slate-400">
+                          {player.position} • {player.school}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {showCompleted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
+          <div className="w-full max-w-lg rounded-3xl border border-emerald-400/30 bg-[#111827] p-8 text-center shadow-2xl shadow-black/60">
+            <h2 className="text-4xl font-black">Congratulations! Draft Completed!</h2>
+            <p className="mt-4 text-slate-300">
+              Your college football pool is ready for live tracking.
+            </p>
+            <Link
+              href={`/football/leaderboard?id=${pool.id}`}
+              className="mt-8 inline-flex rounded-2xl bg-emerald-400 px-8 py-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
+            >
+              Live Tracking Leaderboard
+            </Link>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}

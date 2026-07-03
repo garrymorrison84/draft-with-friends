@@ -151,19 +151,32 @@ export default function Home() {
           </h1>
 
           <p className="mt-5 text-lg font-semibold text-emerald-300">
-            No spreadsheets. No manual tracking. Just snake drafts with friends.
+            Golf is live. College football is next.
           </p>
 
           <p className="mt-6 max-w-3xl text-xl leading-9 text-slate-300">
             Snake drafts are the best part of a pool. Draft With Friends is the easiest end-to-end drafting and tracking experience for sports pools. Create a contest, invite your friends, draft your players, and follow the leaderboard in real time.
           </p>
 
-          <div className="mt-10">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
             <a
               href="/create-pool"
-              className="inline-flex rounded-2xl bg-emerald-400 px-7 py-4 text-base font-bold text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+              className="rounded-2xl bg-emerald-400 px-7 py-5 text-center text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
             >
-              Create Your Pool
+              Golf
+              <span className="mt-1 block text-sm font-bold text-slate-800">
+                Create a golf pool
+              </span>
+            </a>
+
+            <a
+              href="/football"
+              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-7 py-5 text-center text-base font-black text-emerald-300 transition hover:bg-emerald-400/15"
+            >
+              College Football
+              <span className="mt-1 block text-sm font-bold text-slate-300">
+                Build the next pool
+              </span>
             </a>
           </div>
 
@@ -202,12 +215,11 @@ export default function Home() {
 
           <div className="rounded-2xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/40">
             <h3 className="text-xl font-bold">
-              Golf First. More Sports Coming...
+              Built To Become A Platform
             </h3>
             <p className="mt-3 leading-7 text-slate-400">
-              We're starting with golf drafts and live leaderboards, with plans
-              to bring the same customizable experience to football, baseball,
-              college sports, and beyond.
+              College football now sits beside golf with the same dark theme,
+              green accent, draft-first flow, and live leaderboard direction.
             </p>
           </div>
         </div>
