@@ -69,16 +69,20 @@ function getRoundPickLabel(pickNumber: number, teamCount: number) {
 }
 
 function formatOdds(rawOdds: unknown) {
+  if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
+    return "Odds TBD";
+  }
+
   const oddsNumber =
     typeof rawOdds === "number"
       ? rawOdds
       : Number(String(rawOdds).replace("+", ""));
 
   if (!Number.isFinite(oddsNumber)) {
-    return "Odds TBD";
+    return String(rawOdds);
   }
 
-  return oddsNumber > 0 ? `+${oddsNumber}` : String(oddsNumber);
+  return `+${oddsNumber}`;
 }
 
 function getSortValue(golfer: any) {
