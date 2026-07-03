@@ -76,7 +76,7 @@ function formatOdds(rawOdds: unknown) {
   }
 
   if (oddsNumber > 0) {
-    return `+${Math.round(oddsNumber * 100)}`;
+    return `+${Math.round(oddsNumber)}`;
   }
 
   return String(oddsNumber);

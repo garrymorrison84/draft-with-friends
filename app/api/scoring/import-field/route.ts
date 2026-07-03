@@ -74,21 +74,30 @@ export async function GET() {
     return number === null ? null : Math.round(number);
   }
 
+  function toAmericanGolfOdds(value: unknown) {
+    const odds = asNumber(value);
+
+    if (odds === null) return null;
+    if (odds < 0 || odds >= 1000) return Math.round(odds);
+
+    return Math.round(odds * 100);
+  }
+
   function getPlayerOdds(player: any) {
-    return (
-      asNumber(player.OddsToWin) ??
-      asNumber(player.Odds) ??
-      asNumber(player.BettingOdds) ??
-      asNumber(player.DraftKingsOdds) ??
-      asNumber(player.FanDuelOdds) ??
-      asNumber(player.VegasOdds)
+    return toAmericanGolfOdds(
+      player.OddsToWin ??
+        player.Odds ??
+        player.BettingOdds ??
+        player.DraftKingsOdds ??
+        player.FanDuelOdds ??
+        player.VegasOdds
     );
   }
 
   const golfersToUpsert = players
     .filter((player: any) => player.Name)
     .map((player: any) => {
-      const odds = asInteger(getPlayerOdds(player));
+      const odds = getPlayerOdds(player);
 
       return {
         event_id: eventId,
