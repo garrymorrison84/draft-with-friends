@@ -287,18 +287,18 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#F6F8F7] px-4 py-8 text-slate-950">
+      <main className="min-h-screen bg-[#030712] px-4 py-8 text-white">
         <BrandMark size="md" />
-        <p className="text-slate-500">Loading leaderboard...</p>
+        <p className="text-slate-400">Loading leaderboard...</p>
       </main>
     );
   }
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-[#F6F8F7] px-4 py-8 text-slate-950">
+      <main className="min-h-screen bg-[#030712] px-4 py-8 text-white">
         <BrandMark size="md" />
-        <p className="text-slate-500">Pool not found.</p>
+        <p className="text-slate-400">Pool not found.</p>
       </main>
     );
   }
@@ -371,7 +371,7 @@ export default function LeaderboardPage() {
   const rankedTeams = [...teamsWithGolfers].sort((a, b) => a.total - b.total);
 
   return (
-    <main className="min-h-screen bg-[#F6F8F7] px-3 py-5 text-slate-950 sm:px-6 lg:px-10">
+    <main className="min-h-screen bg-[#030712] px-3 py-5 text-white sm:px-6 lg:px-10">
       <section className="mx-auto max-w-7xl">
         <div className="mb-5">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -379,7 +379,7 @@ export default function LeaderboardPage() {
               <BrandMark size="lg" />
             </Link>
 
-            <p className="text-sm font-extrabold text-emerald-700">
+            <p className="text-sm font-extrabold text-emerald-400">
               Live Standings
             </p>
           </div>
@@ -388,7 +388,7 @@ export default function LeaderboardPage() {
             Leaderboard
           </h1>
 
-          <p className="mt-2 text-base font-semibold text-slate-500 sm:text-xl">
+          <p className="mt-2 text-base font-semibold text-slate-400 sm:text-xl">
             {pool.golfEvent} • Draft {pool.golfersPerTeam} Golfers • Best{" "}
             {pool.scoresToCount} Scores Count
           </p>
@@ -397,14 +397,14 @@ export default function LeaderboardPage() {
             <button
               onClick={syncScores}
               disabled={isSyncing}
-              className="rounded-xl bg-emerald-600 px-5 py-3 text-base font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl bg-emerald-400 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSyncing ? "Refreshing..." : "Refresh"}
             </button>
 
             <a
               href={`/pool?id=${pool.id}&view=lobby`}
-              className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-base font-black text-emerald-700 transition hover:bg-emerald-100"
+              className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-base font-black text-emerald-300 transition hover:bg-emerald-400/20"
             >
               {pool.poolName} Lobby
             </a>
@@ -412,8 +412,8 @@ export default function LeaderboardPage() {
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
-          <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
-            <h2 className="mb-3 text-lg font-black uppercase tracking-wide text-slate-500">
+          <aside className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
+            <h2 className="mb-3 text-lg font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
 
@@ -421,10 +421,10 @@ export default function LeaderboardPage() {
               {rankedTeams.map((team, index) => (
                 <div
                   key={team.teamName}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3"
+                  className="flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] px-3 py-3"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="text-lg font-black text-slate-500">
+                    <span className="text-lg font-black text-slate-400">
                       {index + 1}
                     </span>
                     <span className="text-lg font-black sm:text-xl">
@@ -432,7 +432,7 @@ export default function LeaderboardPage() {
                     </span>
                   </div>
 
-                  <span className="text-lg font-black text-emerald-700 sm:text-xl">
+                  <span className="text-lg font-black text-emerald-300 sm:text-xl">
                     {formatScore(team.total)}
                   </span>
                 </div>
@@ -444,11 +444,11 @@ export default function LeaderboardPage() {
             {rankedTeams.map((team, teamIndex) => (
               <article
                 key={team.teamName}
-                className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm"
+                className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/40"
               >
-                <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
+                <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-700/60 pb-4">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="text-xl font-black text-slate-500 sm:text-2xl">
+                    <span className="text-xl font-black text-slate-400 sm:text-2xl">
                       {teamIndex + 1}
                     </span>
                     <h2 className="min-w-0 truncate text-xl font-black sm:text-2xl">
@@ -456,13 +456,13 @@ export default function LeaderboardPage() {
                     </h2>
                   </div>
 
-                  <span className="shrink-0 text-xl font-black text-emerald-700 sm:text-2xl">
+                  <span className="shrink-0 text-xl font-black text-emerald-300 sm:text-2xl">
                     {formatScore(team.total)}
                   </span>
                 </div>
 
                 <div className="hidden md:block">
-                  <div className="grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] border-b border-slate-200 pb-3 text-sm font-black uppercase tracking-wide text-slate-500">
+                  <div className="grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] border-b border-slate-700/60 pb-3 text-sm font-black uppercase tracking-wide text-slate-400">
                     <div>Pos</div>
                     <div>Golfer</div>
                     <div className="text-right">R1</div>
@@ -476,13 +476,13 @@ export default function LeaderboardPage() {
                     {team.golfers.map((golfer, golferIndex) => (
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
-                        className={`mt-2 grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 ${
+                        className={`mt-2 grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center rounded-xl border border-white/5 bg-[#1F2937] px-3 py-3 ${
                           golfer.counts
-                            ? "text-slate-950"
+                            ? "text-white"
                             : "text-slate-500 line-through"
                         }`}
                       >
-                        <div className="text-lg font-black text-slate-500">
+                        <div className="text-lg font-black text-slate-400">
                           {golfer.position}
                         </div>
 
@@ -504,7 +504,7 @@ export default function LeaderboardPage() {
                           {formatRoundScore(golfer.round4)}
                         </div>
 
-                        <div className="text-right text-lg font-black text-emerald-700">
+                        <div className="text-right text-lg font-black text-emerald-300">
                           {golfer.hasScore ? formatScore(golfer.total) : "-"}
                         </div>
                       </div>
@@ -513,7 +513,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="md:hidden">
-                  <div className="grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] gap-1 border-b border-slate-200 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">
+                  <div className="grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] gap-1 border-b border-slate-700/60 pb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
                     <div>Pos</div>
                     <div>Golfer</div>
                     <div className="text-right">R1</div>
@@ -527,13 +527,13 @@ export default function LeaderboardPage() {
                     {team.golfers.map((golfer, golferIndex) => (
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
-                        className={`mt-2 grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2.5 ${
+                        className={`mt-2 grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] items-center gap-1 rounded-xl border border-white/5 bg-[#1F2937] px-2 py-2.5 ${
                           golfer.counts
-                            ? "text-slate-950"
+                            ? "text-white"
                             : "text-slate-500 line-through"
                         }`}
                       >
-                        <div className="text-sm font-black text-slate-500">
+                        <div className="text-sm font-black text-slate-400">
                           {golfer.position}
                         </div>
 
@@ -557,7 +557,7 @@ export default function LeaderboardPage() {
                           {formatRoundScore(golfer.round4)}
                         </div>
 
-                        <div className="text-right text-sm font-black text-emerald-700">
+                        <div className="text-right text-sm font-black text-emerald-300">
                           {golfer.hasScore ? formatScore(golfer.total) : "-"}
                         </div>
                       </div>

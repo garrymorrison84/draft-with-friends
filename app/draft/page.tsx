@@ -304,7 +304,7 @@ export default function DraftPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#F6F8F7] text-slate-950">
+      <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
           <BrandMark size="md" />
           <h1 className="text-2xl font-black md:text-4xl">Loading draft...</h1>
@@ -315,11 +315,11 @@ export default function DraftPage() {
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-[#F6F8F7] text-slate-950">
+      <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-3 py-8 md:px-6 md:py-12">
           <BrandMark size="md" />
           <h1 className="text-2xl font-black md:text-4xl">No pool found</h1>
-          <a href="/create-pool" className="mt-6 inline-block text-emerald-700">
+          <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
             Create a pool
           </a>
         </div>
@@ -450,7 +450,7 @@ export default function DraftPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F6F8F7] text-slate-950">
+    <main className="min-h-screen bg-[#030712] text-white">
       <div className="mx-auto max-w-[1700px] px-3 py-4 md:px-6 md:py-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
@@ -459,7 +459,7 @@ export default function DraftPage() {
 
           <a
             href={`/pool?id=${activePool.id}&view=lobby`}
-            className="text-sm font-medium text-emerald-700"
+            className="text-sm font-medium text-emerald-300"
           >
             Back to Pool Lobby
           </a>
@@ -467,7 +467,7 @@ export default function DraftPage() {
 
         <div className="mt-4 flex flex-col gap-4 md:mt-6 md:flex-row md:items-end md:justify-between md:gap-6">
           <div>
-            <p className="text-sm font-semibold text-emerald-700 md:text-base">
+            <p className="text-sm font-semibold text-emerald-300 md:text-base">
               {draftComplete
                 ? "Draft Complete"
                 : `Current Pick ${getRoundPickLabel(
@@ -480,7 +480,7 @@ export default function DraftPage() {
               Draft Room
             </h1>
 
-            <p className="mt-3 text-base font-semibold text-slate-700 md:mt-4 md:text-xl">
+            <p className="mt-3 text-base font-semibold text-slate-200 md:mt-4 md:text-xl">
               {activePool.draftLocked
                 ? "This draft is locked by the organizer."
                 : draftComplete
@@ -498,14 +498,14 @@ export default function DraftPage() {
             <button
               onClick={undoLastPick}
               disabled={isSavingPick}
-              className="rounded-2xl border border-slate-300 bg-white px-6 py-4 text-base font-black text-slate-800 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50 md:px-7 md:py-5 md:text-lg"
+              className="rounded-2xl border border-white/20 bg-[#111827] px-6 py-4 text-base font-black text-slate-100 shadow-xl shadow-black/40 transition hover:border-emerald-400/40 hover:bg-[#1F2937] disabled:cursor-not-allowed disabled:opacity-50 md:px-7 md:py-5 md:text-lg"
             >
               Undo Pick
             </button>
 
             <a
               href={`/leaderboard?id=${activePool.id}`}
-              className="rounded-2xl bg-emerald-600 px-6 py-4 text-center text-base font-black text-white shadow-sm transition hover:bg-emerald-700 md:px-8 md:py-5 md:text-lg"
+              className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 shadow-xl shadow-emerald-950/40 transition hover:bg-emerald-300 md:px-8 md:py-5 md:text-lg"
             >
               Finish Draft
             </a>
@@ -513,10 +513,10 @@ export default function DraftPage() {
         </div>
 
         <div className="mt-5 flex flex-col gap-5 lg:mt-8 lg:flex-row lg:gap-6">
-          <aside className="w-full shrink-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
+          <aside className="w-full shrink-0 rounded-2xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:h-[calc(100vh-48px)] lg:w-[340px] lg:rounded-3xl lg:p-5">
             <h2 className="text-xl font-bold md:text-2xl">Eligible Golfers</h2>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-slate-400">
               Available golfers are highlighted. Taken golfers stay visible but
               cannot be drafted again.
             </p>
@@ -526,7 +526,7 @@ export default function DraftPage() {
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search golfers..."
-              className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-950 outline-none md:mt-5 md:text-base"
+              className="mt-4 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-sm text-white outline-none md:mt-5 md:text-base"
             />
 
             <div className="mt-4 max-h-[42vh] space-y-3 overflow-y-auto pr-1 lg:h-[calc(100vh-240px)] lg:max-h-none">
@@ -545,14 +545,14 @@ export default function DraftPage() {
                     }
                     className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition md:p-4 ${
                       isTaken
-                        ? "cursor-not-allowed border-slate-200 bg-slate-100 opacity-55"
-                        : "border-emerald-400/30 bg-slate-50 hover:border-emerald-400/70 hover:bg-emerald-400/10"
+                        ? "cursor-not-allowed border-white/5 bg-[#030712]/60 opacity-45"
+                        : "border-emerald-400/30 bg-[#1F2937] hover:border-emerald-400/70 hover:bg-emerald-400/10"
                     }`}
                   >
                     <div>
                       <p
                         className={`text-sm font-bold leading-tight md:text-base ${
-                          isTaken ? "text-slate-500 line-through" : "text-slate-950"
+                          isTaken ? "text-slate-500 line-through" : "text-white"
                         }`}
                       >
                         {golfer.name}
@@ -560,7 +560,7 @@ export default function DraftPage() {
 
                       <p
                         className={`mt-1 text-sm ${
-                          isTaken ? "text-slate-600" : "text-slate-500"
+                          isTaken ? "text-slate-600" : "text-slate-400"
                         }`}
                       >
                         {golfer.vegasOdds || "Odds TBD"}
@@ -570,8 +570,8 @@ export default function DraftPage() {
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
                         isTaken
-                          ? "bg-slate-50 text-slate-500"
-                          : "bg-emerald-50 text-emerald-700"
+                          ? "bg-[#1F2937] text-slate-500"
+                          : "bg-emerald-400/15 text-emerald-300"
                       }`}
                     >
                       {isTaken ? "Taken" : "Draft"}
@@ -582,25 +582,25 @@ export default function DraftPage() {
             </div>
           </aside>
 
-          <section className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:rounded-3xl md:p-5">
+          <section className="min-w-0 flex-1 rounded-2xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center justify-between gap-3 md:mb-5">
               <div>
                 <h2 className="text-xl font-bold md:text-2xl">Draft Board</h2>
 
-                <p className="mt-1 text-xs text-slate-500 md:text-sm">
+                <p className="mt-1 text-xs text-slate-400 md:text-sm">
                   Picks fill in automatically as golfers are selected.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 md:px-4 md:text-sm">
+              <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-300 md:px-4 md:text-sm">
                 Snake Draft
               </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-auto rounded-2xl border border-slate-200">
+            <div className="max-h-[70vh] overflow-auto rounded-2xl border border-white/5">
               <div style={{ minWidth: `${teams.length * 150}px` }}>
                 <div
-                  className="sticky top-0 z-20 grid bg-gradient-to-r from-emerald-600 to-emerald-500"
+                  className="sticky top-0 z-20 grid bg-gradient-to-r from-emerald-900 to-emerald-700"
                   style={{
                     gridTemplateColumns: `repeat(${teams.length}, minmax(150px, 1fr))`,
                   }}
@@ -610,7 +610,7 @@ export default function DraftPage() {
                       key={team}
                       className="border-r border-emerald-600/40 p-3 text-center last:border-r-0 md:p-5"
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-100 md:text-xs">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-200 md:text-xs">
                         Team
                       </p>
 
@@ -647,21 +647,21 @@ export default function DraftPage() {
                       return (
                         <div
                           key={`${roundIndex}-${team}`}
-                          className={`relative min-h-[92px] border-r border-t border-slate-200 p-3 last:border-r-0 md:min-h-[118px] md:p-4 ${
+                          className={`relative min-h-[92px] border-r border-t border-white/5 p-3 last:border-r-0 md:min-h-[118px] md:p-4 ${
                             pick
-                              ? "bg-sky-50"
+                              ? "bg-blue-500/15"
                               : isCurrentPick
-                              ? "bg-emerald-50"
-                              : "bg-white"
+                              ? "bg-emerald-400/15"
+                              : "bg-[#030712]"
                           }`}
                         >
                           <div
                             className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[10px] font-bold md:right-3 md:top-3 md:text-xs ${
                               pick
-                                ? "bg-sky-100 text-sky-700"
+                                ? "bg-blue-400/20 text-blue-200"
                                 : isCurrentPick
-                                ? "bg-emerald-500 text-white"
-                                : "bg-slate-50 text-slate-500"
+                                ? "bg-emerald-400 text-slate-950"
+                                : "bg-[#1F2937] text-slate-400"
                             }`}
                           >
                             {getRoundPickLabel(
@@ -672,11 +672,11 @@ export default function DraftPage() {
 
                           {pick ? (
   <>
-    <p className="pr-10 text-xs font-semibold text-sky-700 md:pr-12 md:text-sm">
+    <p className="pr-10 text-xs font-semibold text-blue-200 md:pr-12 md:text-sm">
       Drafted
     </p>
 
-    <p className="mt-2 pr-10 text-sm font-bold leading-tight text-slate-950 md:pr-12 md:text-lg">
+    <p className="mt-2 pr-10 text-sm font-bold leading-tight text-white md:pr-12 md:text-lg">
       {pick.golfer.name}
     </p>
   </>
@@ -685,7 +685,7 @@ export default function DraftPage() {
                               <p
                                 className={`pr-10 text-xs font-semibold md:pr-12 md:text-sm ${
                                   isCurrentPick
-                                    ? "text-emerald-700"
+                                    ? "text-emerald-300"
                                     : "text-slate-500"
                                 }`}
                               >
@@ -709,17 +709,17 @@ export default function DraftPage() {
       </div>
 
       {pendingGolfer && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-700">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
               Confirm Pick
             </p>
 
-            <h2 className="mt-3 text-2xl font-black text-slate-950">
+            <h2 className="mt-3 text-2xl font-black text-white">
               Draft {pendingGolfer.name}?
             </h2>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-slate-400">
               This will add {pendingGolfer.name} to the current pick.
             </p>
 
@@ -727,7 +727,7 @@ export default function DraftPage() {
               <button
                 onClick={cancelDraftGolfer}
                 disabled={isSavingPick}
-                className="rounded-xl border border-slate-300 px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 No
               </button>
@@ -735,7 +735,7 @@ export default function DraftPage() {
               <button
                 onClick={confirmDraftGolfer}
                 disabled={isSavingPick}
-                className="rounded-xl bg-emerald-600 px-4 py-3 font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSavingPick ? "Saving..." : "Yes"}
               </button>
@@ -745,15 +745,15 @@ export default function DraftPage() {
       )}
 
       {showDraftCompletedModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/35 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="w-full max-w-md rounded-3xl border border-emerald-200 bg-white p-6 text-center shadow-sm">
-            <h2 className="text-3xl font-black text-slate-950">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-emerald-400/20 bg-[#111827] p-6 text-center shadow-xl shadow-black/40">
+            <h2 className="text-3xl font-black text-white">
               Congratulations! Draft Completed!
             </h2>
 
             <a
               href={`/leaderboard?id=${activePool.id}`}
-              className="mt-6 inline-flex w-full justify-center rounded-xl bg-emerald-600 px-5 py-4 text-base font-black text-white transition hover:bg-emerald-700"
+              className="mt-6 inline-flex w-full justify-center rounded-xl bg-emerald-400 px-5 py-4 text-base font-black text-slate-950 transition hover:bg-emerald-300"
             >
               Live Tracking Leaderboard
             </a>
