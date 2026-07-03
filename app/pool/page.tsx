@@ -33,6 +33,7 @@ export default function PoolPage() {
     async function loadPoolPage() {
       const params = new URLSearchParams(window.location.search);
       const poolId = params.get("id");
+      const showLobby = params.get("view") === "lobby";
 
       if (!poolId) {
         setIsLoading(false);
@@ -80,7 +81,7 @@ export default function PoolPage() {
       const totalPicks =
         formattedPool.numberOfTeams * formattedPool.golfersPerTeam;
 
-      if (totalPicks > 0 && completedPickCount >= totalPicks) {
+      if (!showLobby && totalPicks > 0 && completedPickCount >= totalPicks) {
         window.location.replace(`/leaderboard?id=${formattedPool.id}`);
         return;
       }

@@ -458,7 +458,7 @@ export default function DraftPage() {
           </Link>
 
           <a
-            href={`/pool?id=${activePool.id}`}
+            href={`/pool?id=${activePool.id}&view=lobby`}
             className="text-sm font-medium text-emerald-300"
           >
             Back to Pool Lobby

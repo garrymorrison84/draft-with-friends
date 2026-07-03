@@ -189,7 +189,7 @@ export default function OrganizerPage() {
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <Link
-                    href={`/pool?id=${pool.id}`}
+                    href={`/pool?id=${pool.id}&view=lobby`}
                     className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40"
                   >
                     Lobby
