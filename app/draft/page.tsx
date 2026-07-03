@@ -69,20 +69,17 @@ function getRoundPickLabel(pickNumber: number, teamCount: number) {
 }
 
 function formatOdds(rawOdds: unknown) {
-  if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
+  const oddsNumber = parseOddsNumber(rawOdds);
+
+  if (!Number.isFinite(oddsNumber)) {
     return "Odds TBD";
   }
 
-  const oddsNumber =
-    typeof rawOdds === "number"
-      ? rawOdds
-      : Number(String(rawOdds).replace("+", ""));
-
-  if (!Number.isFinite(oddsNumber)) {
-    return String(rawOdds);
+  if (oddsNumber > 0) {
+    return `+${Math.round(oddsNumber * 100)}`;
   }
 
-  return `+${oddsNumber}`;
+  return String(oddsNumber);
 }
 
 function getSortValue(golfer: any) {
@@ -92,8 +89,10 @@ function getSortValue(golfer: any) {
 }
 
 function getOddsNumber(golfer: any) {
-  const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
+  return parseOddsNumber(golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds);
+}
 
+function parseOddsNumber(rawOdds: unknown) {
   if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
     return Number.NaN;
   }
@@ -240,9 +239,8 @@ export default function DraftPage() {
             ),
           };
         })
-        .filter((golfer: Golfer) => golfer.name)
+        .filter((golfer: Golfer) => golfer.name && golfer.hasOdds)
         .sort((a: Golfer, b: Golfer) => {
-          if (a.hasOdds !== b.hasOdds) return a.hasOdds ? -1 : 1;
           return a.rank - b.rank;
         });
 

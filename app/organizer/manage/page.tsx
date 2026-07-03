@@ -35,6 +35,7 @@ type ManagePool = {
 type GolferOption = {
   name: string;
   rank: number;
+  hasOdds: boolean;
 };
 
 type PickEdit = {
@@ -149,11 +150,16 @@ export default function ManagePoolPage() {
       const savedPicks = savedPool ? remotePicks : localPicks;
 
       const formattedGolfers = golfers
-        .map((golfer: Record<string, unknown>) => ({
-          name: String(golfer.name || ""),
-          rank: getSortValue(golfer),
-        }))
-        .filter((golfer: GolferOption) => golfer.name)
+        .map((golfer: Record<string, unknown>) => {
+          const rank = getSortValue(golfer);
+
+          return {
+            name: String(golfer.name || ""),
+            rank,
+            hasOdds: rank !== 999999,
+          };
+        })
+        .filter((golfer: GolferOption) => golfer.name && golfer.hasOdds)
         .sort((a: GolferOption, b: GolferOption) => a.rank - b.rank);
 
       const edits = (savedPicks as DraftPickRow[]).reduce<
