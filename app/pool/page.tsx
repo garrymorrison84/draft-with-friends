@@ -112,7 +112,7 @@ export default function PoolPage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#030712] text-white">
+      <main className="min-h-screen bg-[#F6F8F7] text-slate-950">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <BrandMark size="md" />
           <h1 className="text-4xl font-black">Loading pool...</h1>
@@ -123,11 +123,11 @@ export default function PoolPage() {
 
   if (!pool) {
     return (
-      <main className="min-h-screen bg-[#030712] text-white">
+      <main className="min-h-screen bg-[#F6F8F7] text-slate-950">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <BrandMark size="md" />
           <h1 className="text-4xl font-black">No pool found</h1>
-          <a href="/create-pool" className="mt-6 inline-block text-emerald-300">
+          <a href="/create-pool" className="mt-6 inline-block text-emerald-700">
             Create a pool
           </a>
         </div>
@@ -157,7 +157,7 @@ export default function PoolPage() {
     : pool.draftOrder[currentTeamIndex];
 
   return (
-    <main className="min-h-screen bg-[#030712] text-white">
+    <main className="min-h-screen bg-[#F6F8F7] text-slate-950">
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
@@ -167,7 +167,7 @@ export default function PoolPage() {
 
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-semibold text-emerald-300">
+            <p className="text-sm font-semibold text-emerald-700">
               {pool.golfEvent} Snake Draft
             </p>
 
@@ -180,7 +180,7 @@ export default function PoolPage() {
             {!draftComplete && (
               <a
                 href={`/draft?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+                className="rounded-2xl bg-emerald-600 px-8 py-4 text-center text-lg font-black text-white shadow-sm transition hover:scale-105 hover:bg-emerald-700"
               >
                 {pickCount > 0 ? "Continue Draft" : "Enter Draft"}
               </a>
@@ -189,7 +189,7 @@ export default function PoolPage() {
             {pickCount > 0 && (
               <a
                 href={`/leaderboard?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+                className="rounded-2xl bg-emerald-600 px-8 py-4 text-center text-lg font-black text-white shadow-sm transition hover:scale-105 hover:bg-emerald-700"
               >
                 View Leaderboard
               </a>
@@ -198,7 +198,7 @@ export default function PoolPage() {
           </div>
         </div>
 
-        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+        <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-center">
             <div className="grid gap-4 sm:grid-cols-3">
               <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
@@ -206,13 +206,13 @@ export default function PoolPage() {
               <StatBlock label="Scores Count" value={String(pool.scoresToCount)} />
             </div>
 
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-emerald-300">
+                  <p className="text-sm font-bold text-emerald-700">
                     Invite Link
                   </p>
-                  <p className="mt-1 truncate text-sm text-slate-200">
+                  <p className="mt-1 truncate text-sm text-slate-700">
                     {`draftwithfriends.com/pool?id=${pool.id}`}
                   </p>
                 </div>
@@ -246,37 +246,37 @@ export default function PoolPage() {
           </div>
         </section>
 
-        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
+        <section className="mt-10 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold">Draft Progress</h2>
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-slate-500">
                 {pickCount} / {totalPicks} picks complete
               </p>
             </div>
 
-            <div className="text-4xl font-black text-emerald-300">
+            <div className="text-4xl font-black text-emerald-700">
               {draftPercent}%
             </div>
           </div>
 
-          <div className="mt-6 h-4 overflow-hidden rounded-full bg-[#1F2937]">
+          <div className="mt-6 h-4 overflow-hidden rounded-full bg-slate-50">
             <div
-              className="h-full rounded-full bg-emerald-400"
+              className="h-full rounded-full bg-emerald-600"
               style={{ width: `${draftPercent}%` }}
             />
           </div>
 
-          <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+          <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-bold text-emerald-300">
+                <p className="font-bold text-emerald-700">
   {draftComplete
     ? "Draft Complete"
     : `${currentTeam} is on the clock`}
 </p>
 
-                <p className="mt-2 text-sm leading-6 text-slate-300">
+                <p className="mt-2 text-sm leading-6 text-slate-600">
   {draftComplete
     ? "Teams are locked. View the leaderboard to track standings."
     : `Round ${currentRound} • Pick ${pickInRound} of ${pool.numberOfTeams} this round • Overall pick ${currentPickIndex + 1} of ${totalPicks}`}
@@ -286,7 +286,7 @@ export default function PoolPage() {
               {draftComplete && (
                 <a
                   href={`/organizer/manage?id=${pool.id}`}
-                  className="inline-flex justify-center rounded-xl bg-emerald-400 px-7 py-4 text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 sm:min-w-[240px]"
+                  className="inline-flex justify-center rounded-xl bg-emerald-600 px-7 py-4 text-base font-black text-white shadow-sm transition hover:bg-emerald-700 sm:min-w-[240px]"
                 >
                   Commissioner Tools
                 </a>
@@ -296,9 +296,9 @@ export default function PoolPage() {
         </section>
 
         <section className="mt-10">
-          <div className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
             <h2 className="text-2xl font-bold">Draft Order</h2>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-slate-500">
               Teams draft in this order. The order reverses each round.
             </p>
 
@@ -306,11 +306,11 @@ export default function PoolPage() {
               {pool.draftOrder.map((team, index) => (
                 <div
                   key={`${team}-${index}`}
-                  className="flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] p-4"
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4"
                 >
                   <p className="font-bold">{team}</p>
 
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-lg font-black text-white">
                     {index + 1}
                   </div>
                 </div>
@@ -325,8 +325,8 @@ export default function PoolPage() {
 
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
-      <p className="text-sm text-slate-400">{label}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-sm text-slate-500">{label}</p>
       <p className="mt-2 text-4xl font-black">{value}</p>
     </div>
   );

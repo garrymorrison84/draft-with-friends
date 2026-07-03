@@ -10,10 +10,12 @@ export default function BrandMark({
   size?: keyof typeof sizeClasses;
 }) {
   return (
-    <img
-      src="/dwf-logo-snake.png"
-      alt="Draft With Friends"
-      className={`${sizeClasses[size]} h-auto object-contain`}
-    />
+    <span className="inline-flex rounded-xl bg-slate-950 p-2 shadow-sm">
+      <img
+        src="/dwf-logo-snake.png"
+        alt="Draft With Friends"
+        className={`${sizeClasses[size]} h-auto object-contain`}
+      />
+    </span>
   );
 }
