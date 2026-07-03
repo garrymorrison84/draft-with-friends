@@ -225,7 +225,7 @@ export default function DraftPage() {
 
       const golfers = await loadGolfers(eventId);
 
-      const mappedGolfers = golfers
+      const formattedGolfers = golfers
         .map((golfer: any) => {
           const sortValue = getSortValue(golfer);
           const hasOdds = Number.isFinite(getOddsNumber(golfer));
@@ -239,15 +239,7 @@ export default function DraftPage() {
             ),
           };
         })
-        .filter((golfer: Golfer) => golfer.name);
-
-      const golfersWithOdds = mappedGolfers.filter(
-        (golfer: Golfer) => golfer.hasOdds
-      );
-
-      const formattedGolfers = (
-        golfersWithOdds.length > 0 ? golfersWithOdds : mappedGolfers
-      )
+        .filter((golfer: Golfer) => golfer.name && golfer.hasOdds)
         .sort((a: Golfer, b: Golfer) => {
           return a.rank - b.rank;
         });
