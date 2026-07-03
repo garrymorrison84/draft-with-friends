@@ -203,7 +203,7 @@ export default function DraftPage() {
             golfer: {
               name: golferName,
               rank: golferRank,
-              vegasOdds: formatOdds(golferRank),
+              vegasOdds: undefined,
             },
             pickIndex,
           };
@@ -211,6 +211,11 @@ export default function DraftPage() {
       });
 
       setDraftPicks(picksArray);
+      setShowDraftCompletedModal(
+        totalPicks > 0 &&
+          picksArray.length === totalPicks &&
+          picksArray.every(Boolean)
+      );
 
       let eventId = formattedPool.eventId || FALLBACK_EVENT_ID;
 
