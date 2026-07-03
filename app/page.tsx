@@ -158,26 +158,26 @@ export default function Home() {
             Snake drafts are the best part of a pool. Draft With Friends is the easiest end-to-end drafting and tracking experience for sports pools. Create a contest, invite your friends, draft your players, and follow the leaderboard in real time.
           </p>
 
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+          <div className="mt-10">
+            <p className="mb-4 text-sm font-black uppercase tracking-widest text-slate-400">
+              Pick Your Sport
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2">
             <a
               href="/create-pool"
-              className="rounded-2xl bg-emerald-400 px-7 py-5 text-center text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+              className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
             >
-              Golf
-              <span className="mt-1 block text-sm font-bold text-slate-800">
-                Create a golf pool
-              </span>
+              Create PGA Pool
             </a>
 
             <a
               href="/football"
-              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-7 py-5 text-center text-base font-black text-emerald-300 transition hover:bg-emerald-400/15"
+              className="flex min-h-20 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-5 text-center text-lg font-black text-emerald-300 transition hover:bg-emerald-400/15 md:text-xl"
             >
-              College Football
-              <span className="mt-1 block text-sm font-bold text-slate-300">
-                Build the next pool
-              </span>
+              Create College Football Pool
             </a>
+            </div>
           </div>
 
           <div className="mt-10 flex flex-wrap gap-6 text-base font-semibold text-slate-300 md:text-lg">
