@@ -50,10 +50,14 @@ function getSortValue(golfer: Record<string, unknown>) {
     golfer.rank ??
     golfer.world_rank;
 
+  if (rawValue === null || rawValue === undefined || rawValue === "") {
+    return 999999;
+  }
+
   const parsedValue =
     typeof rawValue === "number"
       ? rawValue
-      : Number(String(rawValue ?? "").replace("+", ""));
+      : Number(String(rawValue).replace("+", ""));
 
   return Number.isFinite(parsedValue) ? parsedValue : 999999;
 }

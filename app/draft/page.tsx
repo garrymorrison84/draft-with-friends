@@ -94,9 +94,13 @@ function getSortValue(golfer: any) {
 function getOddsNumber(golfer: any) {
   const rawOdds = golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds;
 
+  if (rawOdds === null || rawOdds === undefined || rawOdds === "") {
+    return Number.NaN;
+  }
+
   return typeof rawOdds === "number"
     ? rawOdds
-    : Number(String(rawOdds ?? "").replace("+", ""));
+    : Number(String(rawOdds).replace("+", ""));
 }
 
 function formatEligibleField(eventId?: string | null, golfEvent?: string) {
