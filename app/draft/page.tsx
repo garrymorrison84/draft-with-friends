@@ -76,7 +76,7 @@ function formatOdds(rawOdds: unknown) {
   }
 
   if (oddsNumber > 0) {
-    return `+${Math.round(oddsNumber * 100)}`;
+    return `+${Math.round(oddsNumber)}`;
   }
 
   return String(oddsNumber);
@@ -89,7 +89,7 @@ function getSortValue(golfer: any) {
 }
 
 function getOddsNumber(golfer: any) {
-  return parseOddsNumber(golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds);
+  return parseOddsNumber(golfer.odds_sort ?? golfer.vegas_odds ?? golfer.odds);
 }
 
 function parseOddsNumber(rawOdds: unknown) {
@@ -236,7 +236,7 @@ export default function DraftPage() {
             rank: sortValue,
             hasOdds,
             vegasOdds: formatOdds(
-              golfer.odds ?? golfer.odds_sort ?? golfer.vegas_odds
+              golfer.odds_sort ?? golfer.vegas_odds ?? golfer.odds
             ),
           };
         })
