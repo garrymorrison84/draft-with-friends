@@ -76,7 +76,16 @@ export default function PoolPage() {
       const picks = savedPool
         ? await getDraftPicks(formattedPool.id)
         : loadLocalDraftPicks(formattedPool.id) || [];
-      setPickCount(picks.filter(Boolean).length);
+      const completedPickCount = picks.filter(Boolean).length;
+      const totalPicks =
+        formattedPool.numberOfTeams * formattedPool.golfersPerTeam;
+
+      if (totalPicks > 0 && completedPickCount >= totalPicks) {
+        window.location.replace(`/leaderboard?id=${formattedPool.id}`);
+        return;
+      }
+
+      setPickCount(completedPickCount);
 
       setIsLoading(false);
     }

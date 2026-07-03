@@ -126,6 +126,7 @@ export default function DraftPage() {
   const [pendingGolfer, setPendingGolfer] = useState<Golfer | null>(null);
   const [isSavingPick, setIsSavingPick] = useState(false);
   const [isLocalPool, setIsLocalPool] = useState(false);
+  const [showDraftCompletedModal, setShowDraftCompletedModal] = useState(false);
 
   useEffect(() => {
     async function loadDraft() {
@@ -382,6 +383,10 @@ export default function DraftPage() {
           golfer_rank: golfer.rank,
           pick_index: nextPickIndex,
         });
+      }
+
+      if (nextPicks.every(Boolean)) {
+        setShowDraftCompletedModal(true);
       }
     } catch (error) {
       setDraftPicks(previousPicks);
@@ -713,6 +718,23 @@ export default function DraftPage() {
                 {isSavingPick ? "Saving..." : "Yes"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showDraftCompletedModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-emerald-400/20 bg-[#111827] p-6 text-center shadow-xl shadow-black/40">
+            <h2 className="text-3xl font-black text-white">
+              Congratulations! Draft Completed!
+            </h2>
+
+            <a
+              href={`/leaderboard?id=${activePool.id}`}
+              className="mt-6 inline-flex w-full justify-center rounded-xl bg-emerald-400 px-5 py-4 text-base font-black text-slate-950 transition hover:bg-emerald-300"
+            >
+              Live Tracking Leaderboard
+            </a>
           </div>
         </div>
       )}
