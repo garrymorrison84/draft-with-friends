@@ -270,6 +270,24 @@ export default function DraftPage() {
     );
   }, [draftPicks]);
 
+  const draftIsComplete = useMemo(() => {
+    if (!pool) return false;
+
+    const totalPicks = pool.draftOrder.length * pool.golfersPerTeam;
+
+    return (
+      totalPicks > 0 &&
+      draftPicks.length === totalPicks &&
+      draftPicks.every(Boolean)
+    );
+  }, [draftPicks, pool]);
+
+  useEffect(() => {
+    if (draftIsComplete) {
+      setShowDraftCompletedModal(true);
+    }
+  }, [draftIsComplete]);
+
   const visibleGolfers = useMemo(() => {
     const search = normalizeGolferName(searchTerm);
 
@@ -310,8 +328,7 @@ export default function DraftPage() {
   const totalPicks = teams.length * golfersPerTeam;
 
   const currentPickIndex = draftPicks.findIndex((pick) => pick === null);
-  const draftComplete =
-    draftPicks.length === totalPicks && currentPickIndex === -1;
+  const draftComplete = draftIsComplete;
 
   const currentTeamIndex = draftComplete
     ? null
