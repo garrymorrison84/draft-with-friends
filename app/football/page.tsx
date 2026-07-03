@@ -75,7 +75,7 @@ export default function FootballHomePage() {
             </h1>
             <p className="mt-7 max-w-3xl text-xl font-semibold leading-9 text-slate-300 md:text-2xl md:leading-10">
               Pick your conferences. Set the positions. Customize the scoring
-              system. Run a snake draft. Track the leaderboard live all season.
+              system. Run a snake draft. Track the weekly leaderboard live.
             </p>
 
             <div className="mt-9">
@@ -83,7 +83,7 @@ export default function FootballHomePage() {
                 href="/football/create"
                 className="inline-flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-10 py-5 text-center text-xl font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300 md:min-w-[360px]"
               >
-                Create College Football Pool
+                Start With Pool Setup
               </Link>
             </div>
           </div>
