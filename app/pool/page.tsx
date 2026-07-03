@@ -229,7 +229,7 @@ export default function PoolPage() {
                     ? "Copied"
                     : copyStatus === "failed"
                       ? "Try Again"
-                      : "Copy Link"}
+                      : "Copy & Share Link"}
                 </button>
               </div>
             </div>
