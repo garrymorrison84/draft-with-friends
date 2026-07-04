@@ -71,6 +71,10 @@ function roundScoreToPar(round: any): number | null {
   const score = asNumber(round.Score);
   const par = asNumber(round.Par);
 
+  if (score === 0 && par === 0) {
+    return null;
+  }
+
   if (score !== null && par !== null && score > 0 && par > 0) {
     return score - par;
   }
@@ -91,16 +95,7 @@ function roundScoreToPar(round: any): number | null {
 }
 
 function completedRoundCount(rounds: any[]) {
-  return rounds.filter((round: any) => {
-    const score = asNumber(round.Score);
-    const holesPlayed = asNumber(round.HolesPlayed);
-
-    return (
-      (score !== null && score > 0) ||
-      (holesPlayed !== null && holesPlayed > 0) ||
-      (Array.isArray(round.Holes) && round.Holes.length > 0)
-    );
-  }).length;
+  return rounds.filter((round: any) => roundScoreToPar(round) !== null).length;
 }
 
 export async function GET() {
