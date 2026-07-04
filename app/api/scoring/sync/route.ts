@@ -3,8 +3,6 @@ import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-const MISSED_CUT_ROUND_PENALTY = 8;
-
 type SupabaseGolfer = {
   id: number;
   event_id: string;
@@ -20,8 +18,6 @@ type PreparedPlayer = {
   round_2: number | null;
   round_3: number | null;
   round_4: number | null;
-  completed_round_count: number;
-  has_weekend_score: boolean;
 };
 
 function cleanName(name: string) {
@@ -92,10 +88,6 @@ function roundScoreToPar(round: any): number | null {
   }
 
   return null;
-}
-
-function completedRoundCount(rounds: any[]) {
-  return rounds.filter((round: any) => roundScoreToPar(round) !== null).length;
 }
 
 export async function GET() {
@@ -210,7 +202,6 @@ export async function GET() {
     const round3 = roundScoreToPar(rounds.find((r: any) => r.Number === 3));
     const round4 = roundScoreToPar(rounds.find((r: any) => r.Number === 4));
 
-    const completed = completedRoundCount(rounds);
     const calculatedTotal =
       (round1 ?? 0) + (round2 ?? 0) + (round3 ?? 0) + (round4 ?? 0);
 
@@ -234,49 +225,14 @@ export async function GET() {
       round_2: round2,
       round_3: round3,
       round_4: round4,
-      completed_round_count: completed,
-      has_weekend_score: round3 !== null || round4 !== null,
     });
   }
-
-  const round3ScoringHasStarted = preparedPlayers.some(
-    (player) => player.round_3 !== null
-  );
-  const round4ScoringHasStarted = preparedPlayers.some(
-    (player) => player.round_4 !== null
-  );
-  const weekendScoringHasStarted = round3ScoringHasStarted || round4ScoringHasStarted;
-
-  const finalPlayers = preparedPlayers.map((player) => {
-    const shouldApplyCutPenalty =
-      weekendScoringHasStarted &&
-      player.completed_round_count >= 2 &&
-      !player.has_weekend_score &&
-      player.tournament_score !== null;
-
-    const round3 = shouldApplyCutPenalty && round3ScoringHasStarted
-      ? player.round_3 ?? MISSED_CUT_ROUND_PENALTY
-      : player.round_3;
-    const round4 = shouldApplyCutPenalty && round4ScoringHasStarted
-      ? player.round_4 ?? MISSED_CUT_ROUND_PENALTY
-      : player.round_4;
-    const tournamentScore = shouldApplyCutPenalty
-      ? (player.round_1 ?? 0) + (player.round_2 ?? 0) + (round3 ?? 0) + (round4 ?? 0)
-      : player.tournament_score;
-
-    return {
-      ...player,
-      tournament_score: tournamentScore,
-      round_3: round3,
-      round_4: round4,
-    };
-  });
 
   const updates = [];
   const errors: any[] = [];
   const skippedPlayers: any[] = [];
 
-  for (const player of finalPlayers) {
+  for (const player of preparedPlayers) {
     if (player.tournament_score === null) {
       skippedPlayers.push({
         name: player.supabaseGolfer.name,
@@ -314,7 +270,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-normalized-name-sync-v5-round-aware-cut-penalty",
+    scoringVersion: "active-event-normalized-name-sync-v6-no-cut-penalty",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
@@ -326,13 +282,9 @@ export async function GET() {
     skippedPlayers: skippedPlayers.slice(0, 30),
     unmatchedSportsDataCount: unmatchedSportsDataPlayers.length,
     unmatchedSportsDataPlayers: unmatchedSportsDataPlayers.slice(0, 30),
-    missedCutRoundPenalty: MISSED_CUT_ROUND_PENALTY,
-    weekendScoringHasStarted,
-    round3ScoringHasStarted,
-    round4ScoringHasStarted,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
-    watchedPlayers: finalPlayers
+    watchedPlayers: preparedPlayers
       .filter((player) =>
         [
           "J.T. Poston",
@@ -356,8 +308,6 @@ export async function GET() {
         round_2: player.round_2,
         round_3: player.round_3,
         round_4: player.round_4,
-        completed_round_count: player.completed_round_count,
-        has_weekend_score: player.has_weekend_score,
       })),
     updatedAt: new Date().toISOString(),
   });
