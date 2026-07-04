@@ -112,7 +112,7 @@ export default function CreateFootballPoolPage() {
           <div className="grid gap-6">
             <TextField label="Pool Name" value={poolName} onChange={setPoolName} />
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-semibold">
                   Week
@@ -145,15 +145,6 @@ export default function CreateFootballPoolPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold">
-                  Draft Format
-                </label>
-                <div className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 font-semibold text-white">
-                  Snake Draft
-                </div>
               </div>
             </div>
 
@@ -314,14 +305,6 @@ export default function CreateFootballPoolPage() {
                 </div>
               </div>
             </Panel>
-
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
-              <p className="font-bold text-emerald-300">Snake Draft Format</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Every weekly pool uses a snake draft. The order reverses each
-                round so every team gets a fair shot across the full draft.
-              </p>
-            </div>
 
             <button
               type="button"
