@@ -26,16 +26,15 @@ type ScoringRule = {
 const rosterRows: {
   key: RosterKey;
   label: string;
-  group: "Offense" | "Flex + Team";
   max: number;
 }[] = [
-  { key: "QB", label: "Quarterback (QB)", group: "Offense", max: 3 },
-  { key: "RB", label: "Running Back (RB)", group: "Offense", max: 5 },
-  { key: "WR", label: "Wide Receiver (WR)", group: "Offense", max: 5 },
-  { key: "TE", label: "Tight End (TE)", group: "Offense", max: 3 },
-  { key: "FLEX", label: "Flex (RB/WR/TE)", group: "Flex + Team", max: 3 },
-  { key: "DST", label: "Defense / Special Teams", group: "Flex + Team", max: 2 },
-  { key: "K", label: "Kicker", group: "Flex + Team", max: 1 },
+  { key: "QB", label: "Quarterback (QB)", max: 3 },
+  { key: "RB", label: "Running Back (RB)", max: 5 },
+  { key: "WR", label: "Wide Receiver (WR)", max: 5 },
+  { key: "TE", label: "Tight End (TE)", max: 3 },
+  { key: "FLEX", label: "Flex (RB/WR/TE)", max: 3 },
+  { key: "DST", label: "Defense / Special Teams", max: 2 },
+  { key: "K", label: "Kicker", max: 1 },
 ];
 
 const tabs: { key: ScoringCategory; label: string }[] = [
@@ -411,28 +410,16 @@ export default function FootballScoringPage() {
               </div>
             </div>
 
-            <div className="mt-6 space-y-7">
-              {(["Offense", "Flex + Team"] as const).map((group) => (
-                <div key={group}>
-                  <h3 className="mb-2 text-sm font-black uppercase tracking-widest text-slate-400">
-                    {group}
-                  </h3>
-                  <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#030712]">
-                    {rosterRows
-                      .filter((row) => row.group === group)
-                      .map((row) => (
-                        <RosterStepper
-                          key={row.key}
-                          label={row.label}
-                          value={scoring.roster[row.key]}
-                          min={0}
-                          max={row.max}
-                          disabled={row.key === "K" && !scoring.includeKickers}
-                          onChange={(value) => updateRoster(row.key, value)}
-                        />
-                      ))}
-                  </div>
-                </div>
+            <div className="mt-6 overflow-hidden rounded-2xl border border-white/5 bg-[#030712]">
+              {rosterRows.map((row) => (
+                <RosterStepper
+                  key={row.key}
+                  label={row.label}
+                  value={scoring.roster[row.key]}
+                  min={0}
+                  max={row.max}
+                  onChange={(value) => updateRoster(row.key, value)}
+                />
               ))}
             </div>
           </section>
