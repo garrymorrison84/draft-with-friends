@@ -342,6 +342,9 @@ export async function GET() {
           "Nico Echavarria",
           "Ben James",
           "Alex Noren",
+          "Chris Gotterup",
+          "Lucas Glover",
+          "Max Homa",
         ].includes(player.supabaseGolfer.name)
       )
       .map((player) => ({
