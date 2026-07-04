@@ -21,6 +21,7 @@ type ScoringRule = {
   kind?: "points" | "yards";
   options?: number[];
   enabled?: boolean;
+  integerOnly?: boolean;
 };
 
 const rosterRows: {
@@ -46,6 +47,21 @@ const tabs: { key: ScoringCategory; label: string }[] = [
   { key: "misc", label: "More" },
 ];
 
+function mergeScoring(savedScoring?: FootballScoring): FootballScoring {
+  if (!savedScoring) return defaultScoring;
+
+  return {
+    ...defaultScoring,
+    ...savedScoring,
+    roster: { ...defaultScoring.roster, ...savedScoring.roster },
+    passing: { ...defaultScoring.passing, ...savedScoring.passing },
+    rushing: { ...defaultScoring.rushing, ...savedScoring.rushing },
+    receiving: { ...defaultScoring.receiving, ...savedScoring.receiving },
+    defense: { ...defaultScoring.defense, ...savedScoring.defense },
+    kicking: { ...defaultScoring.kicking, ...savedScoring.kicking },
+  };
+}
+
 export default function FootballScoringPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [scoring, setScoring] = useState<FootballScoring>(defaultScoring);
@@ -58,7 +74,7 @@ export default function FootballScoringPage() {
     const savedPool = loadFootballPool(id);
     if (savedPool) {
       setPool(savedPool);
-      setScoring({ ...defaultScoring, ...savedPool.scoring });
+      setScoring(mergeScoring(savedPool.scoring));
     }
   }, []);
 
@@ -93,6 +109,13 @@ export default function FootballScoringPage() {
   }
 
   function getRules(): ScoringRule[] {
+    const passingEnabled = scoring.roster.QB > 0;
+    const rushingEnabled = scoring.roster.RB > 0 || scoring.roster.FLEX > 0;
+    const receivingEnabled =
+      scoring.roster.WR > 0 || scoring.roster.TE > 0 || scoring.roster.FLEX > 0;
+    const defenseEnabled = scoring.roster.DST > 0;
+    const kickingEnabled = scoring.roster.K > 0;
+
     if (activeTab === "passing") {
       return [
         {
@@ -101,24 +124,31 @@ export default function FootballScoringPage() {
           kind: "yards",
           onChange: (value) => updateSection("passing", "passingYardsPerPoint", value),
           options: [20, 25],
+          enabled: passingEnabled,
+          integerOnly: true,
         },
         {
           label: "Passing TD",
           value: scoring.passing.passingTd,
           onChange: (value) => updateSection("passing", "passingTd", value),
           options: [4, 6],
+          enabled: passingEnabled,
+          integerOnly: true,
         },
         {
           label: "Int Thrown",
           value: scoring.passing.interception,
           onChange: (value) => updateSection("passing", "interception", value),
           options: [-1, -2],
+          enabled: passingEnabled,
+          integerOnly: true,
         },
         {
           label: "Pass Completion",
           value: scoring.passing.completion,
           onChange: (value) => updateSection("passing", "completion", value),
           options: [0.2, 0.5],
+          enabled: passingEnabled,
         },
       ];
     }
@@ -131,18 +161,23 @@ export default function FootballScoringPage() {
           kind: "yards",
           onChange: (value) => updateSection("rushing", "rushingYardsPerPoint", value),
           options: [10],
+          enabled: rushingEnabled,
+          integerOnly: true,
         },
         {
           label: "Rushing TD",
           value: scoring.rushing.rushingTd,
           onChange: (value) => updateSection("rushing", "rushingTd", value),
           options: [4, 6],
+          enabled: rushingEnabled,
+          integerOnly: true,
         },
         {
           label: "Rush Attempt",
           value: scoring.rushing.attempt,
           onChange: (value) => updateSection("rushing", "attempt", value),
-          options: [0, 0.2],
+          options: [0.2],
+          enabled: rushingEnabled,
         },
       ];
     }
@@ -154,6 +189,7 @@ export default function FootballScoringPage() {
           value: scoring.receiving.reception,
           onChange: (value) => updateSection("receiving", "reception", value),
           options: [0.5, 1],
+          enabled: receivingEnabled,
         },
         {
           label: "Rec Yds",
@@ -161,12 +197,16 @@ export default function FootballScoringPage() {
           kind: "yards",
           onChange: (value) => updateSection("receiving", "receivingYardsPerPoint", value),
           options: [10],
+          enabled: receivingEnabled,
+          integerOnly: true,
         },
         {
           label: "Receiving TD",
           value: scoring.receiving.receivingTd,
           onChange: (value) => updateSection("receiving", "receivingTd", value),
           options: [4, 6],
+          enabled: receivingEnabled,
+          integerOnly: true,
         },
       ];
     }
@@ -178,42 +218,56 @@ export default function FootballScoringPage() {
           value: scoring.defense.sack,
           onChange: (value) => updateSection("defense", "sack", value),
           options: [1],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
         {
           label: "Interceptions",
           value: scoring.defense.interception,
           onChange: (value) => updateSection("defense", "interception", value),
           options: [2],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
         {
           label: "Fumble Recovery",
           value: scoring.defense.fumbleRecovery,
           onChange: (value) => updateSection("defense", "fumbleRecovery", value),
           options: [2],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
         {
           label: "Touchdown",
           value: scoring.defense.touchdown,
           onChange: (value) => updateSection("defense", "touchdown", value),
           options: [6],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
         {
           label: "Safety",
           value: scoring.defense.safety,
           onChange: (value) => updateSection("defense", "safety", value),
           options: [2],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
         {
           label: "Blocked Kick",
           value: scoring.defense.blockedKick,
           onChange: (value) => updateSection("defense", "blockedKick", value),
           options: [2],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
         {
           label: "Kickoff/Punt Return TD",
           value: scoring.defense.returnTouchdown,
           onChange: (value) => updateSection("defense", "returnTouchdown", value),
           options: [6],
+          enabled: defenseEnabled,
+          integerOnly: true,
         },
       ];
     }
@@ -224,22 +278,41 @@ export default function FootballScoringPage() {
           label: "Made Extra Point",
           value: scoring.kicking.extraPoint,
           onChange: (value) => updateSection("kicking", "extraPoint", value),
-          options: [0, 1],
-          enabled: scoring.includeKickers,
+          options: [1],
+          enabled: kickingEnabled,
+          integerOnly: true,
+        },
+        {
+          label: "Missed Extra Point",
+          value: scoring.kicking.missedExtraPoint,
+          onChange: (value) => updateSection("kicking", "missedExtraPoint", value),
+          options: [-1],
+          enabled: kickingEnabled,
+          integerOnly: true,
         },
         {
           label: "Field Goal",
           value: scoring.kicking.fieldGoal,
           onChange: (value) => updateSection("kicking", "fieldGoal", value),
           options: [3, 4],
-          enabled: scoring.includeKickers,
+          enabled: kickingEnabled,
+          integerOnly: true,
+        },
+        {
+          label: "Missed Field Goal",
+          value: scoring.kicking.missedFieldGoal,
+          onChange: (value) => updateSection("kicking", "missedFieldGoal", value),
+          options: [-1, -3],
+          enabled: kickingEnabled,
+          integerOnly: true,
         },
         {
           label: "50+ Yard FG Bonus",
           value: scoring.kicking.fieldGoal50Bonus,
           onChange: (value) => updateSection("kicking", "fieldGoal50Bonus", value),
-          options: [0, 2],
-          enabled: scoring.includeKickers,
+          options: [2],
+          enabled: kickingEnabled,
+          integerOnly: true,
         },
       ];
     }
@@ -253,13 +326,17 @@ export default function FootballScoringPage() {
           updateSection("rushing", "twoPointConversion", value);
           updateSection("receiving", "twoPointConversion", value);
         },
-        options: [0, 2],
+        options: [2],
+        enabled: passingEnabled || rushingEnabled || receivingEnabled,
+        integerOnly: true,
       },
       {
         label: "Fumbles Lost",
         value: scoring.passing.fumbleLost,
         onChange: (value) => updateSection("passing", "fumbleLost", value),
         options: [-1, -2],
+        enabled: passingEnabled || rushingEnabled || receivingEnabled,
+        integerOnly: true,
       },
     ];
   }
@@ -571,6 +648,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
                   <CustomValueInput
                     value={rule.value}
                     enabled={enabled && isActive}
+                    integerOnly={rule.integerOnly}
                     onChange={rule.onChange}
                   />
                 )}
@@ -593,6 +671,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
                   <CustomValueInput
                     value={rule.value}
                     enabled={enabled && isActive}
+                    integerOnly={rule.integerOnly}
                     onChange={rule.onChange}
                   />
                 )}
@@ -659,19 +738,28 @@ function OptionButtons({
 function CustomValueInput({
   value,
   enabled,
+  integerOnly = false,
   onChange,
 }: {
   value: number;
   enabled: boolean;
+  integerOnly?: boolean;
   onChange: (value: number) => void;
 }) {
+  function handleChange(rawValue: string) {
+    const nextValue = Number(rawValue);
+    if (!Number.isFinite(nextValue)) return;
+    onChange(integerOnly ? Math.round(nextValue) : nextValue);
+  }
+
   return (
     <input
       type="number"
-      step="0.1"
+      step={integerOnly ? "1" : "0.1"}
+      inputMode={integerOnly ? "numeric" : "decimal"}
       value={value}
       disabled={!enabled}
-      onChange={(event) => onChange(Number(event.target.value))}
+      onChange={(event) => handleChange(event.target.value)}
       onFocus={(event) => event.target.select()}
       className="w-24 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-right text-base font-black text-white outline-none disabled:cursor-not-allowed"
     />

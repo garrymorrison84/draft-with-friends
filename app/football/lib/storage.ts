@@ -45,7 +45,9 @@ export type FootballScoring = {
   };
   kicking: {
     extraPoint: number;
+    missedExtraPoint: number;
     fieldGoal: number;
+    missedFieldGoal: number;
     fieldGoal50Bonus: number;
   };
 };
@@ -135,7 +137,9 @@ export const defaultScoring: FootballScoring = {
   },
   kicking: {
     extraPoint: 1,
+    missedExtraPoint: -1,
     fieldGoal: 3,
+    missedFieldGoal: -1,
     fieldGoal50Bonus: 2,
   },
 };
