@@ -384,7 +384,7 @@ export default function FootballScoringPage() {
 
         <div className="mt-10 grid gap-6">
           <section className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <SwitchCard
                 label="Fractional Points"
                 checked={scoring.fractionalPoints}
@@ -399,24 +399,6 @@ export default function FootballScoringPage() {
                   setScoring((current) => ({ ...current, negativePoints: checked }))
                 }
               />
-              <div>
-                <label className="mb-2 block text-sm font-semibold">
-                  Available Players
-                </label>
-                <select
-                  value={scoring.playerPool}
-                  onChange={(event) =>
-                    setScoring((current) => ({
-                      ...current,
-                      playerPool: event.target.value as FootballScoring["playerPool"],
-                    }))
-                  }
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
-                >
-                  <option>Power 5 + Notre Dame</option>
-                  <option>All FBS</option>
-                </select>
-              </div>
             </div>
           </section>
 

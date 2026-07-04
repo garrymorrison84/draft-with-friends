@@ -6,9 +6,22 @@ import { useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import {
   createFootballPoolId,
+  defaultFootballPlayerPool,
   defaultScoring,
   saveFootballPool,
 } from "../lib/storage";
+
+const conferenceOptions = [
+  "ACC",
+  "AAC",
+  "Big Ten",
+  "Big 12",
+  "Pac-12",
+  "SEC",
+  "Independents",
+];
+
+const powerPoolConferences = defaultFootballPlayerPool.conferences;
 
 export default function CreateFootballPoolPage() {
   const [poolName, setPoolName] = useState("College Football Week 1 Draft");
@@ -17,6 +30,8 @@ export default function CreateFootballPoolPage() {
   const [teamNames, setTeamNames] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrder, setDraftOrder] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrderMethod, setDraftOrderMethod] = useState("random");
+  const [playerPoolMode, setPlayerPoolMode] = useState<"power" | "custom">("power");
+  const [selectedConferences, setSelectedConferences] = useState(powerPoolConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   function finalTeamNames() {
@@ -70,10 +85,36 @@ export default function CreateFootballPoolPage() {
     setDraggedIndex(null);
   }
 
+  function setPowerPlayerPool() {
+    setPlayerPoolMode("power");
+    setSelectedConferences(powerPoolConferences);
+  }
+
+  function toggleConference(conference: string) {
+    setPlayerPoolMode("custom");
+    setSelectedConferences((current) => {
+      if (current.includes(conference)) {
+        const next = current.filter((item) => item !== conference);
+        return next.length ? next : [conference];
+      }
+
+      return [...current, conference];
+    });
+  }
+
+  function playerPoolLabel() {
+    if (playerPoolMode === "power") return "All Power 5 + Independents";
+    return selectedConferences.join(", ");
+  }
+
   function continueToScoring() {
     const id = createFootballPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
+    const playerPool = {
+      mode: playerPoolMode,
+      conferences: selectedConferences,
+    };
 
     saveFootballPool({
       id,
@@ -82,7 +123,8 @@ export default function CreateFootballPoolPage() {
       numberOfTeams,
       teamNames: teams,
       draftOrder: order.map((team, index) => team?.trim() || teams[index]),
-      scoring: defaultScoring,
+      playerPool,
+      scoring: { ...defaultScoring, playerPool: playerPoolLabel() },
       createdAt: new Date().toISOString(),
     });
 
@@ -147,6 +189,85 @@ export default function CreateFootballPoolPage() {
                 </select>
               </div>
             </div>
+
+            <Panel
+              title="Player Pool"
+              body="Choose which conferences and independents are eligible for this weekly draft."
+            >
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={setPowerPlayerPool}
+                  className={`rounded-2xl border p-5 text-left transition ${
+                    playerPoolMode === "power"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827] hover:border-emerald-400/30"
+                  }`}
+                >
+                  <p
+                    className={`font-bold ${
+                      playerPoolMode === "power" ? "text-emerald-300" : "text-white"
+                    }`}
+                  >
+                    All Power 5 + Independents
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    ACC, Big Ten, Big 12, Pac-12, SEC, Notre Dame, UConn, and other independents.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPlayerPoolMode("custom")}
+                  className={`rounded-2xl border p-5 text-left transition ${
+                    playerPoolMode === "custom"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827] hover:border-emerald-400/30"
+                  }`}
+                >
+                  <p
+                    className={`font-bold ${
+                      playerPoolMode === "custom" ? "text-emerald-300" : "text-white"
+                    }`}
+                  >
+                    Custom Conferences
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Pick only the leagues your group wants in the player pool.
+                  </p>
+                </button>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {conferenceOptions.map((conference) => {
+                  const checked = selectedConferences.includes(conference);
+
+                  return (
+                    <button
+                      key={conference}
+                      type="button"
+                      onClick={() => toggleConference(conference)}
+                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                        checked
+                          ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                          : "border-white/5 bg-[#030712] text-slate-300 hover:border-emerald-400/30"
+                      }`}
+                    >
+                      <span className="font-bold">{conference}</span>
+                      <span
+                        className={`flex h-6 w-8 items-center justify-center rounded-full border text-[10px] font-black ${
+                          checked
+                            ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                            : "border-white/20 text-transparent"
+                        }`}
+                      >
+                        On
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Panel>
 
             <Panel title="Team Names" body="Team fields automatically match the number selected.">
               <div className="mt-6 grid gap-4 md:grid-cols-2">

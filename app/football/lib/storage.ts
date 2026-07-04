@@ -3,7 +3,7 @@
 export type FootballScoring = {
   fractionalPoints: boolean;
   negativePoints: boolean;
-  playerPool: "Power 5 + Notre Dame" | "All FBS";
+  playerPool: string;
   includeKickers: boolean;
   roster: {
     QB: number;
@@ -52,6 +52,11 @@ export type FootballScoring = {
   };
 };
 
+export type FootballPlayerPool = {
+  mode: "power" | "custom";
+  conferences: string[];
+};
+
 export type FootballPool = {
   id: string;
   poolName: string;
@@ -59,6 +64,7 @@ export type FootballPool = {
   numberOfTeams: number;
   teamNames: string[];
   draftOrder: string[];
+  playerPool?: FootballPlayerPool;
   scoring?: FootballScoring;
   createdAt: string;
 };
@@ -142,6 +148,11 @@ export const defaultScoring: FootballScoring = {
     missedFieldGoal: -1,
     fieldGoal50Bonus: 2,
   },
+};
+
+export const defaultFootballPlayerPool: FootballPlayerPool = {
+  mode: "power",
+  conferences: ["ACC", "Big Ten", "Big 12", "Pac-12", "SEC", "Independents"],
 };
 
 export function createFootballPoolId() {
