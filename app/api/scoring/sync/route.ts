@@ -244,9 +244,13 @@ export async function GET() {
     });
   }
 
-  const weekendScoringHasStarted = preparedPlayers.some(
-    (player) => player.has_weekend_score
+  const round3ScoringHasStarted = preparedPlayers.some(
+    (player) => player.round_3 !== null
   );
+  const round4ScoringHasStarted = preparedPlayers.some(
+    (player) => player.round_4 !== null
+  );
+  const weekendScoringHasStarted = round3ScoringHasStarted || round4ScoringHasStarted;
 
   const finalPlayers = preparedPlayers.map((player) => {
     const shouldApplyCutPenalty =
@@ -255,10 +259,10 @@ export async function GET() {
       !player.has_weekend_score &&
       player.tournament_score !== null;
 
-    const round3 = shouldApplyCutPenalty
+    const round3 = shouldApplyCutPenalty && round3ScoringHasStarted
       ? player.round_3 ?? MISSED_CUT_ROUND_PENALTY
       : player.round_3;
-    const round4 = shouldApplyCutPenalty
+    const round4 = shouldApplyCutPenalty && round4ScoringHasStarted
       ? player.round_4 ?? MISSED_CUT_ROUND_PENALTY
       : player.round_4;
     const tournamentScore = shouldApplyCutPenalty
@@ -315,7 +319,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-normalized-name-sync-v4-cut-penalty",
+    scoringVersion: "active-event-normalized-name-sync-v5-round-aware-cut-penalty",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
@@ -329,6 +333,8 @@ export async function GET() {
     unmatchedSportsDataPlayers: unmatchedSportsDataPlayers.slice(0, 30),
     missedCutRoundPenalty: MISSED_CUT_ROUND_PENALTY,
     weekendScoringHasStarted,
+    round3ScoringHasStarted,
+    round4ScoringHasStarted,
     errorCount: errors.length,
     errors: errors.slice(0, 20),
     watchedPlayers: finalPlayers
