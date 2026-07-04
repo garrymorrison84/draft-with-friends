@@ -154,42 +154,6 @@ export default function CreateFootballPoolPage() {
           <div className="grid gap-6">
             <TextField label="Pool Name" value={poolName} onChange={setPoolName} />
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold">
-                  Week
-                </label>
-                <select
-                  value={week}
-                  onChange={(event) => setWeek(event.target.value)}
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
-                >
-                  {Array.from({ length: 18 }).map((_, index) => (
-                    <option key={index + 1} value={`Week ${index + 1}`}>
-                      Week {index + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold">
-                  Number of Teams
-                </label>
-                <select
-                  value={numberOfTeams}
-                  onChange={(event) => updateNumberOfTeams(Number(event.target.value))}
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
-                >
-                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                    <option key={num} value={num}>
-                      {num} Teams
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
             <Panel
               title="Player Pool"
               body="Choose which conferences and independents are eligible for this weekly draft."
@@ -268,6 +232,42 @@ export default function CreateFootballPoolPage() {
                 })}
               </div>
             </Panel>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Week
+                </label>
+                <select
+                  value={week}
+                  onChange={(event) => setWeek(event.target.value)}
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+                >
+                  {Array.from({ length: 18 }).map((_, index) => (
+                    <option key={index + 1} value={`Week ${index + 1}`}>
+                      Week {index + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Number of Teams
+                </label>
+                <select
+                  value={numberOfTeams}
+                  onChange={(event) => updateNumberOfTeams(Number(event.target.value))}
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+                >
+                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                    <option key={num} value={num}>
+                      {num} Teams
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <Panel title="Team Names" body="Team fields automatically match the number selected.">
               <div className="mt-6 grid gap-4 md:grid-cols-2">
