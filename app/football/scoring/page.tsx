@@ -18,8 +18,8 @@ type ScoringRule = {
   label: string;
   value: number;
   onChange: (value: number) => void;
-  presets?: { label: string; value: number }[];
-  helper?: string;
+  kind?: "points" | "yards";
+  options?: number[];
   enabled?: boolean;
 };
 
@@ -96,56 +96,41 @@ export default function FootballScoringPage() {
     if (activeTab === "passing") {
       return [
         {
-          label: "Passing Yards",
+          label: "Pass Yds",
           value: scoring.passing.passingYardsPerPoint,
-          helper: `1 point every ${scoring.passing.passingYardsPerPoint} yards`,
+          kind: "yards",
           onChange: (value) => updateSection("passing", "passingYardsPerPoint", value),
-          presets: [
-            { label: "25 yards", value: 25 },
-            { label: "20 yards", value: 20 },
-          ],
+          options: [20, 25, 50],
         },
         {
-          label: "Passing Touchdowns",
+          label: "Passing TD",
           value: scoring.passing.passingTd,
           onChange: (value) => updateSection("passing", "passingTd", value),
-          presets: [
-            { label: "4 points", value: 4 },
-            { label: "6 points", value: 6 },
-          ],
+          options: [4, 6],
         },
         {
-          label: "Interceptions",
+          label: "Int Thrown",
           value: scoring.passing.interception,
           onChange: (value) => updateSection("passing", "interception", value),
-          presets: [
-            { label: "-1 point", value: -1 },
-            { label: "-2 points", value: -2 },
-          ],
+          options: [-1, -2],
         },
         {
-          label: "Completions",
+          label: "Pass Completion",
           value: scoring.passing.completion,
           onChange: (value) => updateSection("passing", "completion", value),
-          presets: [
-            { label: "0 points", value: 0 },
-            { label: "0.2 points", value: 0.2 },
-          ],
+          options: [0, 0.2, 0.5],
         },
         {
-          label: "2-Point Passing Conversion",
+          label: "2pt Pass Conversion",
           value: scoring.passing.twoPointConversion,
           onChange: (value) => updateSection("passing", "twoPointConversion", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [0, 2],
         },
         {
           label: "Fumbles Lost",
           value: scoring.passing.fumbleLost,
           onChange: (value) => updateSection("passing", "fumbleLost", value),
-          presets: [
-            { label: "-1 point", value: -1 },
-            { label: "-2 points", value: -2 },
-          ],
+          options: [-1, -2],
         },
       ];
     }
@@ -153,35 +138,29 @@ export default function FootballScoringPage() {
     if (activeTab === "rushing") {
       return [
         {
-          label: "Rushing Yards",
+          label: "Rush Yds",
           value: scoring.rushing.rushingYardsPerPoint,
-          helper: `1 point every ${scoring.rushing.rushingYardsPerPoint} yards`,
+          kind: "yards",
           onChange: (value) => updateSection("rushing", "rushingYardsPerPoint", value),
-          presets: [
-            { label: "10 yards", value: 10 },
-            { label: "5 yards", value: 5 },
-          ],
+          options: [5, 10, 20],
         },
         {
-          label: "Rushing Touchdowns",
+          label: "Rushing TD",
           value: scoring.rushing.rushingTd,
           onChange: (value) => updateSection("rushing", "rushingTd", value),
-          presets: [{ label: "6 points", value: 6 }],
+          options: [4, 6],
         },
         {
-          label: "Rushing Attempts",
+          label: "Rush Attempt",
           value: scoring.rushing.attempt,
           onChange: (value) => updateSection("rushing", "attempt", value),
-          presets: [
-            { label: "0 points", value: 0 },
-            { label: "0.2 points", value: 0.2 },
-          ],
+          options: [0, 0.2],
         },
         {
-          label: "2-Point Rushing Conversion",
+          label: "2pt Rush Conversion",
           value: scoring.rushing.twoPointConversion,
           onChange: (value) => updateSection("rushing", "twoPointConversion", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [0, 2],
         },
       ];
     }
@@ -189,35 +168,29 @@ export default function FootballScoringPage() {
     if (activeTab === "receiving") {
       return [
         {
-          label: "Receptions",
+          label: "Reception",
           value: scoring.receiving.reception,
           onChange: (value) => updateSection("receiving", "reception", value),
-          presets: [
-            { label: "0.5 points", value: 0.5 },
-            { label: "1 point", value: 1 },
-          ],
+          options: [0, 0.5, 1],
         },
         {
-          label: "Receiving Yards",
+          label: "Rec Yds",
           value: scoring.receiving.receivingYardsPerPoint,
-          helper: `1 point every ${scoring.receiving.receivingYardsPerPoint} yards`,
+          kind: "yards",
           onChange: (value) => updateSection("receiving", "receivingYardsPerPoint", value),
-          presets: [
-            { label: "10 yards", value: 10 },
-            { label: "5 yards", value: 5 },
-          ],
+          options: [5, 10, 20],
         },
         {
-          label: "Receiving Touchdowns",
+          label: "Receiving TD",
           value: scoring.receiving.receivingTd,
           onChange: (value) => updateSection("receiving", "receivingTd", value),
-          presets: [{ label: "6 points", value: 6 }],
+          options: [4, 6],
         },
         {
-          label: "2-Point Receiving Conversion",
+          label: "2pt Rec Conversion",
           value: scoring.receiving.twoPointConversion,
           onChange: (value) => updateSection("receiving", "twoPointConversion", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [0, 2],
         },
       ];
     }
@@ -228,43 +201,43 @@ export default function FootballScoringPage() {
           label: "Sacks",
           value: scoring.defense.sack,
           onChange: (value) => updateSection("defense", "sack", value),
-          presets: [{ label: "1 point", value: 1 }],
+          options: [0, 1, 2],
         },
         {
           label: "Interceptions",
           value: scoring.defense.interception,
           onChange: (value) => updateSection("defense", "interception", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [1, 2, 3],
         },
         {
           label: "Fumble Recovery",
           value: scoring.defense.fumbleRecovery,
           onChange: (value) => updateSection("defense", "fumbleRecovery", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [1, 2, 3],
         },
         {
           label: "Touchdown",
           value: scoring.defense.touchdown,
           onChange: (value) => updateSection("defense", "touchdown", value),
-          presets: [{ label: "6 points", value: 6 }],
+          options: [4, 6],
         },
         {
           label: "Safety",
           value: scoring.defense.safety,
           onChange: (value) => updateSection("defense", "safety", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [1, 2],
         },
         {
           label: "Blocked Kick",
           value: scoring.defense.blockedKick,
           onChange: (value) => updateSection("defense", "blockedKick", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [1, 2],
         },
         {
-          label: "Kickoff / Punt Return TD",
+          label: "Return TD",
           value: scoring.defense.returnTouchdown,
           onChange: (value) => updateSection("defense", "returnTouchdown", value),
-          presets: [{ label: "6 points", value: 6 }],
+          options: [0, 6],
         },
       ];
     }
@@ -275,21 +248,21 @@ export default function FootballScoringPage() {
           label: "Made Extra Point",
           value: scoring.kicking.extraPoint,
           onChange: (value) => updateSection("kicking", "extraPoint", value),
-          presets: [{ label: "1 point", value: 1 }],
+          options: [0, 1],
           enabled: scoring.includeKickers,
         },
         {
           label: "Field Goal",
           value: scoring.kicking.fieldGoal,
           onChange: (value) => updateSection("kicking", "fieldGoal", value),
-          presets: [{ label: "3 points", value: 3 }],
+          options: [3, 4],
           enabled: scoring.includeKickers,
         },
         {
           label: "50+ Yard FG Bonus",
           value: scoring.kicking.fieldGoal50Bonus,
           onChange: (value) => updateSection("kicking", "fieldGoal50Bonus", value),
-          presets: [{ label: "2 points", value: 2 }],
+          options: [0, 2],
           enabled: scoring.includeKickers,
         },
       ];
@@ -304,16 +277,13 @@ export default function FootballScoringPage() {
           updateSection("rushing", "twoPointConversion", value);
           updateSection("receiving", "twoPointConversion", value);
         },
-        presets: [{ label: "2 points", value: 2 }],
+        options: [0, 2],
       },
       {
         label: "Fumbles Lost",
         value: scoring.passing.fumbleLost,
         onChange: (value) => updateSection("passing", "fumbleLost", value),
-        presets: [
-          { label: "-1 point", value: -1 },
-          { label: "-2 points", value: -2 },
-        ],
+        options: [-1, -2],
       },
     ];
   }
@@ -573,48 +543,109 @@ function RosterStepper({
 
 function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
   const enabled = rule.enabled ?? true;
+  const hasOption = rule.options?.includes(rule.value);
+  const selectValue = hasOption ? String(rule.value) : "custom";
 
   return (
-    <div className={`border-b border-white/5 p-5 last:border-b-0 ${enabled ? "" : "opacity-45"}`}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className={`border-b border-white/5 p-4 last:border-b-0 ${enabled ? "" : "opacity-45"}`}>
+      <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
         <div className="min-w-0">
           <h3 className="text-lg font-black">{rule.label}</h3>
-          {rule.helper && (
-            <p className="mt-1 text-sm font-semibold text-slate-400">{rule.helper}</p>
-          )}
-          {rule.presets && (
-            <div className="mt-4 flex flex-wrap gap-3">
-              {rule.presets.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  disabled={!enabled}
-                  onClick={() => rule.onChange(preset.value)}
-                  className={`rounded-xl border px-4 py-2 text-sm font-black ${
-                    rule.value === preset.value
-                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                      : "border-white/15 text-emerald-300 hover:bg-white/5"
-                  } disabled:cursor-not-allowed`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <p className="mt-1 text-sm font-semibold text-slate-500">
+            {rule.kind === "yards"
+              ? `1 point per ${rule.value} yards`
+              : `${rule.value} ${rule.value === 1 ? "point" : "points"} per ${rule.label}`}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="number"
-            step="0.1"
-            value={rule.value}
-            disabled={!enabled}
-            onChange={(event) => rule.onChange(Number(event.target.value))}
-            onFocus={(event) => event.target.select()}
-            className="w-24 rounded-xl border border-white/10 bg-[#1F2937] px-4 py-3 text-right text-lg font-black text-white outline-none disabled:cursor-not-allowed"
-          />
-          <span className="text-sm font-bold text-slate-400">points</span>
+
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+          {rule.kind === "yards" ? (
+            <>
+              <span className="text-sm font-bold text-slate-400">1 point per</span>
+              <ValueControl
+                value={rule.value}
+                options={rule.options}
+                enabled={enabled}
+                onChange={rule.onChange}
+                selectValue={selectValue}
+              />
+              <span className="text-sm font-bold text-slate-400">yards</span>
+            </>
+          ) : (
+            <>
+              <ValueControl
+                value={rule.value}
+                options={rule.options}
+                enabled={enabled}
+                onChange={rule.onChange}
+                selectValue={selectValue}
+              />
+              <span className="text-sm font-bold text-slate-400">
+                pts per {rule.label}
+              </span>
+            </>
+          )}
+          {!hasOption && (
+            <input
+              type="number"
+              step="0.1"
+              value={rule.value}
+              disabled={!enabled}
+              onChange={(event) => rule.onChange(Number(event.target.value))}
+              onFocus={(event) => event.target.select()}
+              className="w-20 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-right text-base font-black text-white outline-none disabled:cursor-not-allowed"
+            />
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function ValueControl({
+  value,
+  options,
+  enabled,
+  onChange,
+  selectValue,
+}: {
+  value: number;
+  options?: number[];
+  enabled: boolean;
+  onChange: (value: number) => void;
+  selectValue: string;
+}) {
+  if (!options?.length) {
+    return (
+      <input
+        type="number"
+        step="0.1"
+        value={value}
+        disabled={!enabled}
+        onChange={(event) => onChange(Number(event.target.value))}
+        onFocus={(event) => event.target.select()}
+        className="w-20 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-right text-base font-black text-white outline-none disabled:cursor-not-allowed"
+      />
+    );
+  }
+
+  return (
+    <select
+      value={selectValue}
+      disabled={!enabled}
+      onChange={(event) => {
+        if (event.target.value !== "custom") {
+          onChange(Number(event.target.value));
+        }
+      }}
+      className="w-24 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-base font-black text-white outline-none disabled:cursor-not-allowed"
+    >
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+      <option value="custom">Custom</option>
+    </select>
   );
 }
