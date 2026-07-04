@@ -100,7 +100,7 @@ export default function FootballScoringPage() {
           value: scoring.passing.passingYardsPerPoint,
           kind: "yards",
           onChange: (value) => updateSection("passing", "passingYardsPerPoint", value),
-          options: [20, 25, 50],
+          options: [20, 25],
         },
         {
           label: "Passing TD",
@@ -118,7 +118,7 @@ export default function FootballScoringPage() {
           label: "Pass Completion",
           value: scoring.passing.completion,
           onChange: (value) => updateSection("passing", "completion", value),
-          options: [0, 0.2, 0.5],
+          options: [0.2, 0.5],
         },
       ];
     }
@@ -130,7 +130,7 @@ export default function FootballScoringPage() {
           value: scoring.rushing.rushingYardsPerPoint,
           kind: "yards",
           onChange: (value) => updateSection("rushing", "rushingYardsPerPoint", value),
-          options: [5, 10, 20],
+          options: [10],
         },
         {
           label: "Rushing TD",
@@ -153,14 +153,14 @@ export default function FootballScoringPage() {
           label: "Reception",
           value: scoring.receiving.reception,
           onChange: (value) => updateSection("receiving", "reception", value),
-          options: [0, 0.5, 1],
+          options: [0.5, 1],
         },
         {
           label: "Rec Yds",
           value: scoring.receiving.receivingYardsPerPoint,
           kind: "yards",
           onChange: (value) => updateSection("receiving", "receivingYardsPerPoint", value),
-          options: [5, 10, 20],
+          options: [10],
         },
         {
           label: "Receiving TD",
@@ -177,43 +177,43 @@ export default function FootballScoringPage() {
           label: "Sacks",
           value: scoring.defense.sack,
           onChange: (value) => updateSection("defense", "sack", value),
-          options: [0, 1, 2],
+          options: [1],
         },
         {
           label: "Interceptions",
           value: scoring.defense.interception,
           onChange: (value) => updateSection("defense", "interception", value),
-          options: [1, 2, 3],
+          options: [2],
         },
         {
           label: "Fumble Recovery",
           value: scoring.defense.fumbleRecovery,
           onChange: (value) => updateSection("defense", "fumbleRecovery", value),
-          options: [1, 2, 3],
+          options: [2],
         },
         {
           label: "Touchdown",
           value: scoring.defense.touchdown,
           onChange: (value) => updateSection("defense", "touchdown", value),
-          options: [4, 6],
+          options: [6],
         },
         {
           label: "Safety",
           value: scoring.defense.safety,
           onChange: (value) => updateSection("defense", "safety", value),
-          options: [1, 2],
+          options: [2],
         },
         {
           label: "Blocked Kick",
           value: scoring.defense.blockedKick,
           onChange: (value) => updateSection("defense", "blockedKick", value),
-          options: [1, 2],
+          options: [2],
         },
         {
-          label: "Return TD",
+          label: "Kickoff/Punt Return TD",
           value: scoring.defense.returnTouchdown,
           onChange: (value) => updateSection("defense", "returnTouchdown", value),
-          options: [0, 6],
+          options: [6],
         },
       ];
     }
@@ -378,18 +378,6 @@ export default function FootballScoringPage() {
                   Start from familiar defaults, then adjust only the values your group cares about.
                 </p>
               </div>
-              <SwitchCard
-                label="Kickers"
-                checked={scoring.includeKickers}
-                onChange={(checked) =>
-                  setScoring((current) => ({
-                    ...current,
-                    includeKickers: checked,
-                    roster: { ...current.roster, K: checked ? Math.max(1, current.roster.K) : 0 },
-                  }))
-                }
-                compact
-              />
             </div>
 
             <div className="mt-6 overflow-x-auto rounded-2xl bg-[#111827] p-1">
