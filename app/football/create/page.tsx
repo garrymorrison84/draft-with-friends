@@ -219,14 +219,13 @@ export default function CreateFootballPoolPage() {
                     >
                       <span className="font-bold">{conference}</span>
                       <span
-                        className={`flex h-6 w-8 items-center justify-center rounded-full border text-[10px] font-black ${
+                        aria-hidden="true"
+                        className={`h-6 w-10 rounded-full border transition ${
                           checked
-                            ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                            : "border-white/20 text-transparent"
+                            ? "border-emerald-400 bg-emerald-400"
+                            : "border-white/20"
                         }`}
-                      >
-                        On
-                      </span>
+                      />
                     </button>
                   );
                 })}
