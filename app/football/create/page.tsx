@@ -13,7 +13,6 @@ import {
 
 const conferenceOptions = [
   "ACC",
-  "AAC",
   "Big Ten",
   "Big 12",
   "Pac-12",
@@ -154,6 +153,23 @@ export default function CreateFootballPoolPage() {
           <div className="grid gap-6">
             <TextField label="Pool Name" value={poolName} onChange={setPoolName} />
 
+            <div>
+              <label className="mb-2 block text-sm font-semibold">
+                Week
+              </label>
+              <select
+                value={week}
+                onChange={(event) => setWeek(event.target.value)}
+                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+              >
+                {Array.from({ length: 18 }).map((_, index) => (
+                  <option key={index + 1} value={`Week ${index + 1}`}>
+                    Week {index + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <Panel
               title="Player Pool"
               body="Choose which conferences and independents are eligible for this weekly draft."
@@ -211,45 +227,20 @@ export default function CreateFootballPoolPage() {
                       key={conference}
                       type="button"
                       onClick={() => toggleConference(conference)}
-                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                      className={`rounded-xl border px-4 py-4 text-left transition ${
                         checked
                           ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
                           : "border-white/5 bg-[#030712] text-slate-300 hover:border-emerald-400/30"
                       }`}
                     >
                       <span className="font-bold">{conference}</span>
-                      <span
-                        aria-hidden="true"
-                        className={`h-6 w-10 rounded-full border transition ${
-                          checked
-                            ? "border-emerald-400 bg-emerald-400"
-                            : "border-white/20"
-                        }`}
-                      />
                     </button>
                   );
                 })}
               </div>
             </Panel>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-semibold">
-                  Week
-                </label>
-                <select
-                  value={week}
-                  onChange={(event) => setWeek(event.target.value)}
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
-                >
-                  {Array.from({ length: 18 }).map((_, index) => (
-                    <option key={index + 1} value={`Week ${index + 1}`}>
-                      Week {index + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+            <div className="max-w-md">
               <div>
                 <label className="mb-2 block text-sm font-semibold">
                   Number of Teams
