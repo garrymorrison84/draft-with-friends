@@ -65,15 +65,15 @@ export default function FootballHomePage() {
           </Link>
         </div>
 
-        <section className="mt-12 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40 md:p-10 lg:grid lg:grid-cols-[1fr_520px] lg:gap-10">
-          <div className="flex min-h-[560px] flex-col justify-center">
-            <p className="text-lg font-black uppercase tracking-[0.22em] text-emerald-300 md:text-xl">
+        <section className="mt-8 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40 md:p-10 lg:grid lg:grid-cols-[1fr_520px] lg:gap-10">
+          <div className="flex flex-col pt-3 lg:pt-5">
+            <p className="text-3xl font-black uppercase tracking-[0.16em] text-emerald-300 md:text-5xl">
               College Football
             </p>
-            <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[0.98] md:text-7xl xl:text-8xl">
+            <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[1.05] md:text-6xl xl:text-7xl">
               A true fantasy football experience for college.
             </h1>
-            <p className="mt-7 max-w-3xl text-xl font-semibold leading-9 text-slate-300 md:text-2xl md:leading-10">
+            <p className="mt-6 max-w-3xl text-lg font-semibold leading-8 text-slate-300 md:text-xl md:leading-9">
               Pick your conferences. Set the positions. Customize the scoring
               system. Run a snake draft. Track the weekly leaderboard live.
             </p>
