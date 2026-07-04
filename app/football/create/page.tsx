@@ -11,8 +11,8 @@ import {
 } from "../lib/storage";
 
 export default function CreateFootballPoolPage() {
-  const [poolName, setPoolName] = useState("College Football Draft");
-  const [season, setSeason] = useState("2026 Season");
+  const [poolName, setPoolName] = useState("College Football Week 1 Draft");
+  const [week, setWeek] = useState("Week 1");
   const [numberOfTeams, setNumberOfTeams] = useState(4);
   const [teamNames, setTeamNames] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrder, setDraftOrder] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
@@ -78,7 +78,7 @@ export default function CreateFootballPoolPage() {
     saveFootballPool({
       id,
       poolName: poolName.trim() || "College Football Draft",
-      season: season.trim() || "2026 Season",
+      season: week.trim() || "Week 1",
       numberOfTeams,
       teamNames: teams,
       draftOrder: order.map((team, index) => team?.trim() || teams[index]),
@@ -105,13 +105,13 @@ export default function CreateFootballPoolPage() {
           Create a College Football Pool
         </h1>
         <p className="mt-4 text-lg text-slate-400">
-          Set up teams, season settings, and draft order before choosing scoring.
+          Set up the weekly pool, team names, and draft order before choosing scoring.
         </p>
 
         <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="grid gap-6">
             <TextField label="Pool Name" value={poolName} onChange={setPoolName} />
-            <TextField label="Season" value={season} onChange={setSeason} />
+            <TextField label="Week" value={week} onChange={setWeek} />
 
             <div>
               <label className="mb-2 block text-sm font-semibold">
@@ -122,7 +122,7 @@ export default function CreateFootballPoolPage() {
                 onChange={(event) => updateNumberOfTeams(Number(event.target.value))}
                 className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
               >
-                {[2, 4, 6, 8, 10, 12].map((num) => (
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
                   <option key={num} value={num}>
                     {num} Teams
                   </option>
@@ -138,6 +138,7 @@ export default function CreateFootballPoolPage() {
                     label={`Team ${index + 1}`}
                     value={team}
                     onChange={(value) => updateTeamName(index, value)}
+                    inputClassName="bg-[#030712]"
                   />
                 ))}
               </div>
@@ -145,64 +146,145 @@ export default function CreateFootballPoolPage() {
 
             <Panel title="Draft Order" body="Choose random order or manually set the first round.">
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {["random", "manual"].map((method) => (
-                  <label
-                    key={method}
-                    className={`cursor-pointer rounded-2xl border p-5 ${
-                      draftOrderMethod === method
-                        ? "border-emerald-400/40 bg-emerald-400/10"
-                        : "border-white/5 bg-[#111827]"
+                <label
+                  className={`cursor-pointer rounded-2xl border p-5 ${
+                    draftOrderMethod === "random"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="draftOrder"
+                    checked={draftOrderMethod === "random"}
+                    onChange={() => {
+                      setDraftOrderMethod("random");
+                      randomizeDraftOrder();
+                    }}
+                    className="mr-3"
+                  />
+                  <span
+                    className={`font-bold ${
+                      draftOrderMethod === "random"
+                        ? "text-emerald-300"
+                        : "text-white"
                     }`}
                   >
-                    <input
-                      type="radio"
-                      name="draftOrder"
-                      checked={draftOrderMethod === method}
-                      onChange={() => {
-                        setDraftOrderMethod(method);
-                        if (method === "random") randomizeDraftOrder();
-                      }}
-                      className="mr-3"
-                    />
-                    <span className="font-bold text-white">
-                      {method === "random" ? "Randomize Draft Order" : "Manual Draft Order"}
-                    </span>
-                  </label>
-                ))}
+                    Randomize Draft Order
+                  </span>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Draft With Friends randomly assigns the order before the draft starts.
+                  </p>
+                </label>
+
+                <label
+                  className={`cursor-pointer rounded-2xl border p-5 ${
+                    draftOrderMethod === "manual"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="draftOrder"
+                    checked={draftOrderMethod === "manual"}
+                    onChange={() => setDraftOrderMethod("manual")}
+                    className="mr-3"
+                  />
+                  <span
+                    className={`font-bold ${
+                      draftOrderMethod === "manual"
+                        ? "text-emerald-300"
+                        : "text-white"
+                    }`}
+                  >
+                    Manually Set Draft Order
+                  </span>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    The pool organizer chooses the exact pick order before the draft begins.
+                  </p>
+                </label>
               </div>
 
-              <div className="mt-6 space-y-3">
-                {draftOrder.map((team, index) => (
-                  <div
-                    key={`${team}-${index}`}
-                    draggable={draftOrderMethod === "manual"}
-                    onDragStart={() => setDraggedIndex(index)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => handleDrop(index)}
-                    className="flex items-center justify-between rounded-xl border border-white/5 bg-[#030712] p-4"
-                  >
-                    <div>
-                      <p className="font-bold">{team || `Team ${index + 1}`}</p>
-                      <p className="text-sm text-slate-500">Draft position {index + 1}</p>
-                    </div>
+              <div className="mt-6 rounded-2xl border border-white/5 bg-[#030712] p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-bold">
+                      {draftOrderMethod === "manual"
+                        ? "Manual Draft Order Preview"
+                        : "Random Draft Order Preview"}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {draftOrderMethod === "manual"
+                        ? "Drag teams on desktop, or use the order controls on mobile."
+                        : "Click Randomize Draft Order again to reshuffle."}
+                    </p>
+                  </div>
 
-                    <div className="flex items-center gap-3">
-                      {draftOrderMethod === "manual" && (
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => moveDraftTeam(index, -1)} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold disabled:opacity-35" disabled={index === 0}>
-                            Up
-                          </button>
-                          <button type="button" onClick={() => moveDraftTeam(index, 1)} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold disabled:opacity-35" disabled={index === draftOrder.length - 1}>
-                            Down
-                          </button>
+                  {draftOrderMethod === "random" && (
+                    <button
+                      type="button"
+                      onClick={randomizeDraftOrder}
+                      className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#111827]"
+                    >
+                      Randomize Again
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {draftOrder.map((team, index) => (
+                    <div
+                      key={`${team}-${index}`}
+                      draggable={draftOrderMethod === "manual"}
+                      onDragStart={() => setDraggedIndex(index)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => handleDrop(index)}
+                      className={`flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] p-4 ${
+                        draftOrderMethod === "manual"
+                          ? "cursor-grab active:cursor-grabbing"
+                          : ""
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold">
+                          {team?.trim() || `Team ${index + 1}`}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {draftOrderMethod === "manual"
+                            ? "Set the draft position"
+                            : "Randomized order"}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {draftOrderMethod === "manual" && (
+                          <div className="flex gap-2 md:hidden">
+                            <button
+                              type="button"
+                              onClick={() => moveDraftTeam(index, -1)}
+                              disabled={index === 0}
+                              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              Up
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveDraftTeam(index, 1)}
+                              disabled={index === draftOrder.length - 1}
+                              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-35"
+                            >
+                              Down
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
+                          {index + 1}
                         </div>
-                      )}
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
-                        {index + 1}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </Panel>
 
@@ -224,10 +306,12 @@ function TextField({
   label,
   value,
   onChange,
+  inputClassName = "bg-[#1F2937]",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  inputClassName?: string;
 }) {
   return (
     <div>
@@ -236,7 +320,7 @@ function TextField({
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none placeholder:text-slate-600"
+        className={`w-full rounded-xl border border-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-600 ${inputClassName}`}
       />
     </div>
   );
