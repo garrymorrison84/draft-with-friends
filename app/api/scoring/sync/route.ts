@@ -231,6 +231,7 @@ export async function GET() {
   const updates = [];
   const errors: any[] = [];
   const skippedPlayers: any[] = [];
+  const cleanedPenaltyRows: any[] = [];
 
   for (const player of preparedPlayers) {
     if (player.tournament_score === null) {
@@ -268,9 +269,56 @@ export async function GET() {
     }
   }
 
+  const { data: penaltyRows, error: penaltyRowsError } = await supabaseAdmin
+    .from("golfers")
+    .select("id,name,tournament_score,round_1,round_2,round_3,round_4")
+    .eq("event_id", eventId)
+    .or("round_3.eq.8,round_4.eq.8");
+
+  if (penaltyRowsError) {
+    errors.push({
+      name: "Penalty cleanup",
+      sportsdata_name: "Penalty cleanup",
+      error: penaltyRowsError.message,
+    });
+  }
+
+  for (const row of penaltyRows || []) {
+    const round1 = typeof row.round_1 === "number" ? row.round_1 : 0;
+    const round2 = typeof row.round_2 === "number" ? row.round_2 : 0;
+    const round3 = row.round_3 === 8 ? null : row.round_3;
+    const round4 = row.round_4 === 8 ? null : row.round_4;
+    const tournamentScore =
+      round1 +
+      round2 +
+      (typeof round3 === "number" ? round3 : 0) +
+      (typeof round4 === "number" ? round4 : 0);
+
+    const { data: cleanedRow, error: cleanupError } = await supabaseAdmin
+      .from("golfers")
+      .update({
+        tournament_score: tournamentScore,
+        round_3: round3,
+        round_4: round4,
+      })
+      .eq("id", row.id)
+      .select("name,tournament_score,round_1,round_2,round_3,round_4")
+      .single();
+
+    if (cleanupError) {
+      errors.push({
+        name: row.name,
+        sportsdata_name: row.name,
+        error: cleanupError.message,
+      });
+    } else {
+      cleanedPenaltyRows.push(cleanedRow);
+    }
+  }
+
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-normalized-name-sync-v6-no-cut-penalty",
+    scoringVersion: "active-event-normalized-name-sync-v7-no-cut-penalty-cleanup",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
@@ -278,6 +326,8 @@ export async function GET() {
     sportsDataPlayerCount: players.length,
     appGolferCount: dbGolfers.length,
     updatedCount: updates.length,
+    cleanedPenaltyCount: cleanedPenaltyRows.length,
+    cleanedPenaltyRows: cleanedPenaltyRows.slice(0, 30),
     skippedCount: skippedPlayers.length,
     skippedPlayers: skippedPlayers.slice(0, 30),
     unmatchedSportsDataCount: unmatchedSportsDataPlayers.length,
