@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import {
   FootballPool,
@@ -12,19 +11,46 @@ import {
   saveFootballPool,
 } from "../lib/storage";
 
-const rosterOptions = {
-  QB: [1, 2],
-  RB: [1, 2, 3],
-  WR: [1, 2, 3],
-  TE: [1, 2],
-  FLEX: [0, 1, 2],
-  DST: [0, 1],
-  K: [0, 1],
+type RosterKey = keyof FootballScoring["roster"];
+type ScoringCategory = "passing" | "rushing" | "receiving" | "defense" | "kicking" | "misc";
+
+type ScoringRule = {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  presets?: { label: string; value: number }[];
+  helper?: string;
+  enabled?: boolean;
 };
+
+const rosterRows: {
+  key: RosterKey;
+  label: string;
+  group: "Offense" | "Flex + Team";
+  max: number;
+}[] = [
+  { key: "QB", label: "Quarterback (QB)", group: "Offense", max: 3 },
+  { key: "RB", label: "Running Back (RB)", group: "Offense", max: 5 },
+  { key: "WR", label: "Wide Receiver (WR)", group: "Offense", max: 5 },
+  { key: "TE", label: "Tight End (TE)", group: "Offense", max: 3 },
+  { key: "FLEX", label: "Flex (RB/WR/TE)", group: "Flex + Team", max: 3 },
+  { key: "DST", label: "Defense / Special Teams", group: "Flex + Team", max: 2 },
+  { key: "K", label: "Kicker", group: "Flex + Team", max: 1 },
+];
+
+const tabs: { key: ScoringCategory; label: string }[] = [
+  { key: "passing", label: "Passing" },
+  { key: "rushing", label: "Rushing" },
+  { key: "receiving", label: "Receiving" },
+  { key: "defense", label: "Team Defense" },
+  { key: "kicking", label: "Kicking" },
+  { key: "misc", label: "More" },
+];
 
 export default function FootballScoringPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [scoring, setScoring] = useState<FootballScoring>(defaultScoring);
+  const [activeTab, setActiveTab] = useState<ScoringCategory>("passing");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -33,9 +59,25 @@ export default function FootballScoringPage() {
     const savedPool = loadFootballPool(id);
     if (savedPool) {
       setPool(savedPool);
-      setScoring(savedPool.scoring || defaultScoring);
+      setScoring({ ...defaultScoring, ...savedPool.scoring });
     }
   }, []);
+
+  const rosterTotal = useMemo(
+    () => Object.values(scoring.roster).reduce((sum, value) => sum + value, 0),
+    [scoring.roster]
+  );
+
+  function updateRoster(position: RosterKey, value: number) {
+    setScoring((current) => ({
+      ...current,
+      includeKickers: position === "K" ? value > 0 : current.includeKickers,
+      roster: {
+        ...current.roster,
+        [position]: Math.max(0, value),
+      },
+    }));
+  }
 
   function updateSection<T extends keyof FootballScoring>(
     section: T,
@@ -49,6 +91,232 @@ export default function FootballScoringPage() {
         [key]: value,
       },
     }));
+  }
+
+  function getRules(): ScoringRule[] {
+    if (activeTab === "passing") {
+      return [
+        {
+          label: "Passing Yards",
+          value: scoring.passing.passingYardsPerPoint,
+          helper: `1 point every ${scoring.passing.passingYardsPerPoint} yards`,
+          onChange: (value) => updateSection("passing", "passingYardsPerPoint", value),
+          presets: [
+            { label: "25 yards", value: 25 },
+            { label: "20 yards", value: 20 },
+          ],
+        },
+        {
+          label: "Passing Touchdowns",
+          value: scoring.passing.passingTd,
+          onChange: (value) => updateSection("passing", "passingTd", value),
+          presets: [
+            { label: "4 points", value: 4 },
+            { label: "6 points", value: 6 },
+          ],
+        },
+        {
+          label: "Interceptions",
+          value: scoring.passing.interception,
+          onChange: (value) => updateSection("passing", "interception", value),
+          presets: [
+            { label: "-1 point", value: -1 },
+            { label: "-2 points", value: -2 },
+          ],
+        },
+        {
+          label: "Completions",
+          value: scoring.passing.completion,
+          onChange: (value) => updateSection("passing", "completion", value),
+          presets: [
+            { label: "0 points", value: 0 },
+            { label: "0.2 points", value: 0.2 },
+          ],
+        },
+        {
+          label: "2-Point Passing Conversion",
+          value: scoring.passing.twoPointConversion,
+          onChange: (value) => updateSection("passing", "twoPointConversion", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+        {
+          label: "Fumbles Lost",
+          value: scoring.passing.fumbleLost,
+          onChange: (value) => updateSection("passing", "fumbleLost", value),
+          presets: [
+            { label: "-1 point", value: -1 },
+            { label: "-2 points", value: -2 },
+          ],
+        },
+      ];
+    }
+
+    if (activeTab === "rushing") {
+      return [
+        {
+          label: "Rushing Yards",
+          value: scoring.rushing.rushingYardsPerPoint,
+          helper: `1 point every ${scoring.rushing.rushingYardsPerPoint} yards`,
+          onChange: (value) => updateSection("rushing", "rushingYardsPerPoint", value),
+          presets: [
+            { label: "10 yards", value: 10 },
+            { label: "5 yards", value: 5 },
+          ],
+        },
+        {
+          label: "Rushing Touchdowns",
+          value: scoring.rushing.rushingTd,
+          onChange: (value) => updateSection("rushing", "rushingTd", value),
+          presets: [{ label: "6 points", value: 6 }],
+        },
+        {
+          label: "Rushing Attempts",
+          value: scoring.rushing.attempt,
+          onChange: (value) => updateSection("rushing", "attempt", value),
+          presets: [
+            { label: "0 points", value: 0 },
+            { label: "0.2 points", value: 0.2 },
+          ],
+        },
+        {
+          label: "2-Point Rushing Conversion",
+          value: scoring.rushing.twoPointConversion,
+          onChange: (value) => updateSection("rushing", "twoPointConversion", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+      ];
+    }
+
+    if (activeTab === "receiving") {
+      return [
+        {
+          label: "Receptions",
+          value: scoring.receiving.reception,
+          onChange: (value) => updateSection("receiving", "reception", value),
+          presets: [
+            { label: "0.5 points", value: 0.5 },
+            { label: "1 point", value: 1 },
+          ],
+        },
+        {
+          label: "Receiving Yards",
+          value: scoring.receiving.receivingYardsPerPoint,
+          helper: `1 point every ${scoring.receiving.receivingYardsPerPoint} yards`,
+          onChange: (value) => updateSection("receiving", "receivingYardsPerPoint", value),
+          presets: [
+            { label: "10 yards", value: 10 },
+            { label: "5 yards", value: 5 },
+          ],
+        },
+        {
+          label: "Receiving Touchdowns",
+          value: scoring.receiving.receivingTd,
+          onChange: (value) => updateSection("receiving", "receivingTd", value),
+          presets: [{ label: "6 points", value: 6 }],
+        },
+        {
+          label: "2-Point Receiving Conversion",
+          value: scoring.receiving.twoPointConversion,
+          onChange: (value) => updateSection("receiving", "twoPointConversion", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+      ];
+    }
+
+    if (activeTab === "defense") {
+      return [
+        {
+          label: "Sacks",
+          value: scoring.defense.sack,
+          onChange: (value) => updateSection("defense", "sack", value),
+          presets: [{ label: "1 point", value: 1 }],
+        },
+        {
+          label: "Interceptions",
+          value: scoring.defense.interception,
+          onChange: (value) => updateSection("defense", "interception", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+        {
+          label: "Fumble Recovery",
+          value: scoring.defense.fumbleRecovery,
+          onChange: (value) => updateSection("defense", "fumbleRecovery", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+        {
+          label: "Touchdown",
+          value: scoring.defense.touchdown,
+          onChange: (value) => updateSection("defense", "touchdown", value),
+          presets: [{ label: "6 points", value: 6 }],
+        },
+        {
+          label: "Safety",
+          value: scoring.defense.safety,
+          onChange: (value) => updateSection("defense", "safety", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+        {
+          label: "Blocked Kick",
+          value: scoring.defense.blockedKick,
+          onChange: (value) => updateSection("defense", "blockedKick", value),
+          presets: [{ label: "2 points", value: 2 }],
+        },
+        {
+          label: "Kickoff / Punt Return TD",
+          value: scoring.defense.returnTouchdown,
+          onChange: (value) => updateSection("defense", "returnTouchdown", value),
+          presets: [{ label: "6 points", value: 6 }],
+        },
+      ];
+    }
+
+    if (activeTab === "kicking") {
+      return [
+        {
+          label: "Made Extra Point",
+          value: scoring.kicking.extraPoint,
+          onChange: (value) => updateSection("kicking", "extraPoint", value),
+          presets: [{ label: "1 point", value: 1 }],
+          enabled: scoring.includeKickers,
+        },
+        {
+          label: "Field Goal",
+          value: scoring.kicking.fieldGoal,
+          onChange: (value) => updateSection("kicking", "fieldGoal", value),
+          presets: [{ label: "3 points", value: 3 }],
+          enabled: scoring.includeKickers,
+        },
+        {
+          label: "50+ Yard FG Bonus",
+          value: scoring.kicking.fieldGoal50Bonus,
+          onChange: (value) => updateSection("kicking", "fieldGoal50Bonus", value),
+          presets: [{ label: "2 points", value: 2 }],
+          enabled: scoring.includeKickers,
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "2-Point Conversions",
+        value: scoring.passing.twoPointConversion,
+        onChange: (value) => {
+          updateSection("passing", "twoPointConversion", value);
+          updateSection("rushing", "twoPointConversion", value);
+          updateSection("receiving", "twoPointConversion", value);
+        },
+        presets: [{ label: "2 points", value: 2 }],
+      },
+      {
+        label: "Fumbles Lost",
+        value: scoring.passing.fumbleLost,
+        onChange: (value) => updateSection("passing", "fumbleLost", value),
+        presets: [
+          { label: "-1 point", value: -1 },
+          { label: "-2 points", value: -2 },
+        ],
+      },
+    ];
   }
 
   function saveAndContinue() {
@@ -86,7 +354,7 @@ export default function FootballScoringPage() {
         </div>
 
         <h1 className="mt-8 text-4xl font-black md:text-5xl">
-          Football Scoring
+          Roster + Scoring Setup
         </h1>
         <p className="mt-4 text-lg text-slate-400">
           {pool.poolName} • {pool.season}
@@ -95,26 +363,24 @@ export default function FootballScoringPage() {
         <div className="mt-10 grid gap-6">
           <section className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
             <div className="grid gap-4 md:grid-cols-3">
-              <Toggle
+              <SwitchCard
                 label="Fractional Points"
                 checked={scoring.fractionalPoints}
                 onChange={(checked) =>
                   setScoring((current) => ({ ...current, fractionalPoints: checked }))
                 }
               />
-              <Toggle
-                label="Kickers"
-                checked={scoring.includeKickers}
+              <SwitchCard
+                label="Negative Points"
+                checked={scoring.negativePoints}
                 onChange={(checked) =>
-                  setScoring((current) => ({
-                    ...current,
-                    includeKickers: checked,
-                    roster: { ...current.roster, K: checked ? 1 : 0 },
-                  }))
+                  setScoring((current) => ({ ...current, negativePoints: checked }))
                 }
               />
               <div>
-                <label className="mb-2 block text-sm font-semibold">Available Players</label>
+                <label className="mb-2 block text-sm font-semibold">
+                  Available Players
+                </label>
                 <select
                   value={scoring.playerPool}
                   onChange={(event) =>
@@ -132,94 +398,92 @@ export default function FootballScoringPage() {
             </div>
           </section>
 
-          <ScoringPanel title="Roster Positions">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {Object.entries(rosterOptions).map(([position, options]) => (
-                <div key={position}>
-                  <label className="mb-2 block text-sm font-semibold">{position}</label>
-                  <select
-                    value={scoring.roster[position as keyof FootballScoring["roster"]]}
-                    onChange={(event) =>
-                      updateSection(
-                        "roster",
-                        position as keyof FootballScoring["roster"],
-                        Number(event.target.value)
-                      )
-                    }
-                    disabled={position === "K" && !scoring.includeKickers}
-                    className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white disabled:opacity-40"
-                  >
-                    {options.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+          <section className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Roster Positions</h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  Active roster spots that will be drafted and scored for each team.
+                </p>
+              </div>
+              <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
+                {rosterTotal} Active Spots
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-7">
+              {(["Offense", "Flex + Team"] as const).map((group) => (
+                <div key={group}>
+                  <h3 className="mb-2 text-sm font-black uppercase tracking-widest text-slate-400">
+                    {group}
+                  </h3>
+                  <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#030712]">
+                    {rosterRows
+                      .filter((row) => row.group === group)
+                      .map((row) => (
+                        <RosterStepper
+                          key={row.key}
+                          label={row.label}
+                          value={scoring.roster[row.key]}
+                          min={0}
+                          max={row.max}
+                          disabled={row.key === "K" && !scoring.includeKickers}
+                          onChange={(value) => updateRoster(row.key, value)}
+                        />
+                      ))}
+                  </div>
                 </div>
               ))}
             </div>
-          </ScoringPanel>
+          </section>
 
-          <ScoringPanel title="Passing">
-            <NumberGrid
-              values={[
-                ["Passing TD", scoring.passing.passingTd, (value) => updateSection("passing", "passingTd", value)],
-                ["Passing Yards Per Point", scoring.passing.passingYardsPerPoint, (value) => updateSection("passing", "passingYardsPerPoint", value)],
-                ["Completion", scoring.passing.completion, (value) => updateSection("passing", "completion", value)],
-                ["Interception", scoring.passing.interception, (value) => updateSection("passing", "interception", value)],
-                ["2 Point Conversion", scoring.passing.twoPointConversion, (value) => updateSection("passing", "twoPointConversion", value)],
-                ["Fumble Lost", scoring.passing.fumbleLost, (value) => updateSection("passing", "fumbleLost", value)],
-              ]}
-            />
-          </ScoringPanel>
-
-          <ScoringPanel title="Rushing">
-            <NumberGrid
-              values={[
-                ["Rushing TD", scoring.rushing.rushingTd, (value) => updateSection("rushing", "rushingTd", value)],
-                ["Rushing Yards Per Point", scoring.rushing.rushingYardsPerPoint, (value) => updateSection("rushing", "rushingYardsPerPoint", value)],
-                ["Rushing Attempt", scoring.rushing.attempt, (value) => updateSection("rushing", "attempt", value)],
-                ["2 Point Conversion", scoring.rushing.twoPointConversion, (value) => updateSection("rushing", "twoPointConversion", value)],
-              ]}
-            />
-          </ScoringPanel>
-
-          <ScoringPanel title="Receiving">
-            <NumberGrid
-              values={[
-                ["Receiving TD", scoring.receiving.receivingTd, (value) => updateSection("receiving", "receivingTd", value)],
-                ["Receiving Yards Per Point", scoring.receiving.receivingYardsPerPoint, (value) => updateSection("receiving", "receivingYardsPerPoint", value)],
-                ["Reception", scoring.receiving.reception, (value) => updateSection("receiving", "reception", value)],
-                ["2 Point Conversion", scoring.receiving.twoPointConversion, (value) => updateSection("receiving", "twoPointConversion", value)],
-              ]}
-            />
-          </ScoringPanel>
-
-          <ScoringPanel title="Defense + Special Teams">
-            <NumberGrid
-              values={[
-                ["Sack", scoring.defense.sack, (value) => updateSection("defense", "sack", value)],
-                ["Interception", scoring.defense.interception, (value) => updateSection("defense", "interception", value)],
-                ["Fumble Recovery", scoring.defense.fumbleRecovery, (value) => updateSection("defense", "fumbleRecovery", value)],
-                ["Touchdown", scoring.defense.touchdown, (value) => updateSection("defense", "touchdown", value)],
-                ["Safety", scoring.defense.safety, (value) => updateSection("defense", "safety", value)],
-                ["Blocked Kick", scoring.defense.blockedKick, (value) => updateSection("defense", "blockedKick", value)],
-                ["Return TD", scoring.defense.returnTouchdown, (value) => updateSection("defense", "returnTouchdown", value)],
-              ]}
-            />
-          </ScoringPanel>
-
-          {scoring.includeKickers && (
-            <ScoringPanel title="Kicking">
-              <NumberGrid
-                values={[
-                  ["Made Extra Point", scoring.kicking.extraPoint, (value) => updateSection("kicking", "extraPoint", value)],
-                  ["Field Goal", scoring.kicking.fieldGoal, (value) => updateSection("kicking", "fieldGoal", value)],
-                  ["50+ Yard FG Bonus", scoring.kicking.fieldGoal50Bonus, (value) => updateSection("kicking", "fieldGoal50Bonus", value)],
-                ]}
+          <section className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Scoring Settings</h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  Start from familiar defaults, then adjust only the values your group cares about.
+                </p>
+              </div>
+              <SwitchCard
+                label="Kickers"
+                checked={scoring.includeKickers}
+                onChange={(checked) =>
+                  setScoring((current) => ({
+                    ...current,
+                    includeKickers: checked,
+                    roster: { ...current.roster, K: checked ? Math.max(1, current.roster.K) : 0 },
+                  }))
+                }
+                compact
               />
-            </ScoringPanel>
-          )}
+            </div>
+
+            <div className="mt-6 overflow-x-auto rounded-2xl bg-[#111827] p-1">
+              <div className="flex min-w-max gap-1">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`rounded-xl px-5 py-3 text-sm font-black transition ${
+                      activeTab === tab.key
+                        ? "bg-slate-100 text-slate-950"
+                        : "text-slate-300 hover:bg-white/5"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 overflow-hidden rounded-2xl border border-white/5 bg-[#030712]">
+              {getRules().map((rule) => (
+                <ScoringRuleRow key={rule.label} rule={rule} />
+              ))}
+            </div>
+          </section>
 
           <button
             type="button"
@@ -234,63 +498,136 @@ export default function FootballScoringPage() {
   );
 }
 
-function Toggle({
+function SwitchCard({
   label,
   checked,
   onChange,
+  compact = false,
 }: {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+  compact?: boolean;
 }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-[#1F2937] p-4">
+    <label
+      className={`flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-[#1F2937] ${
+        compact ? "min-w-[180px] p-3" : "p-4"
+      }`}
+    >
       <span className="font-bold">{label}</span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-5 w-5 accent-emerald-400"
-      />
+      <span
+        className={`relative h-8 w-14 rounded-full transition ${
+          checked ? "bg-emerald-400" : "bg-slate-600"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(event) => onChange(event.target.checked)}
+          className="sr-only"
+        />
+        <span
+          className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${
+            checked ? "left-7" : "left-1"
+          }`}
+        />
+      </span>
     </label>
   );
 }
 
-function ScoringPanel({
-  title,
-  children,
+function RosterStepper({
+  label,
+  value,
+  min,
+  max,
+  disabled = false,
+  onChange,
 }: {
-  title: string;
-  children: React.ReactNode;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  disabled?: boolean;
+  onChange: (value: number) => void;
 }) {
   return (
-    <section className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-      <h2 className="text-2xl font-black">{title}</h2>
-      <div className="mt-6">{children}</div>
-    </section>
+    <div
+      className={`flex items-center justify-between gap-4 border-b border-white/5 p-4 last:border-b-0 ${
+        disabled ? "opacity-45" : ""
+      }`}
+    >
+      <div>
+        <p className="font-bold">{label}</p>
+      </div>
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => onChange(value - 1)}
+          disabled={disabled || value <= min}
+          className="flex h-10 w-14 items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          -
+        </button>
+        <span className="w-8 text-center text-xl font-black">{value}</span>
+        <button
+          type="button"
+          onClick={() => onChange(value + 1)}
+          disabled={disabled || value >= max}
+          className="flex h-10 w-14 items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          +
+        </button>
+      </div>
+    </div>
   );
 }
 
-function NumberGrid({
-  values,
-}: {
-  values: [string, number, (value: number) => void][];
-}) {
+function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
+  const enabled = rule.enabled ?? true;
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {values.map(([label, value, onChange]) => (
-        <div key={label}>
-          <label className="mb-2 block text-sm font-semibold">{label}</label>
+    <div className={`border-b border-white/5 p-5 last:border-b-0 ${enabled ? "" : "opacity-45"}`}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-lg font-black">{rule.label}</h3>
+          {rule.helper && (
+            <p className="mt-1 text-sm font-semibold text-slate-400">{rule.helper}</p>
+          )}
+          {rule.presets && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {rule.presets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  disabled={!enabled}
+                  onClick={() => rule.onChange(preset.value)}
+                  className={`rounded-xl border px-4 py-2 text-sm font-black ${
+                    rule.value === preset.value
+                      ? "border-emerald-400 bg-emerald-400 text-slate-950"
+                      : "border-white/15 text-emerald-300 hover:bg-white/5"
+                  } disabled:cursor-not-allowed`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
           <input
             type="number"
             step="0.1"
-            value={value}
-            onChange={(event) => onChange(Number(event.target.value))}
+            value={rule.value}
+            disabled={!enabled}
+            onChange={(event) => rule.onChange(Number(event.target.value))}
             onFocus={(event) => event.target.select()}
-            className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
+            className="w-24 rounded-xl border border-white/10 bg-[#1F2937] px-4 py-3 text-right text-lg font-black text-white outline-none disabled:cursor-not-allowed"
           />
+          <span className="text-sm font-bold text-slate-400">points</span>
         </div>
-      ))}
+      </div>
     </div>
   );
 }

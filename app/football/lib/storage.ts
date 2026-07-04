@@ -2,6 +2,7 @@
 
 export type FootballScoring = {
   fractionalPoints: boolean;
+  negativePoints: boolean;
   playerPool: "Power 5 + Notre Dame" | "All FBS";
   includeKickers: boolean;
   roster: {
@@ -99,6 +100,7 @@ export const footballPlayers: FootballPlayer[] = [
 
 export const defaultScoring: FootballScoring = {
   fractionalPoints: true,
+  negativePoints: true,
   playerPool: "Power 5 + Notre Dame",
   includeKickers: false,
   roster: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, DST: 1, K: 0 },
