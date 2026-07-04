@@ -111,23 +111,50 @@ export default function CreateFootballPoolPage() {
         <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="grid gap-6">
             <TextField label="Pool Name" value={poolName} onChange={setPoolName} />
-            <TextField label="Week" value={week} onChange={setWeek} />
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold">
-                Number of Teams
-              </label>
-              <select
-                value={numberOfTeams}
-                onChange={(event) => updateNumberOfTeams(Number(event.target.value))}
-                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
-              >
-                {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                  <option key={num} value={num}>
-                    {num} Teams
-                  </option>
-                ))}
-              </select>
+            <div className="grid gap-6 md:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Week
+                </label>
+                <select
+                  value={week}
+                  onChange={(event) => setWeek(event.target.value)}
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+                >
+                  {Array.from({ length: 18 }).map((_, index) => (
+                    <option key={index + 1} value={`Week ${index + 1}`}>
+                      Week {index + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Number of Teams
+                </label>
+                <select
+                  value={numberOfTeams}
+                  onChange={(event) => updateNumberOfTeams(Number(event.target.value))}
+                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+                >
+                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+                    <option key={num} value={num}>
+                      {num} Teams
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold">
+                  Draft Format
+                </label>
+                <div className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 font-semibold text-white">
+                  Snake Draft
+                </div>
+              </div>
             </div>
 
             <Panel title="Team Names" body="Team fields automatically match the number selected.">
@@ -288,12 +315,20 @@ export default function CreateFootballPoolPage() {
               </div>
             </Panel>
 
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+              <p className="font-bold text-emerald-300">Snake Draft Format</p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Every weekly pool uses a snake draft. The order reverses each
+                round so every team gets a fair shot across the full draft.
+              </p>
+            </div>
+
             <button
               type="button"
               onClick={continueToScoring}
-              className="mt-2 rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 hover:bg-emerald-300"
+              className="mt-4 rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 hover:bg-emerald-300"
             >
-              Continue to Scoring
+              Continue to Scoring Setup
             </button>
           </div>
         </div>
