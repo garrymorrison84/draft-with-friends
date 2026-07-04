@@ -120,18 +120,6 @@ export default function FootballScoringPage() {
           onChange: (value) => updateSection("passing", "completion", value),
           options: [0, 0.2, 0.5],
         },
-        {
-          label: "2pt Pass Conversion",
-          value: scoring.passing.twoPointConversion,
-          onChange: (value) => updateSection("passing", "twoPointConversion", value),
-          options: [0, 2],
-        },
-        {
-          label: "Fumbles Lost",
-          value: scoring.passing.fumbleLost,
-          onChange: (value) => updateSection("passing", "fumbleLost", value),
-          options: [-1, -2],
-        },
       ];
     }
 
@@ -156,12 +144,6 @@ export default function FootballScoringPage() {
           onChange: (value) => updateSection("rushing", "attempt", value),
           options: [0, 0.2],
         },
-        {
-          label: "2pt Rush Conversion",
-          value: scoring.rushing.twoPointConversion,
-          onChange: (value) => updateSection("rushing", "twoPointConversion", value),
-          options: [0, 2],
-        },
       ];
     }
 
@@ -185,12 +167,6 @@ export default function FootballScoringPage() {
           value: scoring.receiving.receivingTd,
           onChange: (value) => updateSection("receiving", "receivingTd", value),
           options: [4, 6],
-        },
-        {
-          label: "2pt Rec Conversion",
-          value: scoring.receiving.twoPointConversion,
-          onChange: (value) => updateSection("receiving", "twoPointConversion", value),
-          options: [0, 2],
         },
       ];
     }
@@ -542,110 +518,174 @@ function RosterStepper({
 }
 
 function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
+  const [customMode, setCustomMode] = useState(false);
   const enabled = rule.enabled ?? true;
   const hasOption = rule.options?.includes(rule.value);
-  const selectValue = hasOption ? String(rule.value) : "custom";
+  const isActive = enabled && rule.value !== 0;
+  const showCustom = customMode || !hasOption;
+  const fallbackValue = rule.options?.find((option) => option !== 0) ?? 1;
+
+  function toggleRule() {
+    if (!enabled) return;
+    rule.onChange(isActive ? 0 : fallbackValue);
+    if (!isActive) {
+      setCustomMode(false);
+    }
+  }
 
   return (
-    <div className={`border-b border-white/5 p-4 last:border-b-0 ${enabled ? "" : "opacity-45"}`}>
-      <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-        <div className="min-w-0">
-          <h3 className="text-lg font-black">{rule.label}</h3>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
-            {rule.kind === "yards"
-              ? `1 point per ${rule.value} yards`
-              : `${rule.value} ${rule.value === 1 ? "point" : "points"} per ${rule.label}`}
-          </p>
-        </div>
+    <div className={`border-b border-white/5 p-5 last:border-b-0 ${enabled ? "" : "opacity-45"}`}>
+      <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
+        <button
+          type="button"
+          onClick={toggleRule}
+          disabled={!enabled}
+          className={`relative mt-1 h-8 w-14 rounded-full transition disabled:cursor-not-allowed ${
+            isActive ? "bg-emerald-400" : "bg-slate-700"
+          }`}
+          aria-label={`${isActive ? "Disable" : "Enable"} ${rule.label}`}
+        >
+          <span
+            className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${
+              isActive ? "left-7" : "left-1"
+            }`}
+          />
+        </button>
 
-        <div className="flex flex-wrap items-center gap-2 md:justify-end">
-          {rule.kind === "yards" ? (
-            <>
-              <span className="text-sm font-bold text-slate-400">1 point per</span>
-              <ValueControl
-                value={rule.value}
-                options={rule.options}
-                enabled={enabled}
-                onChange={rule.onChange}
-                selectValue={selectValue}
-              />
-              <span className="text-sm font-bold text-slate-400">yards</span>
-            </>
-          ) : (
-            <>
-              <ValueControl
-                value={rule.value}
-                options={rule.options}
-                enabled={enabled}
-                onChange={rule.onChange}
-                selectValue={selectValue}
-              />
-              <span className="text-sm font-bold text-slate-400">
-                pts per {rule.label}
-              </span>
-            </>
-          )}
-          {!hasOption && (
-            <input
-              type="number"
-              step="0.1"
-              value={rule.value}
-              disabled={!enabled}
-              onChange={(event) => rule.onChange(Number(event.target.value))}
-              onFocus={(event) => event.target.select()}
-              className="w-20 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-right text-base font-black text-white outline-none disabled:cursor-not-allowed"
-            />
-          )}
+        <div className="grid gap-4 lg:grid-cols-[220px_1fr] lg:items-start">
+          <div className="min-w-0">
+            <h3 className="text-lg font-black">{rule.label}</h3>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              {isActive
+                ? rule.kind === "yards"
+                  ? `1 point per ${rule.value} yards`
+                  : `${rule.value} ${rule.value === 1 ? "point" : "points"} per ${rule.label}`
+                : "Off"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+            {rule.kind === "yards" ? (
+              <>
+                <span className="text-sm font-bold text-slate-400">1 point per</span>
+                <OptionButtons
+                  value={rule.value}
+                  options={rule.options}
+                  enabled={enabled && isActive}
+                  customMode={showCustom}
+                  onCustom={() => setCustomMode(true)}
+                  onChange={(value) => {
+                    setCustomMode(false);
+                    rule.onChange(value);
+                  }}
+                />
+                {showCustom && (
+                  <CustomValueInput
+                    value={rule.value}
+                    enabled={enabled && isActive}
+                    onChange={rule.onChange}
+                  />
+                )}
+                <span className="text-sm font-bold text-slate-400">yards</span>
+              </>
+            ) : (
+              <>
+                <OptionButtons
+                  value={rule.value}
+                  options={rule.options}
+                  enabled={enabled && isActive}
+                  customMode={showCustom}
+                  onCustom={() => setCustomMode(true)}
+                  onChange={(value) => {
+                    setCustomMode(false);
+                    rule.onChange(value);
+                  }}
+                />
+                {showCustom && (
+                  <CustomValueInput
+                    value={rule.value}
+                    enabled={enabled && isActive}
+                    onChange={rule.onChange}
+                  />
+                )}
+                <span className="text-sm font-bold text-slate-400">
+                  points per {rule.label}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ValueControl({
+function OptionButtons({
   value,
   options,
   enabled,
   onChange,
-  selectValue,
+  customMode,
+  onCustom,
 }: {
   value: number;
   options?: number[];
   enabled: boolean;
   onChange: (value: number) => void;
-  selectValue: string;
+  customMode: boolean;
+  onCustom: () => void;
 }) {
-  if (!options?.length) {
-    return (
-      <input
-        type="number"
-        step="0.1"
-        value={value}
-        disabled={!enabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-        onFocus={(event) => event.target.select()}
-        className="w-20 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-right text-base font-black text-white outline-none disabled:cursor-not-allowed"
-      />
-    );
-  }
-
   return (
-    <select
-      value={selectValue}
-      disabled={!enabled}
-      onChange={(event) => {
-        if (event.target.value !== "custom") {
-          onChange(Number(event.target.value));
-        }
-      }}
-      className="w-24 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-base font-black text-white outline-none disabled:cursor-not-allowed"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
+    <div className="flex flex-wrap gap-2">
+      {options?.map((option) => (
+        <button
+          key={option}
+          type="button"
+          disabled={!enabled}
+          onClick={() => onChange(option)}
+          className={`min-w-14 rounded-xl border px-4 py-2 text-base font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${
+            !customMode && value === option
+              ? "border-emerald-400 bg-emerald-400 text-slate-950"
+              : "border-white/15 bg-[#111827] text-slate-200 hover:border-emerald-400/40"
+          }`}
+        >
           {option}
-        </option>
+        </button>
       ))}
-      <option value="custom">Custom</option>
-    </select>
+      <button
+        type="button"
+        disabled={!enabled}
+        onClick={onCustom}
+        className={`rounded-xl border px-4 py-2 text-base font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${
+          customMode
+            ? "border-emerald-400 bg-emerald-400 text-slate-950"
+            : "border-white/15 bg-[#111827] text-emerald-300 hover:border-emerald-400/40"
+        }`}
+      >
+        Custom
+      </button>
+    </div>
+  );
+}
+
+function CustomValueInput({
+  value,
+  enabled,
+  onChange,
+}: {
+  value: number;
+  enabled: boolean;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <input
+      type="number"
+      step="0.1"
+      value={value}
+      disabled={!enabled}
+      onChange={(event) => onChange(Number(event.target.value))}
+      onFocus={(event) => event.target.select()}
+      className="w-24 rounded-xl border border-white/10 bg-[#111827] px-3 py-2 text-right text-base font-black text-white outline-none disabled:cursor-not-allowed"
+    />
   );
 }
