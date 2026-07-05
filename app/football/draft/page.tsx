@@ -16,12 +16,46 @@ import {
 
 const positions = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"];
 
+const positionStyles: Record<FootballPlayer["position"], { badge: string; card: string; board: string }> = {
+  QB: {
+    badge: "border-fuchsia-400/35 bg-fuchsia-400/15 text-fuchsia-200",
+    card: "hover:border-fuchsia-400/70",
+    board: "border-l-fuchsia-400",
+  },
+  RB: {
+    badge: "border-teal-300/35 bg-teal-300/15 text-teal-200",
+    card: "hover:border-teal-300/70",
+    board: "border-l-teal-300",
+  },
+  WR: {
+    badge: "border-sky-300/35 bg-sky-300/15 text-sky-200",
+    card: "hover:border-sky-300/70",
+    board: "border-l-sky-300",
+  },
+  TE: {
+    badge: "border-amber-300/35 bg-amber-300/15 text-amber-200",
+    card: "hover:border-amber-300/70",
+    board: "border-l-amber-300",
+  },
+  DST: {
+    badge: "border-lime-300/35 bg-lime-300/15 text-lime-200",
+    card: "hover:border-lime-300/70",
+    board: "border-l-lime-300",
+  },
+  K: {
+    badge: "border-violet-300/35 bg-violet-300/15 text-violet-200",
+    card: "hover:border-violet-300/70",
+    board: "border-l-violet-300",
+  },
+};
+
 export default function FootballDraftPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [position, setPosition] = useState("ALL");
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
+  const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -59,13 +93,26 @@ export default function FootballDraftPage() {
 
   function draftPlayer(player: FootballPlayer) {
     if (!pool || draftedIds.has(player.id) || draftComplete) return;
+    setPendingPlayer(player);
+  }
+
+  function cancelDraftPlayer() {
+    setPendingPlayer(null);
+  }
+
+  function confirmDraftPlayer() {
+    if (!pool || !pendingPlayer || draftedIds.has(pendingPlayer.id) || draftComplete) {
+      setPendingPlayer(null);
+      return;
+    }
 
     const nextPicks = [
       ...picks,
-      { playerId: player.id, team: currentTeam, pickNumber: picks.length + 1 },
+      { playerId: pendingPlayer.id, team: currentTeam, pickNumber: picks.length + 1 },
     ];
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
+    setPendingPlayer(null);
 
     if (nextPicks.length >= totalPicks) {
       setShowCompleted(true);
@@ -78,6 +125,7 @@ export default function FootballDraftPage() {
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
     setShowCompleted(false);
+    setPendingPlayer(null);
   }
 
   if (!pool) {
@@ -163,6 +211,8 @@ export default function FootballDraftPage() {
             <div className="mt-6 space-y-4">
               {filteredPlayers.map((player) => {
                 const drafted = draftedIds.has(player.id);
+                const selected = pendingPlayer?.id === player.id;
+                const styles = positionStyles[player.position];
                 return (
                   <button
                     key={player.id}
@@ -172,18 +222,23 @@ export default function FootballDraftPage() {
                     className={`w-full rounded-2xl border p-5 text-left transition ${
                       drafted
                         ? "border-white/5 bg-[#030712] opacity-45"
-                        : "border-emerald-400/30 bg-[#1F2937] hover:border-emerald-400"
+                        : selected
+                          ? "border-emerald-300 bg-emerald-400/10 shadow-lg shadow-emerald-400/10"
+                          : `border-emerald-400/25 bg-[#1F2937] ${styles.card}`
                     }`}
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="text-xl font-black">{player.name}</p>
-                        <p className="mt-2 font-bold text-slate-400">
-                          {player.position} • {player.school}
-                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                            {player.position}
+                          </span>
+                          <span className="text-sm font-bold text-slate-400">{player.school}</span>
+                        </div>
                       </div>
                       <span className="rounded-full bg-emerald-400/15 px-4 py-2 text-sm font-black text-emerald-300">
-                        {drafted ? "Taken" : "Draft"}
+                        {drafted ? "Taken" : selected ? "Selected" : "Pick"}
                       </span>
                     </div>
                   </button>
@@ -220,11 +275,14 @@ export default function FootballDraftPage() {
                   const boardTeamIndex = round % 2 === 1 ? pool.numberOfTeams - spot - 1 : spot;
                   const pick = picks[index];
                   const player = footballPlayers.find((item) => item.id === pick?.playerId);
+                  const styles = player ? positionStyles[player.position] : null;
 
                   return (
                     <div
                       key={index}
-                      className="min-h-36 border-r border-t border-slate-700/60 bg-[#1b3458] p-5 last:border-r-0"
+                      className={`min-h-36 border-r border-t border-slate-700/60 bg-[#1b3458] p-5 last:border-r-0 ${
+                        styles ? `border-l-4 ${styles.board}` : ""
+                      }`}
                       style={{ gridColumnStart: boardTeamIndex + 1 }}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -239,9 +297,12 @@ export default function FootballDraftPage() {
                         {player?.name || "Awaiting pick"}
                       </p>
                       {player && (
-                        <p className="mt-2 text-sm font-bold text-slate-400">
-                          {player.position} • {player.school}
-                        </p>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles?.badge || ""}`}>
+                            {player.position}
+                          </span>
+                          <span className="text-sm font-bold text-slate-400">{player.school}</span>
+                        </div>
                       )}
                     </div>
                   );
@@ -251,6 +312,49 @@ export default function FootballDraftPage() {
           </section>
         </div>
       </div>
+
+      {pendingPlayer && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
+          <div className="w-full max-w-md rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
+              Confirm Pick
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black text-white">
+              Draft {pendingPlayer.name}?
+            </h2>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-3 py-1 text-xs font-black ${positionStyles[pendingPlayer.position].badge}`}>
+                {pendingPlayer.position}
+              </span>
+              <span className="text-sm font-bold text-slate-400">{pendingPlayer.school}</span>
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              This will add {pendingPlayer.name} to {currentTeam}&apos;s current pick.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={cancelDraftPlayer}
+                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-[#111827]"
+              >
+                No
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmDraftPlayer}
+                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCompleted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
