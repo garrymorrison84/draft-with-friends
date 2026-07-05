@@ -107,8 +107,8 @@ export const footballPlayers: FootballPlayer[] = [
 ];
 
 export const defaultScoring: FootballScoring = {
-  fractionalPoints: true,
-  negativePoints: true,
+  fractionalPoints: false,
+  negativePoints: false,
   playerPool: "Power 5 + Notre Dame",
   includeKickers: false,
   roster: { QB: 1, RB: 2, WR: 2, TE: 1, FLEX: 1, DST: 1, K: 0 },
@@ -117,20 +117,20 @@ export const defaultScoring: FootballScoring = {
     passingYardsPerPoint: 25,
     completion: 0.2,
     interception: -2,
-    twoPointConversion: 2,
-    fumbleLost: -2,
+    twoPointConversion: 0,
+    fumbleLost: 0,
   },
   rushing: {
     rushingTd: 6,
     rushingYardsPerPoint: 10,
     attempt: 0.2,
-    twoPointConversion: 2,
+    twoPointConversion: 0,
   },
   receiving: {
     receivingTd: 6,
     receivingYardsPerPoint: 10,
     reception: 0.5,
-    twoPointConversion: 2,
+    twoPointConversion: 0,
   },
   defense: {
     sack: 1,

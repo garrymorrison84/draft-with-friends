@@ -147,7 +147,7 @@ export default function FootballScoringPage() {
           label: "Pass Completion",
           value: scoring.passing.completion,
           onChange: (value) => updateSection("passing", "completion", value),
-          options: [0.2, 0.5],
+          options: [0.2],
           enabled: passingEnabled,
         },
       ];
@@ -294,7 +294,7 @@ export default function FootballScoringPage() {
           label: "Field Goal",
           value: scoring.kicking.fieldGoal,
           onChange: (value) => updateSection("kicking", "fieldGoal", value),
-          options: [3, 4],
+          options: [3],
           enabled: kickingEnabled,
           integerOnly: true,
         },
@@ -383,25 +383,6 @@ export default function FootballScoringPage() {
         </p>
 
         <div className="mt-10 grid gap-6">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-            <div className="grid gap-4 md:grid-cols-2">
-              <SwitchCard
-                label="Fractional Points"
-                checked={scoring.fractionalPoints}
-                onChange={(checked) =>
-                  setScoring((current) => ({ ...current, fractionalPoints: checked }))
-                }
-              />
-              <SwitchCard
-                label="Negative Points"
-                checked={scoring.negativePoints}
-                onChange={(checked) =>
-                  setScoring((current) => ({ ...current, negativePoints: checked }))
-                }
-              />
-            </div>
-          </section>
-
           <section className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
@@ -459,6 +440,24 @@ export default function FootballScoringPage() {
             </div>
 
             <div className="mt-6 overflow-hidden rounded-2xl border border-white/5 bg-[#030712]">
+              {activeTab === "misc" && (
+                <div className="grid gap-4 border-b border-white/5 p-5 md:grid-cols-2">
+                  <SwitchCard
+                    label="Fractional Points"
+                    checked={scoring.fractionalPoints}
+                    onChange={(checked) =>
+                      setScoring((current) => ({ ...current, fractionalPoints: checked }))
+                    }
+                  />
+                  <SwitchCard
+                    label="Negative Points"
+                    checked={scoring.negativePoints}
+                    onChange={(checked) =>
+                      setScoring((current) => ({ ...current, negativePoints: checked }))
+                    }
+                  />
+                </div>
+              )}
               {getRules().map((rule) => (
                 <ScoringRuleRow key={rule.label} rule={rule} />
               ))}

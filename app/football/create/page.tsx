@@ -151,7 +151,11 @@ export default function CreateFootballPoolPage() {
 
         <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="grid gap-6">
-            <TextField label="Pool Name" value={poolName} onChange={setPoolName} />
+            <TextField
+              label="Enter Your Pool Name"
+              value={poolName}
+              onChange={setPoolName}
+            />
 
             <div>
               <label className="mb-2 block text-sm font-semibold">
@@ -192,7 +196,8 @@ export default function CreateFootballPoolPage() {
                     All Power 5 + Independents
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-400">
-                    ACC, Big Ten, Big 12, Pac-12, SEC, Notre Dame, UConn, and other independents.
+                    ACC, Big Ten, Big 12, Pac-12, SEC, and Independents
+                    (Notre Dame and UConn).
                   </p>
                 </button>
 
