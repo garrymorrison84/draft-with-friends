@@ -57,7 +57,7 @@ type TeamResult = {
   golfers: TeamGolfer[];
 };
 
-const FALLBACK_EVENT_ID = "TRAVELERS2026";
+const FALLBACK_EVENT_ID = "GENESIS_SCOTTISH_OPEN_2026";
 
 function normalizeName(name: string) {
   return name

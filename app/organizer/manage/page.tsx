@@ -16,7 +16,7 @@ import {
   updatePool as updateLocalPool,
 } from "../../lib/poolStorage";
 
-const FALLBACK_EVENT_ID = "TRAVELERS2026";
+const FALLBACK_EVENT_ID = "GENESIS_SCOTTISH_OPEN_2026";
 
 type ManagePool = {
   id: string;

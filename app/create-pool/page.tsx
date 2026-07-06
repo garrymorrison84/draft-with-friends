@@ -126,13 +126,13 @@ export default function CreatePoolPage() {
         }
 
         setActiveEventId(null);
-        setActiveEventLabel("John Deere Classic");
-        setGolfEvent((current) => current || "John Deere Classic");
+        setActiveEventLabel("Scottish Open");
+        setGolfEvent((current) => current || "Scottish Open");
       } catch (error) {
         console.error("Could not load active golf event", error);
         setActiveEventId(null);
-        setActiveEventLabel("John Deere Classic");
-        setGolfEvent((current) => current || "John Deere Classic");
+        setActiveEventLabel("Scottish Open");
+        setGolfEvent((current) => current || "Scottish Open");
       }
     }
 

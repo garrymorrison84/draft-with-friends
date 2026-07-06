@@ -17,7 +17,7 @@ import {
   saveDraftPicks as saveLocalDraftPicks,
 } from "../lib/poolStorage";
 
-const FALLBACK_EVENT_ID = "TRAVELERS2026";
+const FALLBACK_EVENT_ID = "GENESIS_SCOTTISH_OPEN_2026";
 
 type Golfer = {
   name: string;
@@ -107,6 +107,10 @@ function formatEligibleField(eventId?: string | null, golfEvent?: string) {
 
   if (rawValue.toUpperCase().includes("JOHN_DEERE")) {
     return "John Deere";
+  }
+
+  if (rawValue.toUpperCase().includes("SCOTTISH_OPEN")) {
+    return "Scottish Open";
   }
 
   return rawValue
