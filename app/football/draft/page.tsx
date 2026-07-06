@@ -143,17 +143,17 @@ export default function FootballDraftPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#030712] text-white">
-      <div className="mx-auto max-w-[1500px] px-6 py-8">
+    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+      <div className="mx-auto w-full max-w-[1500px] px-4 py-8 sm:px-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <Link href="/" aria-label="Draft With Friends home">
               <BrandMark size="md" />
             </Link>
-            <h1 className="mt-6 text-4xl font-black md:text-5xl">
+            <h1 className="mt-6 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
               College Football Draft Room
             </h1>
-            <p className="mt-4 text-lg font-bold text-slate-300">
+            <p className="mt-4 text-base font-bold text-slate-300 sm:text-lg">
               {draftComplete ? "All picks are complete." : `${currentTeam} is on the clock`}
             </p>
             <p className="mt-2 text-sm font-bold text-slate-500">
@@ -166,14 +166,14 @@ export default function FootballDraftPage() {
               type="button"
               onClick={undoPick}
               disabled={picks.length === 0}
-              className="rounded-2xl border border-slate-700 px-8 py-4 text-lg font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-2xl border border-slate-700 px-6 py-4 text-base font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 sm:px-8 sm:text-lg"
             >
               Undo Pick
             </button>
             {draftComplete && (
               <Link
                 href={`/football/leaderboard?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300"
+                className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300 sm:px-8 sm:text-lg"
               >
                 Live Leaderboard
               </Link>
@@ -181,8 +181,8 @@ export default function FootballDraftPage() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[420px_1fr]">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[420px_1fr]">
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
             <h2 className="text-3xl font-black">Eligible Players</h2>
             <p className="mt-3 text-slate-400">
               Filter by position, search player or school, then draft from the list.
@@ -247,8 +247,8 @@ export default function FootballDraftPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
-            <div className="flex items-center justify-between gap-4">
+          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-3xl font-black">Draft Board</h2>
                 <p className="mt-2 text-slate-400">
@@ -260,10 +260,10 @@ export default function FootballDraftPage() {
               </span>
             </div>
 
-            <div className="mt-8 overflow-hidden rounded-3xl border border-slate-700/60">
-              <div className="grid" style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(180px, 1fr))` }}>
+            <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-700/60 sm:mt-8">
+              <div className="grid min-w-max" style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}>
                 {pool.draftOrder.map((team) => (
-                  <div key={team} className="border-r border-emerald-400/20 bg-emerald-700 p-6 text-center last:border-r-0">
+                  <div key={team} className="border-r border-emerald-400/20 bg-emerald-700 p-4 text-center last:border-r-0 sm:p-6">
                     <p className="text-sm font-black uppercase tracking-widest text-emerald-100/80">Team</p>
                     <p className="mt-2 text-2xl font-black">{team}</p>
                   </div>
@@ -280,7 +280,7 @@ export default function FootballDraftPage() {
                   return (
                     <div
                       key={index}
-                      className={`min-h-36 border-r border-t border-slate-700/60 bg-[#1b3458] p-5 last:border-r-0 ${
+                      className={`min-h-32 border-r border-t border-slate-700/60 bg-[#1b3458] p-4 last:border-r-0 sm:min-h-36 sm:p-5 ${
                         styles ? `border-l-4 ${styles.board}` : ""
                       }`}
                       style={{ gridColumnStart: boardTeamIndex + 1 }}

@@ -53,8 +53,8 @@ const flowSteps = [
 
 export default function FootballHomePage() {
   return (
-    <main className="min-h-screen bg-[#030712] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-12">
+    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
@@ -65,23 +65,23 @@ export default function FootballHomePage() {
           </Link>
         </div>
 
-        <section className="mt-8 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40 md:p-10 lg:grid lg:grid-cols-[1fr_520px] lg:gap-10">
+        <section className="mt-8 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-8 md:p-10 lg:grid lg:grid-cols-[1fr_520px] lg:gap-10">
           <div className="flex flex-col pt-3 lg:pt-5">
-            <p className="text-3xl font-black uppercase tracking-[0.16em] text-emerald-300 md:text-5xl">
+            <p className="text-xl font-black uppercase tracking-[0.14em] text-emerald-300 sm:text-3xl md:text-5xl">
               College Football
             </p>
-            <h1 className="mt-7 max-w-4xl text-4xl font-black leading-[1.05] md:text-6xl xl:text-7xl">
+            <h1 className="mt-5 max-w-4xl text-3xl font-black leading-[1.08] sm:text-4xl md:mt-7 md:text-6xl xl:text-7xl">
               A true fantasy football experience for college.
             </h1>
-            <p className="mt-6 max-w-3xl text-lg font-semibold leading-8 text-slate-300 md:text-xl md:leading-9">
+            <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-slate-300 sm:text-lg md:mt-6 md:text-xl md:leading-9">
               Pick your conferences. Set the positions. Customize the scoring
               system. Run a snake draft. Track the weekly leaderboard live.
             </p>
 
-            <div className="mt-9">
+            <div className="mt-7 md:mt-9">
               <Link
                 href="/football/create"
-                className="inline-flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-10 py-5 text-center text-xl font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300 md:min-w-[360px]"
+                className="inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-400 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300 sm:w-auto md:min-h-20 md:min-w-[360px] md:px-10 md:py-5 md:text-xl"
               >
                 Start With Pool Setup
               </Link>
@@ -89,18 +89,18 @@ export default function FootballHomePage() {
           </div>
 
           <div className="mt-10 lg:mt-0">
-            <div className="rounded-3xl border border-emerald-400/20 bg-[#030712] p-4 shadow-2xl shadow-black/50">
-              <div className="rounded-2xl border border-white/5 bg-[#162033] p-5">
+            <div className="rounded-3xl border border-emerald-400/20 bg-[#030712] p-3 shadow-2xl shadow-black/50 sm:p-4">
+              <div className="rounded-2xl border border-white/5 bg-[#162033] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
                       Pool Flow
                     </p>
-                    <h2 className="mt-2 text-2xl font-black">
+                    <h2 className="mt-2 text-xl font-black sm:text-2xl">
                       Built for Saturdays
                     </h2>
                   </div>
-                  <div className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950">
+                  <div className="rounded-full bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 sm:px-4 sm:text-sm">
                     Live
                   </div>
                 </div>
@@ -156,7 +156,7 @@ export default function FootballHomePage() {
           {featureCards.map(([title, body, tag]) => (
             <div
               key={title}
-              className="rounded-3xl border border-white/5 bg-[#111827] p-7 shadow-xl shadow-black/40"
+              className="rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-7"
             >
               <div className="mb-5 inline-flex rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-xs font-black uppercase tracking-widest text-emerald-300">
                 {tag}

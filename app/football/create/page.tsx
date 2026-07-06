@@ -131,8 +131,8 @@ export default function CreateFootballPoolPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#030712] text-white">
-      <div className="mx-auto max-w-4xl px-6 py-12">
+    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+      <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
@@ -142,15 +142,15 @@ export default function CreateFootballPoolPage() {
           </Link>
         </div>
 
-        <h1 className="mt-8 text-4xl font-black md:text-5xl">
+        <h1 className="mt-7 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
           Create a College Football Pool
         </h1>
-        <p className="mt-4 text-lg text-slate-400">
+        <p className="mt-3 text-base text-slate-400 sm:text-lg">
           Set up the weekly pool, team names, and draft order before choosing scoring.
         </p>
 
-        <div className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-          <div className="grid gap-6">
+        <div className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:mt-10 sm:p-8">
+          <div className="grid gap-5 sm:gap-6">
             <TextField
               label="Enter Your Pool Name"
               value={poolName}
@@ -340,8 +340,8 @@ export default function CreateFootballPoolPage() {
                 </label>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-white/5 bg-[#030712] p-5">
-                <div className="flex items-center justify-between gap-4">
+              <div className="mt-6 rounded-2xl border border-white/5 bg-[#030712] p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-bold">
                       {draftOrderMethod === "manual"
@@ -359,7 +359,7 @@ export default function CreateFootballPoolPage() {
                     <button
                       type="button"
                       onClick={randomizeDraftOrder}
-                      className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#111827]"
+                      className="w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#111827] sm:w-auto"
                     >
                       Randomize Again
                     </button>
@@ -374,7 +374,7 @@ export default function CreateFootballPoolPage() {
                       onDragStart={() => setDraggedIndex(index)}
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={() => handleDrop(index)}
-                      className={`flex items-center justify-between rounded-xl border border-white/5 bg-[#1F2937] p-4 ${
+                      className={`flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] p-4 ${
                         draftOrderMethod === "manual"
                           ? "cursor-grab active:cursor-grabbing"
                           : ""
@@ -470,7 +470,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
+    <div className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
       <h2 className="text-2xl font-bold">{title}</h2>
       <p className="mt-2 text-sm text-slate-400">{body}</p>
       {children}

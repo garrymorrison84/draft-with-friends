@@ -63,16 +63,16 @@ export default function FootballLeaderboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#030712] text-white">
-      <div className="mx-auto max-w-7xl px-6 py-10">
+    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
         <Link href="/" aria-label="Draft With Friends home">
           <BrandMark size="lg" />
         </Link>
 
-        <div className="mt-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-5xl font-black md:text-7xl">Leaderboard</h1>
-            <p className="mt-4 text-xl font-bold text-slate-400">
+        <div className="mt-8 flex flex-col gap-6 md:mt-10 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-4xl font-black sm:text-5xl md:text-7xl">Leaderboard</h1>
+            <p className="mt-4 break-words text-base font-bold text-slate-400 sm:text-xl">
               {pool.poolName} • {pool.season} • Weekly scoring preview
             </p>
           </div>
@@ -80,21 +80,21 @@ export default function FootballLeaderboardPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href={`/football/draft?id=${pool.id}`}
-              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 hover:bg-emerald-400/15"
+              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-4 text-center text-base font-black text-emerald-300 hover:bg-emerald-400/15 sm:px-8 sm:text-lg"
             >
               Draft Room
             </Link>
             <Link
               href="/football"
-              className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 hover:bg-emerald-300"
+              className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 hover:bg-emerald-300 sm:px-8 sm:text-lg"
             >
               Football Home
             </Link>
           </div>
         </div>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[420px_1fr]">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
+        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[420px_1fr]">
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-8">
             <h2 className="text-2xl font-black uppercase tracking-wide text-slate-300">
               Standings
             </h2>
@@ -102,15 +102,15 @@ export default function FootballLeaderboardPage() {
               {standings.map((team, index) => (
                 <div
                   key={team.team}
-                  className="flex items-center justify-between rounded-2xl border border-white/5 bg-[#1F2937] p-5"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-[#1F2937] p-4 sm:p-5"
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="text-2xl font-black text-slate-400">
+                  <div className="min-w-0 flex items-center gap-3 sm:gap-4">
+                    <span className="shrink-0 text-xl font-black text-slate-400 sm:text-2xl">
                       {index + 1}
                     </span>
-                    <span className="text-2xl font-black">{team.team}</span>
+                    <span className="truncate text-xl font-black sm:text-2xl">{team.team}</span>
                   </div>
-                  <span className="text-3xl font-black text-emerald-300">
+                  <span className="shrink-0 text-2xl font-black text-emerald-300 sm:text-3xl">
                     {team.live.toFixed(1)}
                   </span>
                 </div>
@@ -118,11 +118,11 @@ export default function FootballLeaderboardPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
+          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-8">
             <h2 className="text-2xl font-black">Team Player Scoring</h2>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
               {standings.map((team) => (
-                <div key={team.team} className="rounded-2xl border border-slate-700/60 bg-[#1F2937] p-5">
+                <div key={team.team} className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-5">
                   <div className="flex items-center justify-between gap-4">
                     <h3 className="text-2xl font-black">{team.team}</h3>
                     <span className="text-2xl font-black text-emerald-300">
