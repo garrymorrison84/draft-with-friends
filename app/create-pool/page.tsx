@@ -289,8 +289,8 @@ export default function CreatePoolPage() {
                 type="text"
                 value={poolName}
                 onChange={(e) => setPoolName(e.target.value)}
-                placeholder="2026 U.S. Open Draft"
-                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
+                placeholder="Enter your pool name"
+                className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none placeholder:text-slate-500"
               />
             </div>
 
