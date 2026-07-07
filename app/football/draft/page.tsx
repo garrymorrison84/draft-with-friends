@@ -22,36 +22,39 @@ import {
 
 const positions = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"];
 
-const positionStyles: Record<FootballPlayer["position"], { badge: string; card: string; board: string }> = {
+const positionStyles: Record<
+  FootballPlayer["position"],
+  { badge: string; card: string; board: string }
+> = {
   QB: {
     badge: "border-fuchsia-400/35 bg-fuchsia-400/15 text-fuchsia-200",
     card: "hover:border-fuchsia-400/70",
-    board: "border-l-fuchsia-400",
+    board: "border-fuchsia-400/45 bg-fuchsia-400/12",
   },
   RB: {
     badge: "border-teal-300/35 bg-teal-300/15 text-teal-200",
     card: "hover:border-teal-300/70",
-    board: "border-l-teal-300",
+    board: "border-teal-300/45 bg-teal-300/12",
   },
   WR: {
-    badge: "border-sky-300/35 bg-sky-300/15 text-sky-200",
-    card: "hover:border-sky-300/70",
-    board: "border-l-sky-300",
+    badge: "border-blue-300/45 bg-blue-300/15 text-blue-100",
+    card: "hover:border-blue-300/70",
+    board: "border-blue-300/45 bg-blue-300/12",
   },
   TE: {
     badge: "border-amber-300/35 bg-amber-300/15 text-amber-200",
     card: "hover:border-amber-300/70",
-    board: "border-l-amber-300",
+    board: "border-amber-300/45 bg-amber-300/12",
   },
   DST: {
     badge: "border-lime-300/35 bg-lime-300/15 text-lime-200",
     card: "hover:border-lime-300/70",
-    board: "border-l-lime-300",
+    board: "border-lime-300/45 bg-lime-300/12",
   },
   K: {
     badge: "border-violet-300/35 bg-violet-300/15 text-violet-200",
     card: "hover:border-violet-300/70",
-    board: "border-l-violet-300",
+    board: "border-violet-300/45 bg-violet-300/12",
   },
 };
 
@@ -62,6 +65,67 @@ function formatStat(value: number | undefined) {
 
 function formatPoints(value: number) {
   return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
+function positionCountsForTeam(
+  team: string,
+  picks: FootballDraftPick[],
+  players: FootballPlayer[]
+) {
+  const counts: Record<FootballPlayer["position"], number> = {
+    QB: 0,
+    RB: 0,
+    WR: 0,
+    TE: 0,
+    DST: 0,
+    K: 0,
+  };
+  picks
+    .filter((pick) => pick.team === team)
+    .forEach((pick) => {
+      const draftedPlayer = players.find((player) => player.id === pick.playerId);
+      if (draftedPlayer) counts[draftedPlayer.position] += 1;
+    });
+  return counts;
+}
+
+function canTeamDraftPosition({
+  team,
+  position,
+  picks,
+  players,
+  pool,
+}: {
+  team: string;
+  position: FootballPlayer["position"];
+  picks: FootballDraftPick[];
+  players: FootballPlayer[];
+  pool: FootballPool;
+}) {
+  const roster = pool.scoring?.roster;
+  if (!roster) return true;
+
+  const counts = positionCountsForTeam(team, picks, players);
+  counts[position] += 1;
+
+  if (counts.QB > roster.QB || counts.DST > roster.DST || counts.K > roster.K) {
+    return false;
+  }
+
+  const rbExcess = Math.max(0, counts.RB - roster.RB);
+  const wrExcess = Math.max(0, counts.WR - roster.WR);
+  const teExcess = Math.max(0, counts.TE - roster.TE);
+  const flexUsed = rbExcess + wrExcess + teExcess;
+  const skillUsed = counts.RB + counts.WR + counts.TE;
+  const skillSlots = roster.RB + roster.WR + roster.TE + roster.FLEX;
+
+  return (
+    counts.RB <= roster.RB + roster.FLEX &&
+    counts.WR <= roster.WR + roster.FLEX &&
+    counts.TE <= roster.TE + roster.FLEX &&
+    flexUsed <= roster.FLEX &&
+    skillUsed <= skillSlots
+  );
 }
 
 function playerGameRows(player: FootballPlayer, scoring: FootballPool["scoring"]) {
@@ -131,7 +195,6 @@ function PlayerDetailsModal({
 }) {
   const styles = positionStyles[player.position];
   const projection = getProjectedScore(player, scoring);
-  const ppg = getPlayerPpg(player, scoring);
   const rows = playerGameRows(player, scoring);
   const hasReplayGameLogs = Boolean(player.gameLogs?.length);
 
@@ -156,11 +219,7 @@ function PlayerDetailsModal({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:min-w-[360px]">
-            <div className="rounded-2xl bg-[#030712] p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-500">PPG</p>
-              <p className="mt-1 text-2xl font-black text-white">{formatPoints(ppg)}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
             <div className="rounded-2xl bg-[#030712] p-4">
               <p className="text-xs font-black uppercase tracking-wide text-slate-500">Projected</p>
               <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(projection.total)}</p>
@@ -168,7 +227,7 @@ function PlayerDetailsModal({
             <button
               type="button"
               onClick={onDraft}
-              className="col-span-2 rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300 sm:col-span-1"
+              className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
             >
               Draft
             </button>
@@ -331,17 +390,49 @@ export default function FootballDraftPage() {
       return activeRoster[item as keyof typeof activeRoster] > 0;
     })
   );
+  const draftablePositions = new Set(
+    positions.filter((item) => {
+      if (item === "ALL") return true;
+      if (!pool || draftComplete) return activePositions.has(item);
+      return (
+        activePositions.has(item) &&
+        canTeamDraftPosition({
+          team: currentTeam,
+          position: item as FootballPlayer["position"],
+          picks,
+          players,
+          pool,
+        })
+      );
+    })
+  );
 
   const filteredPlayers = players
     .filter((player) => {
     const matchesPosition = position === "ALL" || player.position === position;
     const matchesConference = activeConferences.includes(player.conference);
     const matchesRoster = activePositions.has(player.position);
+    const matchesCurrentTeamRoster =
+      !pool ||
+      draftComplete ||
+      canTeamDraftPosition({
+        team: currentTeam,
+        position: player.position,
+        picks,
+        players,
+        pool,
+      });
     const matchesSearch =
       player.name.toLowerCase().includes(search.toLowerCase()) ||
       player.school.toLowerCase().includes(search.toLowerCase()) ||
       player.conference.toLowerCase().includes(search.toLowerCase());
-    return matchesPosition && matchesConference && matchesRoster && matchesSearch;
+    return (
+      matchesPosition &&
+      matchesConference &&
+      matchesRoster &&
+      matchesCurrentTeamRoster &&
+      matchesSearch
+    );
   })
   .sort(
     (a, b) =>
@@ -350,8 +441,27 @@ export default function FootballDraftPage() {
   );
   const displayedPlayers = filteredPlayers.slice(0, 300);
 
+  useEffect(() => {
+    if (!draftablePositions.has(position)) {
+      setPosition("ALL");
+    }
+  }, [draftablePositions, position]);
+
   function draftPlayer(player: FootballPlayer) {
-    if (!pool || draftedIds.has(player.id) || draftComplete) return;
+    if (
+      !pool ||
+      draftedIds.has(player.id) ||
+      draftComplete ||
+      !canTeamDraftPosition({
+        team: currentTeam,
+        position: player.position,
+        picks,
+        players,
+        pool,
+      })
+    ) {
+      return;
+    }
     setPendingPlayer(player);
   }
 
@@ -365,7 +475,19 @@ export default function FootballDraftPage() {
   }
 
   function confirmDraftPlayer() {
-    if (!pool || !pendingPlayer || draftedIds.has(pendingPlayer.id) || draftComplete) {
+    if (
+      !pool ||
+      !pendingPlayer ||
+      draftedIds.has(pendingPlayer.id) ||
+      draftComplete ||
+      !canTeamDraftPosition({
+        team: currentTeam,
+        position: pendingPlayer.position,
+        picks,
+        players,
+        pool,
+      })
+    ) {
       setPendingPlayer(null);
       return;
     }
@@ -468,7 +590,7 @@ export default function FootballDraftPage() {
               onChange={(event) => setPosition(event.target.value)}
               className="mt-4 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-4 text-white"
             >
-              {positions.filter((item) => activePositions.has(item)).map((item) => (
+              {positions.filter((item) => draftablePositions.has(item)).map((item) => (
                 <option key={item} value={item}>
                   {item === "ALL" ? "All Positions" : item}
                 </option>
@@ -500,7 +622,7 @@ export default function FootballDraftPage() {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
-                const ppg = getPlayerPpg(player, pool.scoring);
+                const projectedScore = getProjectedScore(player, pool.scoring);
 
                 return (
                   <div
@@ -527,7 +649,7 @@ export default function FootballDraftPage() {
                             {player.name}
                           </p>
                           <p className="truncate text-xs font-bold text-slate-500">
-                            {player.school} • {player.conference} • {formatPoints(ppg)} PPG
+                            {player.school} • {player.conference} • {formatPoints(projectedScore.total)} proj
                           </p>
                         </div>
                       </div>
@@ -559,8 +681,8 @@ export default function FootballDraftPage() {
 
               {filteredPlayers.length === 0 && (
                 <div className="mt-4 rounded-2xl border border-white/5 bg-[#030712] p-5 text-slate-400">
-                  No eligible players match this position, roster, conference,
-                  and search combination.
+                  No eligible players match this position, roster limit, conference,
+                  and search combination for {currentTeam}.
                 </div>
               )}
           </section>
@@ -581,25 +703,26 @@ export default function FootballDraftPage() {
             <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-700/60 sm:mt-8">
               <div className="grid min-w-max" style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}>
                 {pool.draftOrder.map((team) => (
-                  <div key={team} className="border-r border-emerald-400/20 bg-emerald-700 p-4 text-center last:border-r-0 sm:p-6">
-                    <p className="text-sm font-black uppercase tracking-widest text-emerald-100/80">Team</p>
+                  <div key={team} className="border-r border-slate-700/70 bg-[#243044] p-4 text-center last:border-r-0 sm:p-6">
+                    <p className="text-sm font-black uppercase tracking-widest text-slate-400">Team</p>
                     <p className="mt-2 text-2xl font-black">{team}</p>
                   </div>
                 ))}
 
-                {Array.from({ length: totalPicks }).map((_, index) => {
+                {picks.map((pick, index) => {
                   const round = Math.floor(index / pool.numberOfTeams);
                   const spot = index % pool.numberOfTeams;
                   const boardTeamIndex = round % 2 === 1 ? pool.numberOfTeams - spot - 1 : spot;
-                  const pick = picks[index];
                   const player = players.find((item) => item.id === pick?.playerId);
                   const styles = player ? positionStyles[player.position] : null;
 
                   return (
                     <div
                       key={index}
-                      className={`min-h-32 border-r border-t border-slate-700/60 bg-[#1b3458] p-4 last:border-r-0 sm:min-h-36 sm:p-5 ${
-                        styles ? `border-l-4 ${styles.board}` : ""
+                      className={`min-h-32 border-r border-t p-4 last:border-r-0 sm:min-h-36 sm:p-5 ${
+                        styles
+                          ? `border ${styles.board}`
+                          : "border-slate-700/60 bg-[#1b3458]"
                       }`}
                       style={{ gridColumnStart: boardTeamIndex + 1 }}
                     >
@@ -630,6 +753,11 @@ export default function FootballDraftPage() {
                 })}
               </div>
             </div>
+            {picks.length === 0 && (
+              <div className="mt-4 rounded-2xl border border-dashed border-slate-700/70 bg-[#030712] p-5 text-sm font-bold text-slate-500">
+                Draft board will fill in after the first confirmed pick.
+              </div>
+            )}
           </section>
         </div>
       </div>
