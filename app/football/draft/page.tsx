@@ -7,12 +7,18 @@ import {
   FootballDraftPick,
   FootballPlayer,
   FootballPool,
+  defaultFootballPlayerPool,
   footballPlayers,
   getTotalRosterSlots,
   loadFootballDraftPicks,
   loadFootballPool,
   saveFootballDraftPicks,
 } from "../lib/storage";
+import {
+  getPlayerPpg,
+  getProjectedScore,
+  getProjectionSummary,
+} from "../lib/scoringEngine";
 
 const positions = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"];
 
@@ -83,13 +89,36 @@ export default function FootballDraftPage() {
       : pool.draftOrder[pickInRound];
   }, [draftComplete, picks.length, pool]);
 
-  const filteredPlayers = footballPlayers.filter((player) => {
+  const activeConferences =
+    pool?.playerPool?.conferences || defaultFootballPlayerPool.conferences;
+  const activeRoster = pool?.scoring?.roster;
+  const activePositions = new Set(
+    positions.filter((item) => {
+      if (item === "ALL") return true;
+      if (!activeRoster) return true;
+      if (item === "RB" || item === "WR" || item === "TE") {
+        return activeRoster[item] > 0 || activeRoster.FLEX > 0;
+      }
+      return activeRoster[item as keyof typeof activeRoster] > 0;
+    })
+  );
+
+  const filteredPlayers = footballPlayers
+    .filter((player) => {
     const matchesPosition = position === "ALL" || player.position === position;
+    const matchesConference = activeConferences.includes(player.conference);
+    const matchesRoster = activePositions.has(player.position);
     const matchesSearch =
       player.name.toLowerCase().includes(search.toLowerCase()) ||
-      player.school.toLowerCase().includes(search.toLowerCase());
-    return matchesPosition && matchesSearch;
-  });
+      player.school.toLowerCase().includes(search.toLowerCase()) ||
+      player.conference.toLowerCase().includes(search.toLowerCase());
+    return matchesPosition && matchesConference && matchesRoster && matchesSearch;
+  })
+  .sort(
+    (a, b) =>
+      getProjectedScore(b, pool?.scoring).total -
+      getProjectedScore(a, pool?.scoring).total
+  );
 
   function draftPlayer(player: FootballPlayer) {
     if (!pool || draftedIds.has(player.id) || draftComplete) return;
@@ -201,7 +230,7 @@ export default function FootballDraftPage() {
               onChange={(event) => setPosition(event.target.value)}
               className="mt-4 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-4 text-white"
             >
-              {positions.map((item) => (
+              {positions.filter((item) => activePositions.has(item)).map((item) => (
                 <option key={item} value={item}>
                   {item === "ALL" ? "All Positions" : item}
                 </option>
@@ -213,6 +242,10 @@ export default function FootballDraftPage() {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
+                const projectedScore = getProjectedScore(player, pool.scoring);
+                const ppg = getPlayerPpg(player, pool.scoring);
+                const projectionSummary = getProjectionSummary(player, pool.scoring);
+
                 return (
                   <button
                     key={player.id}
@@ -227,23 +260,69 @@ export default function FootballDraftPage() {
                           : `border-emerald-400/25 bg-[#1F2937] ${styles.card}`
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-xl font-black">{player.name}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
-                            {player.position}
-                          </span>
-                          <span className="text-sm font-bold text-slate-400">{player.school}</span>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="break-words text-xl font-black">{player.name}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                              {player.position}
+                            </span>
+                            <span className="text-sm font-bold text-slate-400">
+                              {player.school}
+                            </span>
+                            <span className="text-sm font-bold text-slate-500">
+                              {player.conference}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="shrink-0 rounded-full bg-emerald-400/15 px-4 py-2 text-sm font-black text-emerald-300">
+                          {drafted ? "Taken" : selected ? "Selected" : "Pick"}
+                        </span>
+                      </div>
+
+                      <div className="grid gap-2 rounded-xl border border-white/5 bg-[#030712]/70 p-3 text-sm sm:grid-cols-3">
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            PPG
+                          </p>
+                          <p className="mt-1 font-black text-white">{ppg.toFixed(1)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            Projected
+                          </p>
+                          <p className="mt-1 font-black text-emerald-300">
+                            {projectedScore.total.toFixed(1)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                            Next Game
+                          </p>
+                          <p className="mt-1 break-words font-black text-white">
+                            {player.opponent}
+                          </p>
                         </div>
                       </div>
-                      <span className="rounded-full bg-emerald-400/15 px-4 py-2 text-sm font-black text-emerald-300">
-                        {drafted ? "Taken" : selected ? "Selected" : "Pick"}
-                      </span>
+
+                      <div className="space-y-1 text-sm font-semibold text-slate-400">
+                        {projectionSummary.map((line) => (
+                          <p key={line}>{line}</p>
+                        ))}
+                      </div>
                     </div>
                   </button>
                 );
               })}
+
+              {filteredPlayers.length === 0 && (
+                <div className="rounded-2xl border border-white/5 bg-[#030712] p-5 text-slate-400">
+                  No eligible players match this position, roster, conference,
+                  and search combination.
+                </div>
+              )}
             </div>
           </section>
 
@@ -297,11 +376,14 @@ export default function FootballDraftPage() {
                         {player?.name || "Awaiting pick"}
                       </p>
                       {player && (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
                           <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles?.badge || ""}`}>
                             {player.position}
                           </span>
                           <span className="text-sm font-bold text-slate-400">{player.school}</span>
+                          <span className="text-sm font-bold text-emerald-300">
+                            {getProjectedScore(player, pool.scoring).total.toFixed(1)} proj
+                          </span>
                         </div>
                       )}
                     </div>

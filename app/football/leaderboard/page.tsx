@@ -10,6 +10,11 @@ import {
   loadFootballDraftPicks,
   loadFootballPool,
 } from "../lib/storage";
+import {
+  getLiveScore,
+  getProjectedScore,
+  getProjectionSummary,
+} from "../lib/scoringEngine";
 
 export default function FootballLeaderboardPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
@@ -36,13 +41,20 @@ export default function FootballLeaderboardPage() {
           .map((pick) => footballPlayers.find((player) => player.id === pick.playerId))
           .filter(Boolean) as typeof footballPlayers;
 
-        const projected = players.reduce((sum, player) => sum + player.projected, 0);
+        const projected = players.reduce(
+          (sum, player) => sum + getProjectedScore(player, pool.scoring).total,
+          0
+        );
+        const live = players.reduce(
+          (sum, player) => sum + getLiveScore(player, pool.scoring).total,
+          0
+        );
 
         return {
           team,
           players,
           projected,
-          live: projected - players.length * 1.3,
+          live,
         };
       })
       .sort((a, b) => b.live - a.live);
@@ -73,7 +85,7 @@ export default function FootballLeaderboardPage() {
           <div className="min-w-0">
             <h1 className="text-4xl font-black sm:text-5xl md:text-7xl">Leaderboard</h1>
             <p className="mt-4 break-words text-base font-bold text-slate-400 sm:text-xl">
-              {pool.poolName} • {pool.season} • Weekly scoring preview
+              {pool.poolName} • {pool.season} • Replay live scoring
             </p>
           </div>
 
@@ -98,6 +110,10 @@ export default function FootballLeaderboardPage() {
             <h2 className="text-2xl font-black uppercase tracking-wide text-slate-300">
               Standings
             </h2>
+            <p className="mt-2 text-sm font-semibold text-slate-500">
+              Totals use this pool&apos;s scoring settings against replay stat
+              lines.
+            </p>
             <div className="mt-6 space-y-3">
               {standings.map((team, index) => (
                 <div
@@ -134,25 +150,49 @@ export default function FootballLeaderboardPage() {
                     {team.players.length === 0 ? (
                       <p className="text-slate-500">No players drafted yet.</p>
                     ) : (
-                      team.players.map((player) => (
-                        <div
-                          key={player.id}
-                          className="grid grid-cols-[54px_1fr_64px] items-center gap-3 border-t border-white/5 pt-3"
-                        >
-                          <span className="rounded-lg bg-emerald-400/10 px-3 py-2 text-center text-sm font-black text-emerald-300">
-                            {player.position}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate font-black">{player.name}</p>
-                            <p className="truncate text-sm font-bold text-slate-500">
-                              {player.school}
-                            </p>
+                      team.players.map((player) => {
+                        const liveScore = getLiveScore(player, pool.scoring);
+                        const projectedScore = getProjectedScore(player, pool.scoring);
+                        const summary = getProjectionSummary(player, pool.scoring);
+
+                        return (
+                          <div
+                            key={player.id}
+                            className="border-t border-white/5 pt-4"
+                          >
+                            <div className="grid grid-cols-[54px_1fr_70px] items-start gap-3">
+                              <span className="rounded-lg bg-emerald-400/10 px-3 py-2 text-center text-sm font-black text-emerald-300">
+                                {player.position}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="break-words font-black">{player.name}</p>
+                                <p className="break-words text-sm font-bold text-slate-500">
+                                  {player.school} • {player.opponent}
+                                </p>
+                              </div>
+                              <span className="text-right text-lg font-black text-emerald-300">
+                                {liveScore.total.toFixed(1)}
+                              </span>
+                            </div>
+
+                            <div className="mt-3 rounded-xl bg-[#030712] p-3 text-sm">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="font-bold text-slate-400">
+                                  Projected
+                                </span>
+                                <span className="font-black text-slate-200">
+                                  {projectedScore.total.toFixed(1)}
+                                </span>
+                              </div>
+                              <div className="mt-2 space-y-1 text-xs font-semibold text-slate-500">
+                                {summary.map((line) => (
+                                  <p key={line}>{line}</p>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-right text-lg font-black">
-                            {(player.projected - 1.3).toFixed(1)}
-                          </span>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
