@@ -364,7 +364,7 @@ export default function FootballScoringPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#030712] pb-28 text-white sm:pb-0">
       <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
@@ -382,16 +382,16 @@ export default function FootballScoringPage() {
           {pool.poolName} • {pool.season}
         </p>
 
-        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6">
-          <section className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
+        <div className="mt-8 grid min-w-0 gap-5 sm:mt-10 sm:gap-6">
+          <section className="min-w-0 rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-2xl font-bold">Roster Positions</h2>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 max-w-full text-sm text-slate-400">
                   Active roster spots that will be drafted and scored for each team.
                 </p>
               </div>
-              <div className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
+              <div className="w-full rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300 md:w-auto">
                 {rosterTotal} Active Spots
               </div>
             </div>
@@ -410,24 +410,24 @@ export default function FootballScoringPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
+          <section className="min-w-0 rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-2xl font-bold">Scoring Settings</h2>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 max-w-full text-sm text-slate-400">
                   Start from familiar defaults, then adjust only the values your group cares about.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 overflow-x-auto rounded-2xl bg-[#111827] p-1 sm:mt-6">
-              <div className="flex min-w-max gap-1">
+            <div className="mt-5 rounded-2xl bg-[#111827] p-1 sm:mt-6">
+              <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab.key)}
-                    className={`rounded-xl px-4 py-3 text-sm font-black transition sm:px-5 ${
+                    className={`min-w-0 rounded-xl px-3 py-3 text-sm font-black transition sm:px-5 ${
                       activeTab === tab.key
                         ? "bg-slate-100 text-slate-950"
                         : "text-slate-300 hover:bg-white/5"
@@ -533,28 +533,28 @@ function RosterStepper({
 }) {
   return (
     <div
-      className={`grid grid-cols-[1fr_auto] items-center gap-3 border-b border-white/5 p-4 last:border-b-0 sm:flex sm:justify-between sm:gap-4 ${
+      className={`flex flex-col gap-4 border-b border-white/5 p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${
         disabled ? "opacity-45" : ""
       }`}
     >
       <div className="min-w-0">
-        <p className="font-bold">{label}</p>
+        <p className="break-words text-base font-bold leading-snug sm:text-lg">{label}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+      <div className="grid w-full shrink-0 grid-cols-[56px_1fr_56px] items-center gap-3 sm:w-auto sm:grid-cols-[56px_40px_56px] sm:gap-4">
         <button
           type="button"
           onClick={() => onChange(value - 1)}
           disabled={disabled || value <= min}
-          className="flex h-10 w-11 items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35 sm:w-14"
+          className="flex h-11 w-full items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35"
         >
           -
         </button>
-        <span className="w-6 text-center text-xl font-black sm:w-8">{value}</span>
+        <span className="text-center text-xl font-black">{value}</span>
         <button
           type="button"
           onClick={() => onChange(value + 1)}
           disabled={disabled || value >= max}
-          className="flex h-10 w-11 items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35 sm:w-14"
+          className="flex h-11 w-full items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35"
         >
           +
         </button>
@@ -581,7 +581,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
 
   return (
     <div className={`border-b border-white/5 p-4 last:border-b-0 sm:p-5 ${enabled ? "" : "opacity-45"}`}>
-      <div className="grid gap-4 md:grid-cols-[auto_1fr] md:items-start">
+      <div className="grid min-w-0 gap-4 md:grid-cols-[auto_1fr] md:items-start">
         <button
           type="button"
           onClick={toggleRule}
@@ -610,7 +610,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
             </p>
           </div>
 
-          <div className="min-w-0 flex flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
+          <div className="min-w-0 flex w-full flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
             {rule.kind === "yards" ? (
               <>
                 <span className="text-sm font-bold text-slate-400">1 point per</span>
