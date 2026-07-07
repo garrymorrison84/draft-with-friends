@@ -62,6 +62,8 @@ export default function FootballDraftPage() {
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
+  const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
+  const [playerSource, setPlayerSource] = useState("Loading replay player pool...");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -72,6 +74,37 @@ export default function FootballDraftPage() {
       setPool(savedPool);
       setPicks(loadFootballDraftPicks(savedPool.id));
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReplayPlayers() {
+      try {
+        const response = await fetch("/api/football/replay", { cache: "no-store" });
+        if (!response.ok) throw new Error("Replay player pool failed");
+        const data = await response.json();
+        const replayPlayers = data?.playerPool?.players;
+
+        if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
+          setPlayers(replayPlayers);
+          setPlayerSource(
+            `${data.playerPool.source} • ${replayPlayers.length.toLocaleString()} eligible players`
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setPlayers(footballPlayers);
+          setPlayerSource("Static trial player pool");
+        }
+      }
+    }
+
+    loadReplayPlayers();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const rosterSlots = getTotalRosterSlots(pool?.scoring);
@@ -103,7 +136,7 @@ export default function FootballDraftPage() {
     })
   );
 
-  const filteredPlayers = footballPlayers
+  const filteredPlayers = players
     .filter((player) => {
     const matchesPosition = position === "ALL" || player.position === position;
     const matchesConference = activeConferences.includes(player.conference);
@@ -119,6 +152,7 @@ export default function FootballDraftPage() {
       getProjectedScore(b, pool?.scoring).total -
       getProjectedScore(a, pool?.scoring).total
   );
+  const displayedPlayers = filteredPlayers.slice(0, 300);
 
   function draftPlayer(player: FootballPlayer) {
     if (!pool || draftedIds.has(player.id) || draftComplete) return;
@@ -216,6 +250,7 @@ export default function FootballDraftPage() {
             <p className="mt-3 text-slate-400">
               Filter by position, search player or school, then draft from the list.
             </p>
+            <p className="mt-2 text-xs font-bold text-slate-500">{playerSource}</p>
 
             <input
               type="text"
@@ -238,7 +273,7 @@ export default function FootballDraftPage() {
             </select>
 
             <div className="mt-6 space-y-4">
-              {filteredPlayers.map((player) => {
+              {displayedPlayers.map((player) => {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
@@ -317,6 +352,14 @@ export default function FootballDraftPage() {
                 );
               })}
 
+              {filteredPlayers.length > displayedPlayers.length && (
+                <div className="rounded-2xl border border-white/5 bg-[#030712] p-5 text-sm font-semibold text-slate-400">
+                  Showing the top {displayedPlayers.length.toLocaleString()} of{" "}
+                  {filteredPlayers.length.toLocaleString()} eligible players. Search by
+                  player or school to narrow the list.
+                </div>
+              )}
+
               {filteredPlayers.length === 0 && (
                 <div className="rounded-2xl border border-white/5 bg-[#030712] p-5 text-slate-400">
                   No eligible players match this position, roster, conference,
@@ -353,7 +396,7 @@ export default function FootballDraftPage() {
                   const spot = index % pool.numberOfTeams;
                   const boardTeamIndex = round % 2 === 1 ? pool.numberOfTeams - spot - 1 : spot;
                   const pick = picks[index];
-                  const player = footballPlayers.find((item) => item.id === pick?.playerId);
+                  const player = players.find((item) => item.id === pick?.playerId);
                   const styles = player ? positionStyles[player.position] : null;
 
                   return (

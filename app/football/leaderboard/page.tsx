@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import {
   FootballDraftPick,
+  FootballPlayer,
   FootballPool,
   footballPlayers,
   loadFootballDraftPicks,
@@ -19,6 +20,7 @@ import {
 export default function FootballLeaderboardPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
+  const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -31,34 +33,61 @@ export default function FootballLeaderboardPage() {
     }
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadReplayPlayers() {
+      try {
+        const response = await fetch("/api/football/replay", { cache: "no-store" });
+        if (!response.ok) throw new Error("Replay player pool failed");
+        const data = await response.json();
+        const replayPlayers = data?.playerPool?.players;
+
+        if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
+          setPlayers(replayPlayers);
+        }
+      } catch {
+        if (!cancelled) {
+          setPlayers(footballPlayers);
+        }
+      }
+    }
+
+    loadReplayPlayers();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const standings = useMemo(() => {
     if (!pool) return [];
 
     return pool.teamNames
       .map((team) => {
-        const players = picks
+        const draftedPlayers = picks
           .filter((pick) => pick.team === team)
-          .map((pick) => footballPlayers.find((player) => player.id === pick.playerId))
-          .filter(Boolean) as typeof footballPlayers;
+          .map((pick) => players.find((player) => player.id === pick.playerId))
+          .filter(Boolean) as FootballPlayer[];
 
-        const projected = players.reduce(
+        const projected = draftedPlayers.reduce(
           (sum, player) => sum + getProjectedScore(player, pool.scoring).total,
           0
         );
-        const live = players.reduce(
+        const live = draftedPlayers.reduce(
           (sum, player) => sum + getLiveScore(player, pool.scoring).total,
           0
         );
 
         return {
           team,
-          players,
+          players: draftedPlayers,
           projected,
           live,
         };
       })
       .sort((a, b) => b.live - a.live);
-  }, [picks, pool]);
+  }, [picks, players, pool]);
 
   if (!pool) {
     return (
