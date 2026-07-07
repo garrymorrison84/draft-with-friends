@@ -80,6 +80,15 @@ export type FootballPlayer = {
   averageStats: import("./scoringEngine").FootballStatLine;
   projectedStats: import("./scoringEngine").FootballStatLine;
   liveStats?: import("./scoringEngine").FootballStatLine;
+  gameLogs?: FootballGameLog[];
+};
+
+export type FootballGameLog = {
+  id: string;
+  week: string;
+  opponent: string;
+  result?: string;
+  statLine: import("./scoringEngine").FootballStatLine;
 };
 
 export type FootballDraftPick = {

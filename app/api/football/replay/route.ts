@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { footballPlayers } from "../../../football/lib/storage";
-import type { FootballPlayer } from "../../../football/lib/storage";
+import type { FootballGameLog, FootballPlayer } from "../../../football/lib/storage";
 import type { FootballStatLine } from "../../../football/lib/scoringEngine";
 
 const REPLAY_BASE_URL =
@@ -46,6 +46,7 @@ type SportsDataPlayerStats = {
   Games?: number;
   FantasyPoints?: number;
   PassingCompletions?: number;
+  PassingAttempts?: number;
   PassingYards?: number;
   PassingTouchdowns?: number;
   PassingInterceptions?: number;
@@ -53,6 +54,7 @@ type SportsDataPlayerStats = {
   RushingYards?: number;
   RushingTouchdowns?: number;
   Receptions?: number;
+  ReceivingTargets?: number;
   ReceivingYards?: number;
   ReceivingTouchdowns?: number;
   PuntReturnTouchdowns?: number;
@@ -91,6 +93,14 @@ async function fetchSportsData<T>(url: string, key: string): Promise<T> {
   return response.json();
 }
 
+async function fetchSportsDataOrEmpty<T>(url: string, key: string): Promise<T[]> {
+  try {
+    return await fetchSportsData<T[]>(url, key);
+  } catch {
+    return [];
+  }
+}
+
 function sanitizeMetadata(metadata: any) {
   if (!metadata || typeof metadata !== "object") return metadata;
   const { ReplayApiKey, ...safeMetadata } = metadata;
@@ -125,6 +135,7 @@ function toStatLine(stats?: SportsDataPlayerStats, perGameStats = false): Footba
   const extraPointsAttempted = value(stats.ExtraPointsAttempted);
 
   return {
+    passingAttempts: value(stats.PassingAttempts),
     passingYards: value(stats.PassingYards),
     passingTds: value(stats.PassingTouchdowns),
     completions: value(stats.PassingCompletions),
@@ -133,6 +144,7 @@ function toStatLine(stats?: SportsDataPlayerStats, perGameStats = false): Footba
     rushingTds: value(stats.RushingTouchdowns),
     rushingAttempts: value(stats.RushingAttempts),
     receptions: value(stats.Receptions),
+    receivingTargets: value(stats.ReceivingTargets),
     receivingYards: value(stats.ReceivingYards),
     receivingTds: value(stats.ReceivingTouchdowns),
     returnTds:
@@ -181,21 +193,67 @@ function gameInfoForTeam(games: SportsDataGame[], team: SportsDataTeam) {
   };
 }
 
+function weeklyPlayerStatsEndpoint(week: number) {
+  return `${REPLAY_BASE_URL}/stats/json/playergamestatsbyweek/${REPLAY_SEASON_KEY}/${week}`;
+}
+
+function weeklyScheduleEndpoint(week: number) {
+  return `${REPLAY_BASE_URL}/scores/json/gamesbyweek/${REPLAY_SEASON_KEY}/${week}`;
+}
+
+function gameLogForPlayer({
+  stat,
+  week,
+  teamsById,
+  gamesByWeek,
+}: {
+  stat: SportsDataPlayerStats;
+  week: number;
+  teamsById: Map<number, SportsDataTeam>;
+  gamesByWeek: Map<number, SportsDataGame[]>;
+}): FootballGameLog {
+  const team = teamsById.get(stat.TeamID);
+  const game = team
+    ? gameInfoForTeam(gamesByWeek.get(week) || [], team)
+    : { opponent: "TBD", gameTime: "TBD" };
+
+  return {
+    id: `week-${week}-${stat.PlayerID}`,
+    week: `W${week}`,
+    opponent: game.opponent,
+    statLine: toStatLine(stat),
+  };
+}
+
 function buildReplayPlayers({
   teams,
   seasonStats,
   liveStats,
   games,
+  weeklyStats,
+  gamesByWeek,
 }: {
   teams: SportsDataTeam[];
   seasonStats: SportsDataPlayerStats[];
   liveStats: SportsDataPlayerStats[];
   games: SportsDataGame[];
+  weeklyStats: { week: number; stats: SportsDataPlayerStats[] }[];
+  gamesByWeek: Map<number, SportsDataGame[]>;
 }) {
   const teamsById = new Map(teams.map((team) => [team.TeamID, team]));
   const liveStatsByPlayer = new Map(
     liveStats.map((stats) => [stats.PlayerID, stats])
   );
+  const gameLogsByPlayer = new Map<number, FootballGameLog[]>();
+
+  weeklyStats.forEach(({ week, stats }) => {
+    stats.forEach((stat) => {
+      if (!fantasyPositions.has(stat.Position)) return;
+      const logs = gameLogsByPlayer.get(stat.PlayerID) || [];
+      logs.push(gameLogForPlayer({ stat, week, teamsById, gamesByWeek }));
+      gameLogsByPlayer.set(stat.PlayerID, logs);
+    });
+  });
 
   const normalizedPlayers: FootballPlayer[] = seasonStats
     .filter((stats) => fantasyPositions.has(stats.Position))
@@ -221,6 +279,9 @@ function buildReplayPlayers({
         averageStats: toStatLine(stats, true),
         projectedStats: toStatLine(stats, true),
         liveStats: live ? toStatLine(live) : {},
+        gameLogs: (gameLogsByPlayer.get(stats.PlayerID) || []).sort(
+          (a, b) => a.week.localeCompare(b.week, undefined, { numeric: true })
+        ),
       };
     })
     .filter((player) => player.name && player.school);
@@ -241,6 +302,7 @@ function buildReplayPlayers({
       averageStats: {},
       projectedStats: {},
       liveStats: {},
+      gameLogs: [],
     };
   });
 
@@ -316,7 +378,15 @@ export async function GET() {
 
   if (key) {
     try {
-      const [teams, seasonStats, liveStats, games] = await Promise.all([
+      const replayWeeks = Array.from({ length: REPLAY_WEEK }, (_, index) => index + 1);
+      const [
+        teams,
+        seasonStats,
+        liveStats,
+        games,
+        weeklyStatsResults,
+        weeklyScheduleResults,
+      ] = await Promise.all([
         fetchSportsData<SportsDataTeam[]>(replayEndpoints.teams, key),
         fetchSportsData<SportsDataPlayerStats[]>(
           replayEndpoints.playerSeasonStats,
@@ -327,13 +397,36 @@ export async function GET() {
           key
         ),
         fetchSportsData<SportsDataGame[]>(replayEndpoints.schedule, key),
+        Promise.all(
+          replayWeeks.map(async (week) => ({
+            week,
+            stats: await fetchSportsDataOrEmpty<SportsDataPlayerStats>(
+              weeklyPlayerStatsEndpoint(week),
+              key
+            ),
+          }))
+        ),
+        Promise.all(
+          replayWeeks.map(async (week) => ({
+            week,
+            games: await fetchSportsDataOrEmpty<SportsDataGame>(
+              weeklyScheduleEndpoint(week),
+              key
+            ),
+          }))
+        ),
       ]);
+      const gamesByWeek = new Map(
+        weeklyScheduleResults.map((result) => [result.week, result.games])
+      );
 
       replayPlayers = buildReplayPlayers({
         teams,
         seasonStats,
         liveStats,
         games,
+        weeklyStats: weeklyStatsResults,
+        gamesByWeek,
       });
       source = "SportsData CFB replay";
     } catch (error) {

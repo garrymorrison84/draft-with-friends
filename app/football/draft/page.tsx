@@ -17,7 +17,7 @@ import {
 import {
   getPlayerPpg,
   getProjectedScore,
-  getProjectionSummary,
+  scoreFootballStats,
 } from "../lib/scoringEngine";
 
 const positions = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"];
@@ -55,6 +55,195 @@ const positionStyles: Record<FootballPlayer["position"], { badge: string; card: 
   },
 };
 
+function formatStat(value: number | undefined) {
+  if (!value) return "-";
+  return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
+function formatPoints(value: number) {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
+function playerGameRows(player: FootballPlayer, scoring: FootballPool["scoring"]) {
+  if (player.gameLogs && player.gameLogs.length > 0) {
+    return player.gameLogs.map((log) => ({
+      label: log.week,
+      opponent: log.opponent,
+      statLine: log.statLine,
+      points: scoreFootballStats(log.statLine, scoring).total,
+    }));
+  }
+
+  return [
+    {
+      label: "Proj",
+      opponent: player.opponent,
+      statLine: player.projectedStats,
+      points: getProjectedScore(player, scoring).total,
+    },
+    {
+      label: "Avg",
+      opponent: "Season avg",
+      statLine: player.averageStats,
+      points: getPlayerPpg(player, scoring),
+    },
+  ];
+}
+
+function PlayerStatColumns({
+  player,
+  scoring,
+}: {
+  player: FootballPlayer;
+  scoring: FootballPool["scoring"];
+}) {
+  const stats = player.projectedStats;
+  const projectedScore = getProjectedScore(player, scoring);
+
+  return (
+    <>
+      <div className="text-left text-emerald-300">{formatPoints(projectedScore.total)}</div>
+      <div className="text-left text-slate-400">{player.gameTime} {player.opponent}</div>
+      <div>{formatStat(stats.rushingAttempts)}</div>
+      <div>{formatStat(stats.rushingYards)}</div>
+      <div>{formatStat(stats.rushingTds)}</div>
+      <div>{formatStat(stats.receptions)}</div>
+      <div>{formatStat(stats.receivingTargets)}</div>
+      <div>{formatStat(stats.receivingYards)}</div>
+      <div>{formatStat(stats.receivingTds)}</div>
+      <div>{formatStat(stats.completions)}</div>
+      <div>{formatStat(stats.passingAttempts)}</div>
+      <div>{formatStat(stats.passingYards)}</div>
+    </>
+  );
+}
+
+function PlayerDetailsModal({
+  player,
+  scoring,
+  onClose,
+  onDraft,
+}: {
+  player: FootballPlayer;
+  scoring: FootballPool["scoring"];
+  onClose: () => void;
+  onDraft: () => void;
+}) {
+  const styles = positionStyles[player.position];
+  const projection = getProjectedScore(player, scoring);
+  const ppg = getPlayerPpg(player, scoring);
+  const rows = playerGameRows(player, scoring);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
+        <div className="flex flex-col gap-5 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                {player.position}
+              </span>
+              <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                {player.school}
+              </span>
+            </div>
+            <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
+              {player.name}
+            </h2>
+            <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
+              {player.conference} • {player.gameTime} {player.opponent}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:min-w-[360px]">
+            <div className="rounded-2xl bg-[#030712] p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">PPG</p>
+              <p className="mt-1 text-2xl font-black text-white">{formatPoints(ppg)}</p>
+            </div>
+            <div className="rounded-2xl bg-[#030712] p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Projected</p>
+              <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(projection.total)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onDraft}
+              className="col-span-2 rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300 sm:col-span-1"
+            >
+              Draft
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[58vh] overflow-y-auto p-5 sm:p-7">
+          <h3 className="text-xl font-black">Game Log</h3>
+          <p className="mt-2 text-sm font-semibold text-slate-400">
+            Fantasy points use this pool&apos;s scoring rules. No player photos or school logos are shown.
+          </p>
+
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
+            <div className="grid min-w-[940px] grid-cols-[70px_150px_86px_70px_70px_70px_70px_70px_70px_70px_70px_70px_70px] gap-x-4 border-b border-white/10 px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-slate-500">
+              <div className="text-left">Week</div>
+              <div className="text-left">Opp</div>
+              <div className="text-emerald-300">Pts</div>
+              <div>Rush Att</div>
+              <div>Rush Yd</div>
+              <div>Rush TD</div>
+              <div>Rec</div>
+              <div>Tar</div>
+              <div>Rec Yd</div>
+              <div>Rec TD</div>
+              <div>Cmp</div>
+              <div>Pass Att</div>
+              <div>Pass Yd</div>
+            </div>
+            {rows.map((row) => (
+              <div
+                key={`${row.label}-${row.opponent}`}
+                className="grid min-w-[940px] grid-cols-[70px_150px_86px_70px_70px_70px_70px_70px_70px_70px_70px_70px_70px] gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-200 last:border-b-0"
+              >
+                <div className="text-left text-slate-400">{row.label}</div>
+                <div className="truncate text-left">{row.opponent}</div>
+                <div className="text-emerald-300">{formatPoints(row.points)}</div>
+                <div>{formatStat(row.statLine.rushingAttempts)}</div>
+                <div>{formatStat(row.statLine.rushingYards)}</div>
+                <div>{formatStat(row.statLine.rushingTds)}</div>
+                <div>{formatStat(row.statLine.receptions)}</div>
+                <div>{formatStat(row.statLine.receivingTargets)}</div>
+                <div>{formatStat(row.statLine.receivingYards)}</div>
+                <div>{formatStat(row.statLine.receivingTds)}</div>
+                <div>{formatStat(row.statLine.completions)}</div>
+                <div>{formatStat(row.statLine.passingAttempts)}</div>
+                <div>{formatStat(row.statLine.passingYards)}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {projection.components.slice(0, 6).map((component) => (
+              <div key={component.label} className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
+                <p className="text-sm font-bold text-slate-400">{component.label}</p>
+                <p className="mt-1 text-xl font-black text-emerald-300">
+                  {component.points.toFixed(1)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-end border-t border-white/10 p-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 hover:bg-white/5"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FootballDraftPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
@@ -62,6 +251,7 @@ export default function FootballDraftPage() {
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(false);
   const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
+  const [detailsPlayer, setDetailsPlayer] = useState<FootballPlayer | null>(null);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
   const [playerSource, setPlayerSource] = useState("Loading replay player pool...");
 
@@ -159,6 +349,11 @@ export default function FootballDraftPage() {
     setPendingPlayer(player);
   }
 
+  function draftFromDetails(player: FootballPlayer) {
+    setDetailsPlayer(null);
+    draftPlayer(player);
+  }
+
   function cancelDraftPlayer() {
     setPendingPlayer(null);
   }
@@ -176,6 +371,7 @@ export default function FootballDraftPage() {
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
     setPendingPlayer(null);
+    setDetailsPlayer(null);
 
     if (nextPicks.length >= totalPicks) {
       setShowCompleted(true);
@@ -189,6 +385,7 @@ export default function FootballDraftPage() {
     saveFootballDraftPicks(pool.id, nextPicks);
     setShowCompleted(false);
     setPendingPlayer(null);
+    setDetailsPlayer(null);
   }
 
   if (!pool) {
@@ -244,8 +441,8 @@ export default function FootballDraftPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[420px_1fr]">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[minmax(520px,640px)_1fr]">
+          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
             <h2 className="text-3xl font-black">Eligible Players</h2>
             <p className="mt-3 text-slate-400">
               Filter by position, search player or school, then draft from the list.
@@ -272,88 +469,82 @@ export default function FootballDraftPage() {
               ))}
             </select>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
+              <div className="overflow-x-auto">
+                <div className="min-w-[1180px] border-b border-white/10 bg-[#1F2937] px-4 py-3">
+                  <div className="grid grid-cols-[260px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px] items-center gap-x-4 text-right text-xs font-black uppercase tracking-wide text-slate-500">
+                    <div className="text-left">Player</div>
+                    <div className="text-left text-emerald-300">Pts</div>
+                    <div className="text-left">Game</div>
+                    <div>Rush Att</div>
+                    <div>Rush Yd</div>
+                    <div>Rush TD</div>
+                    <div>Rec</div>
+                    <div>Tar</div>
+                    <div>Rec Yd</div>
+                    <div>Rec TD</div>
+                    <div>Cmp</div>
+                    <div>Pass Att</div>
+                    <div>Pass Yd</div>
+                    <div>Action</div>
+                  </div>
+                </div>
+
               {displayedPlayers.map((player) => {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
-                const projectedScore = getProjectedScore(player, pool.scoring);
                 const ppg = getPlayerPpg(player, pool.scoring);
-                const projectionSummary = getProjectionSummary(player, pool.scoring);
 
                 return (
-                  <button
+                  <div
                     key={player.id}
-                    type="button"
-                    onClick={() => draftPlayer(player)}
-                    disabled={drafted || draftComplete}
-                    className={`w-full rounded-2xl border p-5 text-left transition ${
+                    className={`grid min-w-[1180px] grid-cols-[260px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px] items-center gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-300 last:border-b-0 ${
                       drafted
-                        ? "border-white/5 bg-[#030712] opacity-45"
+                        ? "bg-[#030712] opacity-45"
                         : selected
-                          ? "border-emerald-300 bg-emerald-400/10 shadow-lg shadow-emerald-400/10"
-                          : `border-emerald-400/25 bg-[#1F2937] ${styles.card}`
+                          ? "bg-emerald-400/10"
+                          : "bg-[#030712]"
                     }`}
                   >
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <p className="break-words text-xl font-black">{player.name}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
-                              {player.position}
-                            </span>
-                            <span className="text-sm font-bold text-slate-400">
-                              {player.school}
-                            </span>
-                            <span className="text-sm font-bold text-slate-500">
-                              {player.conference}
-                            </span>
-                          </div>
-                        </div>
-
-                        <span className="shrink-0 rounded-full bg-emerald-400/15 px-4 py-2 text-sm font-black text-emerald-300">
-                          {drafted ? "Taken" : selected ? "Selected" : "Pick"}
+                    <button
+                      type="button"
+                      onClick={() => setDetailsPlayer(player)}
+                      className="min-w-0 text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                          {player.position}
                         </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-black text-white">
+                            {player.name}
+                          </p>
+                          <p className="truncate text-xs font-bold text-slate-500">
+                            {player.school} • {player.conference} • {formatPoints(ppg)} PPG
+                          </p>
+                        </div>
                       </div>
+                    </button>
 
-                      <div className="grid gap-2 rounded-xl border border-white/5 bg-[#030712]/70 p-3 text-sm sm:grid-cols-3">
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            PPG
-                          </p>
-                          <p className="mt-1 font-black text-white">{ppg.toFixed(1)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Projected
-                          </p>
-                          <p className="mt-1 font-black text-emerald-300">
-                            {projectedScore.total.toFixed(1)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                            Next Game
-                          </p>
-                          <p className="mt-1 break-words font-black text-white">
-                            {player.opponent}
-                          </p>
-                        </div>
-                      </div>
+                    <PlayerStatColumns player={player} scoring={pool.scoring} />
 
-                      <div className="space-y-1 text-sm font-semibold text-slate-400">
-                        {projectionSummary.map((line) => (
-                          <p key={line}>{line}</p>
-                        ))}
-                      </div>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => draftPlayer(player)}
+                      disabled={drafted || draftComplete}
+                      className="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                    >
+                      {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
+                    </button>
+                  </div>
                 );
               })}
+              </div>
+            </div>
 
               {filteredPlayers.length > displayedPlayers.length && (
-                <div className="rounded-2xl border border-white/5 bg-[#030712] p-5 text-sm font-semibold text-slate-400">
+                <div className="mt-4 rounded-2xl border border-white/5 bg-[#030712] p-5 text-sm font-semibold text-slate-400">
                   Showing the top {displayedPlayers.length.toLocaleString()} of{" "}
                   {filteredPlayers.length.toLocaleString()} eligible players. Search by
                   player or school to narrow the list.
@@ -361,12 +552,11 @@ export default function FootballDraftPage() {
               )}
 
               {filteredPlayers.length === 0 && (
-                <div className="rounded-2xl border border-white/5 bg-[#030712] p-5 text-slate-400">
+                <div className="mt-4 rounded-2xl border border-white/5 bg-[#030712] p-5 text-slate-400">
                   No eligible players match this position, roster, conference,
                   and search combination.
                 </div>
               )}
-            </div>
           </section>
 
           <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
@@ -437,6 +627,15 @@ export default function FootballDraftPage() {
           </section>
         </div>
       </div>
+
+      {detailsPlayer && (
+        <PlayerDetailsModal
+          player={detailsPlayer}
+          scoring={pool.scoring}
+          onClose={() => setDetailsPlayer(null)}
+          onDraft={() => draftFromDetails(detailsPlayer)}
+        />
+      )}
 
       {pendingPlayer && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">

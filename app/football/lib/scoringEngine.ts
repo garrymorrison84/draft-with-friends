@@ -4,6 +4,7 @@ import type { FootballPlayer, FootballScoring } from "./storage";
 import { defaultScoring } from "./storage";
 
 export type FootballStatLine = {
+  passingAttempts?: number;
   passingYards?: number;
   passingTds?: number;
   completions?: number;
@@ -12,6 +13,7 @@ export type FootballStatLine = {
   rushingTds?: number;
   rushingAttempts?: number;
   receptions?: number;
+  receivingTargets?: number;
   receivingYards?: number;
   receivingTds?: number;
   sacks?: number;
