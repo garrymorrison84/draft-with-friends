@@ -133,6 +133,7 @@ function PlayerDetailsModal({
   const projection = getProjectedScore(player, scoring);
   const ppg = getPlayerPpg(player, scoring);
   const rows = playerGameRows(player, scoring);
+  const hasReplayGameLogs = Boolean(player.gameLogs?.length);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
@@ -179,6 +180,11 @@ function PlayerDetailsModal({
           <p className="mt-2 text-sm font-semibold text-slate-400">
             Fantasy points use this pool&apos;s scoring rules. No player photos or school logos are shown.
           </p>
+          {!hasReplayGameLogs && (
+            <p className="mt-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm font-bold text-amber-100">
+              SportsData did not return game-by-game rows for this replay package yet, so this view is showing projected and season-average stat lines.
+            </p>
+          )}
 
           <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
             <div className="grid min-w-[940px] grid-cols-[70px_150px_86px_70px_70px_70px_70px_70px_70px_70px_70px_70px_70px] gap-x-4 border-b border-white/10 px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-slate-500">
