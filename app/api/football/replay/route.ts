@@ -23,6 +23,7 @@ const replayEndpoints = {
   leagueHierarchy: `${REPLAY_BASE_URL}/scores/json/leaguehierarchy`,
   activePlayers: `${REPLAY_BASE_URL}/scores/json/players`,
   playerSeasonStats: `${REPLAY_BASE_URL}/stats/json/playerseasonstats/${REPLAY_SEASON_KEY}`,
+  playerGameStatsBySeason: `${REPLAY_BASE_URL}/stats/json/playergamestatsbyseason/${REPLAY_SEASON_KEY}`,
   livePlayerStats: `${REPLAY_BASE_URL}/stats/json/playergamestatsbyweek/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}`,
   liveBoxScores: `${REPLAY_BASE_URL}/stats/json/boxscoresbyweek/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}`,
   liveBoxScoreDelta: `${REPLAY_BASE_URL}/stats/json/boxscoresbyweekdelta/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}/all`,
@@ -39,9 +40,11 @@ type SportsDataTeam = {
 
 type SportsDataPlayerStats = {
   PlayerID: number;
+  Week?: number;
   Name: string;
   TeamID: number;
   Team: string;
+  Opponent?: string;
   Position: string;
   Games?: number;
   FantasyPoints?: number;
@@ -213,14 +216,15 @@ function gameLogForPlayer({
   gamesByWeek: Map<number, SportsDataGame[]>;
 }): FootballGameLog {
   const team = teamsById.get(stat.TeamID);
+  const logWeek = stat.Week || week;
   const game = team
-    ? gameInfoForTeam(gamesByWeek.get(week) || [], team)
+    ? gameInfoForTeam(gamesByWeek.get(logWeek) || [], team)
     : { opponent: "TBD", gameTime: "TBD" };
 
   return {
-    id: `week-${week}-${stat.PlayerID}`,
-    week: `W${week}`,
-    opponent: game.opponent,
+    id: `week-${logWeek}-${stat.PlayerID}`,
+    week: `W${logWeek}`,
+    opponent: stat.Opponent || game.opponent,
     statLine: toStatLine(stat),
   };
 }
@@ -230,6 +234,7 @@ function buildReplayPlayers({
   seasonStats,
   liveStats,
   games,
+  seasonGameStats,
   weeklyStats,
   gamesByWeek,
 }: {
@@ -237,6 +242,7 @@ function buildReplayPlayers({
   seasonStats: SportsDataPlayerStats[];
   liveStats: SportsDataPlayerStats[];
   games: SportsDataGame[];
+  seasonGameStats: SportsDataPlayerStats[];
   weeklyStats: { week: number; stats: SportsDataPlayerStats[] }[];
   gamesByWeek: Map<number, SportsDataGame[]>;
 }) {
@@ -246,13 +252,17 @@ function buildReplayPlayers({
   );
   const gameLogsByPlayer = new Map<number, FootballGameLog[]>();
 
-  weeklyStats.forEach(({ week, stats }) => {
-    stats.forEach((stat) => {
-      if (!fantasyPositions.has(stat.Position)) return;
-      const logs = gameLogsByPlayer.get(stat.PlayerID) || [];
-      logs.push(gameLogForPlayer({ stat, week, teamsById, gamesByWeek }));
-      gameLogsByPlayer.set(stat.PlayerID, logs);
-    });
+  const gameLogStats = seasonGameStats.length
+    ? seasonGameStats.map((stat) => ({ week: stat.Week || REPLAY_WEEK, stat }))
+    : weeklyStats.flatMap(({ week, stats }) =>
+        stats.map((stat) => ({ week, stat }))
+      );
+
+  gameLogStats.forEach(({ week, stat }) => {
+    if (!fantasyPositions.has(stat.Position)) return;
+    const logs = gameLogsByPlayer.get(stat.PlayerID) || [];
+    logs.push(gameLogForPlayer({ stat, week, teamsById, gamesByWeek }));
+    gameLogsByPlayer.set(stat.PlayerID, logs);
   });
 
   const normalizedPlayers: FootballPlayer[] = seasonStats
@@ -382,6 +392,7 @@ export async function GET() {
       const [
         teams,
         seasonStats,
+        seasonGameStats,
         liveStats,
         games,
         weeklyStatsResults,
@@ -390,6 +401,10 @@ export async function GET() {
         fetchSportsData<SportsDataTeam[]>(replayEndpoints.teams, key),
         fetchSportsData<SportsDataPlayerStats[]>(
           replayEndpoints.playerSeasonStats,
+          key
+        ),
+        fetchSportsDataOrEmpty<SportsDataPlayerStats>(
+          replayEndpoints.playerGameStatsBySeason,
           key
         ),
         fetchSportsData<SportsDataPlayerStats[]>(
@@ -423,6 +438,7 @@ export async function GET() {
       replayPlayers = buildReplayPlayers({
         teams,
         seasonStats,
+        seasonGameStats,
         liveStats,
         games,
         weeklyStats: weeklyStatsResults,
