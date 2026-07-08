@@ -25,6 +25,8 @@ const replayEndpoints = {
   playerSeasonStats: `${REPLAY_BASE_URL}/stats/json/playerseasonstats/${REPLAY_SEASON_KEY}`,
   playerGameStatsBySeason: `${REPLAY_BASE_URL}/stats/json/playergamestatsbyseason/${REPLAY_SEASON_KEY}`,
   livePlayerStats: `${REPLAY_BASE_URL}/stats/json/playergamestatsbyweek/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}`,
+  teamSeasonStats: `${REPLAY_BASE_URL}/stats/json/teamseasonstats/${REPLAY_SEASON_KEY}`,
+  liveTeamStats: `${REPLAY_BASE_URL}/stats/json/teamgamestatsbyweek/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}`,
   liveBoxScores: `${REPLAY_BASE_URL}/stats/json/boxscoresbyweek/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}`,
   liveBoxScoreDelta: `${REPLAY_BASE_URL}/stats/json/boxscoresbyweekdelta/${REPLAY_SEASON_KEY}/${REPLAY_WEEK}/all`,
 };
@@ -68,10 +70,30 @@ type SportsDataPlayerStats = {
   ExtraPointsMade?: number;
   Interceptions?: number;
   InterceptionReturnTouchdowns?: number;
+  Safeties?: number;
+  BlockedKicks?: number;
   Sacks?: number;
   FumblesRecovered?: number;
   FumbleReturnTouchdowns?: number;
   FumblesLost?: number;
+  FieldGoalsMade50Plus?: number;
+};
+
+type SportsDataTeamStats = {
+  TeamID: number;
+  Team?: string;
+  Games?: number;
+  FantasyPoints?: number;
+  Interceptions?: number;
+  InterceptionReturnTouchdowns?: number;
+  Sacks?: number;
+  FumblesRecovered?: number;
+  FumbleReturnTouchdowns?: number;
+  Safeties?: number;
+  BlockedKicks?: number;
+  PuntReturnTouchdowns?: number;
+  KickReturnTouchdowns?: number;
+  FieldGoalsMade50Plus?: number;
 };
 
 type SportsDataGame = {
@@ -212,9 +234,35 @@ function toStatLine(stats?: SportsDataPlayerStats, perGameStats = false): Footba
     defenseTds:
       value(stats.InterceptionReturnTouchdowns) +
       value(stats.FumbleReturnTouchdowns),
+    safeties: value(stats.Safeties),
+    blockedKicks: value(stats.BlockedKicks),
     sacks: value(stats.Sacks),
     fumbleRecoveries: value(stats.FumblesRecovered),
     fumblesLost: value(stats.FumblesLost),
+    fieldGoals50Plus: value(stats.FieldGoalsMade50Plus),
+  };
+}
+
+function toDefenseStatLine(
+  stats?: SportsDataTeamStats,
+  perGameStats = false
+): FootballStatLine {
+  if (!stats) return {};
+
+  const divisor = perGameStats ? Math.max(1, stats.Games || 0) : 1;
+  const value = (raw: number | undefined) => perGame(raw, divisor);
+
+  return {
+    sacks: value(stats.Sacks),
+    defenseInterceptions: value(stats.Interceptions),
+    fumbleRecoveries: value(stats.FumblesRecovered),
+    defenseTds:
+      value(stats.InterceptionReturnTouchdowns) +
+      value(stats.FumbleReturnTouchdowns),
+    safeties: value(stats.Safeties),
+    blockedKicks: value(stats.BlockedKicks),
+    returnTds:
+      value(stats.PuntReturnTouchdowns) + value(stats.KickReturnTouchdowns),
   };
 }
 
@@ -285,6 +333,8 @@ function buildReplayPlayers({
   teams,
   seasonStats,
   liveStats,
+  teamSeasonStats,
+  liveTeamStats,
   games,
   seasonGameStats,
   weeklyStats,
@@ -293,6 +343,8 @@ function buildReplayPlayers({
   teams: SportsDataTeam[];
   seasonStats: SportsDataPlayerStats[];
   liveStats: SportsDataPlayerStats[];
+  teamSeasonStats: SportsDataTeamStats[];
+  liveTeamStats: SportsDataTeamStats[];
   games: SportsDataGame[];
   seasonGameStats: SportsDataPlayerStats[];
   weeklyStats: { week: number; stats: SportsDataPlayerStats[] }[];
@@ -301,6 +353,12 @@ function buildReplayPlayers({
   const teamsById = new Map(teams.map((team) => [team.TeamID, team]));
   const liveStatsByPlayer = new Map(
     liveStats.map((stats) => [stats.PlayerID, stats])
+  );
+  const teamSeasonStatsByTeam = new Map(
+    teamSeasonStats.map((stats) => [stats.TeamID, stats])
+  );
+  const liveTeamStatsByTeam = new Map(
+    liveTeamStats.map((stats) => [stats.TeamID, stats])
   );
   const gameLogsByPlayer = new Map<number, FootballGameLog[]>();
 
@@ -350,6 +408,8 @@ function buildReplayPlayers({
 
   const defenses: FootballPlayer[] = teams.map((team) => {
     const game = gameInfoForTeam(games, team);
+    const seasonStatsForTeam = teamSeasonStatsByTeam.get(team.TeamID);
+    const liveStatsForTeam = liveTeamStatsByTeam.get(team.TeamID);
 
     return {
       id: `sd-dst-${team.TeamID}`,
@@ -358,12 +418,19 @@ function buildReplayPlayers({
       conference: normalizeConference(team.Conference),
       position: "DST",
       rank: 9999,
-      projected: 0,
+      projected: seasonStatsForTeam?.FantasyPoints
+        ? Number(
+            (
+              seasonStatsForTeam.FantasyPoints /
+              Math.max(1, seasonStatsForTeam.Games || 0)
+            ).toFixed(1)
+          )
+        : 0,
       opponent: game.opponent,
       gameTime: game.gameTime,
-      averageStats: {},
-      projectedStats: {},
-      liveStats: {},
+      averageStats: toDefenseStatLine(seasonStatsForTeam, true),
+      projectedStats: toDefenseStatLine(seasonStatsForTeam, true),
+      liveStats: toDefenseStatLine(liveStatsForTeam),
       gameLogs: [],
     };
   });
@@ -446,6 +513,8 @@ export async function GET() {
         seasonStats,
         seasonGameStats,
         liveStats,
+        teamSeasonStats,
+        liveTeamStats,
         games,
         weeklyStatsResults,
         weeklyScheduleResults,
@@ -461,6 +530,14 @@ export async function GET() {
         ),
         fetchSportsData<SportsDataPlayerStats[]>(
           replayEndpoints.livePlayerStats,
+          key
+        ),
+        fetchSportsDataOrEmpty<SportsDataTeamStats>(
+          replayEndpoints.teamSeasonStats,
+          key
+        ),
+        fetchSportsDataOrEmpty<SportsDataTeamStats>(
+          replayEndpoints.liveTeamStats,
           key
         ),
         fetchSportsData<SportsDataGame[]>(replayEndpoints.schedule, key),
@@ -492,6 +569,8 @@ export async function GET() {
         seasonStats,
         seasonGameStats,
         liveStats,
+        teamSeasonStats,
+        liveTeamStats,
         games,
         weeklyStats: weeklyStatsResults,
         gamesByWeek,

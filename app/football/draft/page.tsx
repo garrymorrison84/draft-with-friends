@@ -8,6 +8,7 @@ import {
   FootballPlayer,
   FootballPool,
   defaultFootballPlayerPool,
+  defaultScoring,
   footballPlayers,
   getTotalRosterSlots,
   loadFootballDraftPicks,
@@ -28,34 +29,34 @@ const positionStyles: Record<
   { badge: string; card: string; board: string }
 > = {
   QB: {
-    badge: "border-fuchsia-400/35 bg-fuchsia-400/15 text-fuchsia-200",
+    badge: "border-fuchsia-300/55 bg-fuchsia-400/20 text-fuchsia-100",
     card: "hover:border-fuchsia-400/70",
-    board: "border-fuchsia-400/45 bg-fuchsia-400/12",
+    board: "border-fuchsia-300/70 bg-fuchsia-400/20",
   },
   RB: {
-    badge: "border-teal-300/35 bg-teal-300/15 text-teal-200",
+    badge: "border-teal-200/55 bg-teal-300/20 text-teal-100",
     card: "hover:border-teal-300/70",
-    board: "border-teal-300/45 bg-teal-300/12",
+    board: "border-teal-200/70 bg-teal-300/20",
   },
   WR: {
-    badge: "border-blue-300/45 bg-blue-300/15 text-blue-100",
-    card: "hover:border-blue-300/70",
-    board: "border-blue-300/45 bg-blue-300/12",
+    badge: "border-sky-200/60 bg-sky-300/25 text-sky-50",
+    card: "hover:border-sky-300/80",
+    board: "border-sky-200/75 bg-sky-300/24",
   },
   TE: {
-    badge: "border-amber-300/35 bg-amber-300/15 text-amber-200",
+    badge: "border-amber-200/55 bg-amber-300/20 text-amber-100",
     card: "hover:border-amber-300/70",
-    board: "border-amber-300/45 bg-amber-300/12",
+    board: "border-amber-200/70 bg-amber-300/20",
   },
   DST: {
-    badge: "border-lime-300/35 bg-lime-300/15 text-lime-200",
+    badge: "border-lime-200/55 bg-lime-300/20 text-lime-100",
     card: "hover:border-lime-300/70",
-    board: "border-lime-300/45 bg-lime-300/12",
+    board: "border-lime-200/70 bg-lime-300/20",
   },
   K: {
-    badge: "border-violet-300/35 bg-violet-300/15 text-violet-200",
+    badge: "border-violet-200/55 bg-violet-300/20 text-violet-100",
     card: "hover:border-violet-300/70",
-    board: "border-violet-300/45 bg-violet-300/12",
+    board: "border-violet-200/70 bg-violet-300/20",
   },
 };
 
@@ -71,7 +72,12 @@ function formatPoints(value: number) {
 const eligiblePlayerGrid =
   "grid-cols-[260px_92px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px]";
 
-function gameLogColumnsForPosition(position: FootballPlayer["position"]) {
+function gameLogColumnsForPosition(
+  position: FootballPlayer["position"],
+  scoring: FootballPool["scoring"]
+) {
+  const scoringRules = scoring ?? defaultScoring;
+
   if (position === "QB") {
     return [
       { label: "Cmp", value: (stats: FootballStatLine) => stats.completions },
@@ -91,7 +97,6 @@ function gameLogColumnsForPosition(position: FootballPlayer["position"]) {
       { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
       { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
       { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
-      { label: "Tar", value: (stats: FootballStatLine) => stats.receivingTargets },
       { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
       { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
     ];
@@ -100,34 +105,30 @@ function gameLogColumnsForPosition(position: FootballPlayer["position"]) {
   if (position === "WR" || position === "TE") {
     return [
       { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
-      { label: "Tar", value: (stats: FootballStatLine) => stats.receivingTargets },
       { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
       { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
-      { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
-      { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
-      { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
     ];
   }
 
   if (position === "DST") {
     return [
-      { label: "Sacks", value: (stats: FootballStatLine) => stats.sacks },
-      { label: "INT", value: (stats: FootballStatLine) => stats.defenseInterceptions },
-      { label: "Fum Rec", value: (stats: FootballStatLine) => stats.fumbleRecoveries },
-      { label: "TD", value: (stats: FootballStatLine) => stats.defenseTds },
-      { label: "Safety", value: (stats: FootballStatLine) => stats.safeties },
-      { label: "Blk Kick", value: (stats: FootballStatLine) => stats.blockedKicks },
-      { label: "Ret TD", value: (stats: FootballStatLine) => stats.returnTds },
-    ];
+      scoringRules.defense.sack !== 0 && { label: "Sacks", value: (stats: FootballStatLine) => stats.sacks },
+      scoringRules.defense.interception !== 0 && { label: "INT", value: (stats: FootballStatLine) => stats.defenseInterceptions },
+      scoringRules.defense.fumbleRecovery !== 0 && { label: "Fum Rec", value: (stats: FootballStatLine) => stats.fumbleRecoveries },
+      scoringRules.defense.touchdown !== 0 && { label: "TD", value: (stats: FootballStatLine) => stats.defenseTds },
+      scoringRules.defense.safety !== 0 && { label: "Safety", value: (stats: FootballStatLine) => stats.safeties },
+      scoringRules.defense.blockedKick !== 0 && { label: "Blk Kick", value: (stats: FootballStatLine) => stats.blockedKicks },
+      scoringRules.defense.returnTouchdown !== 0 && { label: "Ret TD", value: (stats: FootballStatLine) => stats.returnTds },
+    ].filter(Boolean) as { label: string; value: (stats: FootballStatLine) => number | undefined }[];
   }
 
   return [
-    { label: "XP", value: (stats: FootballStatLine) => stats.extraPointsMade },
-    { label: "Miss XP", value: (stats: FootballStatLine) => stats.extraPointsMissed },
-    { label: "FG", value: (stats: FootballStatLine) => stats.fieldGoalsMade },
-    { label: "Miss FG", value: (stats: FootballStatLine) => stats.fieldGoalsMissed },
-    { label: "50+ Bonus", value: (stats: FootballStatLine) => stats.fieldGoals50Plus },
-  ];
+    scoringRules.kicking.extraPoint !== 0 && { label: "XP Made", value: (stats: FootballStatLine) => stats.extraPointsMade },
+    scoringRules.kicking.missedExtraPoint !== 0 && { label: "XP Miss", value: (stats: FootballStatLine) => stats.extraPointsMissed },
+    scoringRules.kicking.fieldGoal !== 0 && { label: "FG Made", value: (stats: FootballStatLine) => stats.fieldGoalsMade },
+    scoringRules.kicking.missedFieldGoal !== 0 && { label: "FG Miss", value: (stats: FootballStatLine) => stats.fieldGoalsMissed },
+    scoringRules.kicking.fieldGoal50Bonus !== 0 && { label: "50+ FG", value: (stats: FootballStatLine) => stats.fieldGoals50Plus },
+  ].filter(Boolean) as { label: string; value: (stats: FootballStatLine) => number | undefined }[];
 }
 
 function positionCountsForTeam(
@@ -262,7 +263,7 @@ function PlayerDetailsModal({
   const projection = getProjectedScore(player, scoring);
   const rows = playerGameRows(player, scoring);
   const hasReplayGameLogs = Boolean(player.gameLogs?.length);
-  const gameLogColumns = gameLogColumnsForPosition(player.position);
+  const gameLogColumns = gameLogColumnsForPosition(player.position, scoring);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
@@ -788,7 +789,7 @@ export default function FootballDraftPage() {
                           key={`${roundIndex}-${team}`}
                           className={`relative min-h-[132px] border-r border-t p-4 last:border-r-0 sm:min-h-40 sm:p-5 ${
                             player && styles
-                              ? `border ${styles.board}`
+                              ? styles.board
                               : isCurrentPick
                                 ? "border-emerald-400/20 bg-emerald-400/15"
                                 : "border-white/5 bg-[#030712]"
@@ -904,7 +905,10 @@ export default function FootballDraftPage() {
       {showCompleted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
           <div className="w-full max-w-lg rounded-3xl border border-emerald-400/30 bg-[#111827] p-8 text-center shadow-2xl shadow-black/60">
-            <h2 className="text-4xl font-black">Congratulations! Draft Completed!</h2>
+            <h2 className="text-4xl font-black">
+              <span className="block">Congratulations!</span>
+              <span className="block">Draft Completed!</span>
+            </h2>
             <p className="mt-4 text-slate-300">
               Your college football pool is ready for live tracking.
             </p>
