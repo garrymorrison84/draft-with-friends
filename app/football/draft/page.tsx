@@ -700,64 +700,101 @@ export default function FootballDraftPage() {
               </span>
             </div>
 
-            <div className="mt-6 overflow-x-auto rounded-3xl border border-slate-700/60 sm:mt-8">
-              <div className="grid min-w-max" style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}>
-                {pool.draftOrder.map((team) => (
-                  <div key={team} className="border-r border-slate-700/70 bg-[#243044] p-4 text-center last:border-r-0 sm:p-6">
-                    <p className="text-sm font-black uppercase tracking-widest text-slate-400">Team</p>
-                    <p className="mt-2 text-2xl font-black">{team}</p>
+            <div className="mt-6 max-h-[70vh] overflow-auto rounded-3xl border border-white/5 sm:mt-8">
+              <div style={{ minWidth: `${pool.numberOfTeams * 190}px` }}>
+                <div
+                  className="sticky top-0 z-20 grid bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#0F766E] shadow-lg shadow-emerald-950/40"
+                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(190px, 1fr))` }}
+                >
+                  {pool.draftOrder.map((team) => (
+                    <div key={team} className="border-r border-emerald-300/20 p-4 text-center last:border-r-0 sm:p-6">
+                      <p className="text-xs font-black uppercase tracking-widest text-emerald-100/85">Team</p>
+                      <p className="mt-2 truncate text-xl font-black text-white sm:text-2xl">{team}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {Array.from({ length: rosterSlots }).map((_, roundIndex) => (
+                  <div
+                    key={roundIndex}
+                    className="grid"
+                    style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(190px, 1fr))` }}
+                  >
+                    {pool.draftOrder.map((team, teamIndex) => {
+                      const isSnakeRound = roundIndex % 2 === 1;
+                      const actualTeamIndex = isSnakeRound
+                        ? pool.numberOfTeams - 1 - teamIndex
+                        : teamIndex;
+                      const displayedPickIndex =
+                        roundIndex * pool.numberOfTeams + actualTeamIndex;
+                      const pick = picks[displayedPickIndex];
+                      const player = players.find((item) => item.id === pick?.playerId);
+                      const styles = player ? positionStyles[player.position] : null;
+                      const isCurrentPick =
+                        !draftComplete && displayedPickIndex === picks.length;
+
+                      return (
+                        <div
+                          key={`${roundIndex}-${team}`}
+                          className={`relative min-h-[132px] border-r border-t p-4 last:border-r-0 sm:min-h-40 sm:p-5 ${
+                            player && styles
+                              ? `border ${styles.board}`
+                              : isCurrentPick
+                                ? "border-emerald-400/20 bg-emerald-400/15"
+                                : "border-white/5 bg-[#030712]"
+                          }`}
+                        >
+                          <div
+                            className={`absolute right-3 top-3 rounded-full px-3 py-1 text-xs font-black ${
+                              player
+                                ? "bg-blue-500/25 text-blue-100"
+                                : isCurrentPick
+                                  ? "bg-emerald-400 text-slate-950"
+                                  : "bg-[#1F2937] text-slate-500"
+                            }`}
+                          >
+                            {roundIndex + 1}.{actualTeamIndex + 1}
+                          </div>
+
+                          {player && styles ? (
+                            <>
+                              <p className="pr-12 text-sm font-black text-slate-300">
+                                Drafted
+                              </p>
+                              <p className="mt-3 pr-12 text-lg font-black leading-tight text-white sm:text-xl">
+                                {player.name}
+                              </p>
+                              <div className="mt-3 flex flex-wrap items-center gap-2 pr-2">
+                                <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                                  {player.position}
+                                </span>
+                                <span className="text-sm font-bold text-slate-400">{player.school}</span>
+                                <span className="text-sm font-bold text-emerald-300">
+                                  {getProjectedScore(player, pool.scoring).total.toFixed(1)} proj
+                                </span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p
+                                className={`pr-12 text-sm font-black ${
+                                  isCurrentPick ? "text-emerald-300" : "text-slate-500"
+                                }`}
+                              >
+                                {isCurrentPick ? "On the clock" : "Open"}
+                              </p>
+                              <p className="mt-3 pr-12 text-sm font-bold text-slate-600">
+                                Awaiting selection
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
-
-                {picks.map((pick, index) => {
-                  const round = Math.floor(index / pool.numberOfTeams);
-                  const spot = index % pool.numberOfTeams;
-                  const boardTeamIndex = round % 2 === 1 ? pool.numberOfTeams - spot - 1 : spot;
-                  const player = players.find((item) => item.id === pick?.playerId);
-                  const styles = player ? positionStyles[player.position] : null;
-
-                  return (
-                    <div
-                      key={index}
-                      className={`min-h-32 border-r border-t p-4 last:border-r-0 sm:min-h-36 sm:p-5 ${
-                        styles
-                          ? `border ${styles.board}`
-                          : "border-slate-700/60 bg-[#1b3458]"
-                      }`}
-                      style={{ gridColumnStart: boardTeamIndex + 1 }}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-black text-slate-300">
-                          {player ? "Drafted" : index === picks.length ? "On the clock" : "Open"}
-                        </p>
-                        <span className="rounded-full bg-blue-500/30 px-3 py-1 text-sm font-black text-slate-200">
-                          {round + 1}.{boardTeamIndex + 1}
-                        </span>
-                      </div>
-                      <p className="mt-4 text-xl font-black">
-                        {player?.name || "Awaiting pick"}
-                      </p>
-                      {player && (
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles?.badge || ""}`}>
-                            {player.position}
-                          </span>
-                          <span className="text-sm font-bold text-slate-400">{player.school}</span>
-                          <span className="text-sm font-bold text-emerald-300">
-                            {getProjectedScore(player, pool.scoring).total.toFixed(1)} proj
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
               </div>
             </div>
-            {picks.length === 0 && (
-              <div className="mt-4 rounded-2xl border border-dashed border-slate-700/70 bg-[#030712] p-5 text-sm font-bold text-slate-500">
-                Draft board will fill in after the first confirmed pick.
-              </div>
-            )}
           </section>
         </div>
       </div>

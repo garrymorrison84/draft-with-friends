@@ -604,7 +604,7 @@ export default function DraftPage() {
             <div className="max-h-[70vh] overflow-auto rounded-2xl border border-white/5">
               <div style={{ minWidth: `${teams.length * 150}px` }}>
                 <div
-                  className="sticky top-0 z-20 grid bg-gradient-to-r from-emerald-900 to-emerald-700"
+                  className="sticky top-0 z-20 grid bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#0F766E] shadow-lg shadow-emerald-950/40"
                   style={{
                     gridTemplateColumns: `repeat(${teams.length}, minmax(150px, 1fr))`,
                   }}
