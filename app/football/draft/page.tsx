@@ -593,7 +593,7 @@ export default function FootballDraftPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
             <button
               type="button"
               onClick={undoPick}
@@ -733,9 +733,19 @@ export default function FootballDraftPage() {
                   Snake draft order reverses each round.
                 </p>
               </div>
-              <span className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
-                Snake Draft
-              </span>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={undoPick}
+                  disabled={picks.length === 0}
+                  className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 lg:hidden"
+                >
+                  Undo Pick
+                </button>
+                <span className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
+                  Snake Draft
+                </span>
+              </div>
             </div>
 
             <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-white/5 sm:mt-8 lg:min-h-[760px]">

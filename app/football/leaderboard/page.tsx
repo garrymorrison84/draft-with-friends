@@ -25,6 +25,11 @@ type TeamScoringColumn = {
   value: (stats: FootballStatLine) => number | undefined;
 };
 
+type TeamRosterEntry = {
+  player: FootballPlayer;
+  slotLabel: FootballPlayer["position"] | "FLEX";
+};
+
 const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   QB: "border-fuchsia-300/55 bg-fuchsia-400/20 text-fuchsia-100",
   RB: "border-teal-200/55 bg-teal-300/20 text-teal-100",
@@ -47,6 +52,10 @@ function scoringTotal(player: FootballPlayer, scoring: FootballScoring) {
   return scoreFootballStats(scoringStatLine(player), scoring).total;
 }
 
+function projectedTotal(player: FootballPlayer, scoring: FootballScoring) {
+  return getProjectedScore(player, scoring).total;
+}
+
 function formatNumber(value: number | undefined) {
   if (value === undefined || Number.isNaN(value)) return "-";
   return Number.isInteger(value) ? value.toString() : value.toFixed(1);
@@ -61,18 +70,31 @@ function formatCompactName(name: string) {
   return `${first}. ${last}`;
 }
 
-function buildTeamScoringColumns(scoring: FootballScoring): TeamScoringColumn[] {
-  const columns: TeamScoringColumn[] = [];
-  const hasPassing = scoring.roster.QB > 0;
-  const hasRushing =
-    scoring.roster.QB > 0 || scoring.roster.RB > 0 || scoring.roster.FLEX > 0;
-  const hasReceiving =
-    scoring.roster.RB > 0 ||
-    scoring.roster.WR > 0 ||
-    scoring.roster.TE > 0 ||
-    scoring.roster.FLEX > 0;
+function assignRosterSlots(players: FootballPlayer[], scoring: FootballScoring): TeamRosterEntry[] {
+  const baseCounts = { RB: 0, WR: 0, TE: 0 };
+  let flexUsed = 0;
 
-  if (hasPassing) {
+  return players.map((player) => {
+    let slotLabel: TeamRosterEntry["slotLabel"] = player.position;
+
+    if (player.position === "RB" || player.position === "WR" || player.position === "TE") {
+      const baseLimit = scoring.roster[player.position];
+      if (baseCounts[player.position] < baseLimit) {
+        baseCounts[player.position] += 1;
+      } else if (flexUsed < scoring.roster.FLEX) {
+        flexUsed += 1;
+        slotLabel = "FLEX";
+      }
+    }
+
+    return { player, slotLabel };
+  });
+}
+
+function buildOffenseColumns(scoring: FootballScoring): TeamScoringColumn[] {
+  const columns: TeamScoringColumn[] = [];
+
+  if (scoring.roster.QB > 0) {
     if (scoring.passing.completion !== 0) {
       columns.push({ group: "Passing", label: "Comp", value: (stats) => stats.completions });
     }
@@ -87,7 +109,7 @@ function buildTeamScoringColumns(scoring: FootballScoring): TeamScoringColumn[] 
     }
   }
 
-  if (hasRushing) {
+  if (scoring.roster.QB > 0 || scoring.roster.RB > 0 || scoring.roster.FLEX > 0) {
     if (scoring.rushing.attempt !== 0) {
       columns.push({ group: "Rushing", label: "Att", value: (stats) => stats.rushingAttempts });
     }
@@ -99,7 +121,12 @@ function buildTeamScoringColumns(scoring: FootballScoring): TeamScoringColumn[] 
     }
   }
 
-  if (hasReceiving) {
+  if (
+    scoring.roster.RB > 0 ||
+    scoring.roster.WR > 0 ||
+    scoring.roster.TE > 0 ||
+    scoring.roster.FLEX > 0
+  ) {
     if (scoring.receiving.reception !== 0) {
       columns.push({ group: "Receiving", label: "Rec", value: (stats) => stats.receptions });
     }
@@ -111,53 +138,61 @@ function buildTeamScoringColumns(scoring: FootballScoring): TeamScoringColumn[] 
     }
   }
 
-  if (scoring.roster.K > 0) {
-    if (scoring.kicking.extraPoint !== 0) {
-      columns.push({ group: "Kicking", label: "XP", value: (stats) => stats.extraPointsMade });
-    }
-    if (scoring.kicking.missedExtraPoint !== 0) {
-      columns.push({ group: "Kicking", label: "XP Miss", value: (stats) => stats.extraPointsMissed });
-    }
-    if (scoring.kicking.fieldGoal !== 0) {
-      columns.push({ group: "Kicking", label: "FG", value: (stats) => stats.fieldGoalsMade });
-    }
-    if (scoring.kicking.missedFieldGoal !== 0) {
-      columns.push({ group: "Kicking", label: "FG Miss", value: (stats) => stats.fieldGoalsMissed });
-    }
-    if (scoring.kicking.fieldGoal50Bonus !== 0) {
-      columns.push({ group: "Kicking", label: "50+", value: (stats) => stats.fieldGoals50Plus });
-    }
-  }
-
-  if (scoring.roster.DST > 0) {
-    if (scoring.defense.sack !== 0) {
-      columns.push({ group: "Defense", label: "Sack", value: (stats) => stats.sacks });
-    }
-    if (scoring.defense.interception !== 0) {
-      columns.push({ group: "Defense", label: "Int", value: (stats) => stats.defenseInterceptions });
-    }
-    if (scoring.defense.fumbleRecovery !== 0) {
-      columns.push({ group: "Defense", label: "Fum Rec", value: (stats) => stats.fumbleRecoveries });
-    }
-    if (scoring.defense.touchdown !== 0) {
-      columns.push({ group: "Defense", label: "TD", value: (stats) => stats.defenseTds });
-    }
-    if (scoring.defense.safety !== 0) {
-      columns.push({ group: "Defense", label: "Safe", value: (stats) => stats.safeties });
-    }
-    if (scoring.defense.blockedKick !== 0) {
-      columns.push({ group: "Defense", label: "Blk Kick", value: (stats) => stats.blockedKicks });
-    }
-    if (scoring.defense.returnTouchdown !== 0) {
-      columns.push({ group: "Defense", label: "Ret TD", value: (stats) => stats.returnTds });
-    }
-  }
-
   if (scoring.passing.twoPointConversion !== 0) {
     columns.push({ group: "Misc", label: "2PT", value: (stats) => stats.twoPointConversions });
   }
   if (scoring.passing.fumbleLost !== 0) {
     columns.push({ group: "Misc", label: "Lost", value: (stats) => stats.fumblesLost });
+  }
+
+  return columns;
+}
+
+function buildKickingColumns(scoring: FootballScoring): TeamScoringColumn[] {
+  const columns: TeamScoringColumn[] = [];
+
+  if (scoring.kicking.extraPoint !== 0) {
+    columns.push({ group: "Kicking", label: "XP", value: (stats) => stats.extraPointsMade });
+  }
+  if (scoring.kicking.missedExtraPoint !== 0) {
+    columns.push({ group: "Kicking", label: "XP Miss", value: (stats) => stats.extraPointsMissed });
+  }
+  if (scoring.kicking.fieldGoal !== 0) {
+    columns.push({ group: "Kicking", label: "FG", value: (stats) => stats.fieldGoalsMade });
+  }
+  if (scoring.kicking.missedFieldGoal !== 0) {
+    columns.push({ group: "Kicking", label: "FG Miss", value: (stats) => stats.fieldGoalsMissed });
+  }
+  if (scoring.kicking.fieldGoal50Bonus !== 0) {
+    columns.push({ group: "Kicking", label: "50+", value: (stats) => stats.fieldGoals50Plus });
+  }
+
+  return columns;
+}
+
+function buildDefenseColumns(scoring: FootballScoring): TeamScoringColumn[] {
+  const columns: TeamScoringColumn[] = [];
+
+  if (scoring.defense.sack !== 0) {
+    columns.push({ group: "Defense", label: "Sack", value: (stats) => stats.sacks });
+  }
+  if (scoring.defense.interception !== 0) {
+    columns.push({ group: "Defense", label: "Int", value: (stats) => stats.defenseInterceptions });
+  }
+  if (scoring.defense.fumbleRecovery !== 0) {
+    columns.push({ group: "Defense", label: "Fum Rec", value: (stats) => stats.fumbleRecoveries });
+  }
+  if (scoring.defense.touchdown !== 0) {
+    columns.push({ group: "Defense", label: "TD", value: (stats) => stats.defenseTds });
+  }
+  if (scoring.defense.safety !== 0) {
+    columns.push({ group: "Defense", label: "Safety", value: (stats) => stats.safeties });
+  }
+  if (scoring.defense.blockedKick !== 0) {
+    columns.push({ group: "Defense", label: "Blk Kick", value: (stats) => stats.blockedKicks });
+  }
+  if (scoring.defense.returnTouchdown !== 0) {
+    columns.push({ group: "Defense", label: "Ret TD", value: (stats) => stats.returnTds });
   }
 
   return columns;
@@ -173,6 +208,114 @@ function columnGroups(columns: TeamScoringColumn[]) {
     }
     return groups;
   }, []);
+}
+
+function PositionBadge({ entry }: { entry: TeamRosterEntry }) {
+  const { player, slotLabel } = entry;
+
+  return (
+    <span
+      className={`rounded-xl border px-3 py-2 text-center text-sm font-black ${positionBadgeClasses[player.position]}`}
+    >
+      {slotLabel}
+    </span>
+  );
+}
+
+function TeamStatTable({
+  entries,
+  columns,
+  groups,
+  scoring,
+  title,
+}: {
+  entries: TeamRosterEntry[];
+  columns: TeamScoringColumn[];
+  groups?: { group: string; span: number }[];
+  scoring: FootballScoring;
+  title: string;
+}) {
+  if (entries.length === 0 || columns.length === 0) return null;
+
+  return (
+    <div className="mt-5">
+      <h4 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-500">
+        {title}
+      </h4>
+      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
+        <table className="w-full min-w-[760px] table-fixed text-right text-sm font-black">
+          <thead className="text-xs uppercase tracking-wide text-slate-500">
+            {groups && groups.length > 0 && (
+              <tr className="border-b border-white/10 bg-[#111827]">
+                <th rowSpan={2} className="w-[300px] px-4 py-3 text-left">
+                  Player
+                </th>
+                <th rowSpan={2} className="w-[76px] px-4 py-3 text-emerald-300">
+                  Pts
+                </th>
+                {groups.map((group) => (
+                  <th
+                    key={group.group}
+                    colSpan={group.span}
+                    className="border-l border-white/10 px-4 py-3 text-center"
+                  >
+                    {group.group}
+                  </th>
+                ))}
+              </tr>
+            )}
+            <tr className="border-b border-white/10 bg-[#111827]">
+              {!groups && (
+                <>
+                  <th className="w-[300px] px-4 py-3 text-left">Player</th>
+                  <th className="w-[76px] px-4 py-3 text-emerald-300">Pts</th>
+                </>
+              )}
+              {columns.map((column) => (
+                <th key={`${title}-${column.group}-${column.label}`} className="px-3 py-3">
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => {
+              const { player } = entry;
+              const stats = scoringStatLine(player);
+              const points = scoringTotal(player, scoring);
+
+              return (
+                <tr key={player.id} className="border-b border-white/5 last:border-b-0">
+                  <td className="px-4 py-4 text-left">
+                    <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3">
+                      <PositionBadge entry={entry} />
+                      <div className="min-w-0">
+                        <p className="truncate whitespace-nowrap text-base font-black text-white">
+                          {formatCompactName(player.name)}
+                        </p>
+                        <p className="truncate whitespace-nowrap text-xs font-bold text-slate-500">
+                          {player.school} • {player.opponent}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-emerald-300">{points.toFixed(1)}</td>
+                  {columns.map((column) => (
+                    <td
+                      key={`${player.id}-${title}-${column.group}-${column.label}`}
+                      className="px-3 py-4 text-slate-300"
+                    >
+                      {formatNumber(column.value(stats))}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 }
 
 export default function FootballLeaderboardPage() {
@@ -221,6 +364,10 @@ export default function FootballLeaderboardPage() {
   const standings = useMemo(() => {
     if (!pool) return [];
     const scoring = pool.scoring ?? defaultScoring;
+    const hasLiveScores = picks.some((pick) => {
+      const player = players.find((item) => item.id === pick.playerId);
+      return player ? hasStatLine(player.liveStats) : false;
+    });
 
     return pool.teamNames
       .map((team) => {
@@ -230,7 +377,7 @@ export default function FootballLeaderboardPage() {
           .filter(Boolean) as FootballPlayer[];
 
         const projected = draftedPlayers.reduce(
-          (sum, player) => sum + getProjectedScore(player, scoring).total,
+          (sum, player) => sum + projectedTotal(player, scoring),
           0
         );
         const live = draftedPlayers.reduce(
@@ -240,19 +387,37 @@ export default function FootballLeaderboardPage() {
 
         return {
           team,
-          players: draftedPlayers,
+          players: assignRosterSlots(draftedPlayers, scoring),
           projected,
           live,
+          displayScore: hasLiveScores ? live : projected,
         };
       })
-      .sort((a, b) => b.live - a.live);
+      .sort((a, b) => b.displayScore - a.displayScore);
   }, [picks, players, pool]);
 
-  const scoringColumns = useMemo(
-    () => (pool ? buildTeamScoringColumns(pool.scoring ?? defaultScoring) : []),
+  const hasLiveScores = useMemo(
+    () =>
+      picks.some((pick) => {
+        const player = players.find((item) => item.id === pick.playerId);
+        return player ? hasStatLine(player.liveStats) : false;
+      }),
+    [picks, players]
+  );
+  const scoringModeLabel = hasLiveScores ? "Live" : "Projected";
+  const offenseColumns = useMemo(
+    () => (pool ? buildOffenseColumns(pool.scoring ?? defaultScoring) : []),
     [pool]
   );
-  const groups = useMemo(() => columnGroups(scoringColumns), [scoringColumns]);
+  const offenseGroups = useMemo(() => columnGroups(offenseColumns), [offenseColumns]);
+  const kickingColumns = useMemo(
+    () => (pool ? buildKickingColumns(pool.scoring ?? defaultScoring) : []),
+    [pool]
+  );
+  const defenseColumns = useMemo(
+    () => (pool ? buildDefenseColumns(pool.scoring ?? defaultScoring) : []),
+    [pool]
+  );
 
   if (!pool) {
     return (
@@ -305,10 +470,10 @@ export default function FootballLeaderboardPage() {
               Leaderboard
             </h2>
             <p className="mt-2 text-sm font-semibold text-slate-500">
-              Totals use this pool&apos;s scoring settings against the newest
-              available stat line.
+              {scoringModeLabel} totals use this pool&apos;s scoring settings
+              against the newest available stat line.
             </p>
-            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {standings.map((team, index) => (
                 <div
                   key={team.team}
@@ -321,7 +486,7 @@ export default function FootballLeaderboardPage() {
                     <span className="truncate text-xl font-black sm:text-2xl">{team.team}</span>
                   </div>
                   <span className="shrink-0 text-2xl font-black text-emerald-300 sm:text-3xl">
-                    {team.live.toFixed(1)}
+                    {team.displayScore.toFixed(1)}
                   </span>
                 </div>
               ))}
@@ -345,79 +510,36 @@ export default function FootballLeaderboardPage() {
                   <div className="flex items-center justify-between gap-4">
                     <h3 className="text-2xl font-black uppercase tracking-wide">{team.team}</h3>
                     <span className="text-2xl font-black text-emerald-300">
-                      {team.live.toFixed(1)}
+                      {team.displayScore.toFixed(1)}
                     </span>
                   </div>
 
                   {team.players.length === 0 ? (
                     <p className="mt-5 text-slate-500">No players drafted yet.</p>
                   ) : (
-                    <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-                      <table className="w-full min-w-[1080px] table-fixed text-right text-sm font-black">
-                        <thead className="text-xs uppercase tracking-wide text-slate-500">
-                          <tr className="border-b border-white/10 bg-[#111827]">
-                            <th rowSpan={2} className="w-[360px] px-4 py-3 text-left">
-                              Offense
-                            </th>
-                            <th rowSpan={2} className="px-4 py-3 text-emerald-300">
-                              Pts
-                            </th>
-                            {groups.map((group) => (
-                              <th
-                                key={group.group}
-                                colSpan={group.span}
-                                className="border-l border-white/10 px-4 py-3 text-center"
-                              >
-                                {group.group}
-                              </th>
-                            ))}
-                          </tr>
-                          <tr className="border-b border-white/10 bg-[#111827]">
-                            {scoringColumns.map((column) => (
-                              <th key={`${column.group}-${column.label}`} className="px-4 py-3">
-                                {column.label}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {team.players.map((player) => {
-                            const stats = scoringStatLine(player);
-                            const points = scoringTotal(player, pool.scoring ?? defaultScoring);
-
-                            return (
-                              <tr key={player.id} className="border-b border-white/5 last:border-b-0">
-                                <td className="px-4 py-4 text-left">
-                                  <div className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3">
-                                    <span
-                                      className={`rounded-xl border px-3 py-2 text-center text-sm font-black ${positionBadgeClasses[player.position]}`}
-                                    >
-                                      {player.position}
-                                    </span>
-                                    <div className="min-w-0">
-                                      <p className="truncate whitespace-nowrap text-base font-black text-white">
-                                        {formatCompactName(player.name)}
-                                      </p>
-                                      <p className="truncate whitespace-nowrap text-xs font-bold text-slate-500">
-                                        {player.school} • {player.opponent}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-4 text-emerald-300">
-                                  {points.toFixed(1)}
-                                </td>
-                                {scoringColumns.map((column) => (
-                                  <td key={`${player.id}-${column.group}-${column.label}`} className="px-4 py-4 text-slate-300">
-                                    {formatNumber(column.value(stats))}
-                                  </td>
-                                ))}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                    <>
+                      <TeamStatTable
+                        title="Position Players"
+                        entries={team.players.filter(
+                          (entry) => entry.player.position !== "K" && entry.player.position !== "DST"
+                        )}
+                        columns={offenseColumns}
+                        groups={offenseGroups}
+                        scoring={pool.scoring ?? defaultScoring}
+                      />
+                      <TeamStatTable
+                        title="Kickers"
+                        entries={team.players.filter((entry) => entry.player.position === "K")}
+                        columns={kickingColumns}
+                        scoring={pool.scoring ?? defaultScoring}
+                      />
+                      <TeamStatTable
+                        title="Defense / Special Teams"
+                        entries={team.players.filter((entry) => entry.player.position === "DST")}
+                        columns={defenseColumns}
+                        scoring={pool.scoring ?? defaultScoring}
+                      />
+                    </>
                   )}
                 </div>
               ))}
