@@ -52,6 +52,15 @@ function formatNumber(value: number | undefined) {
   return Number.isInteger(value) ? value.toString() : value.toFixed(1);
 }
 
+function formatCompactName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return name;
+
+  const first = parts[0]?.[0] ?? "";
+  const last = parts[parts.length - 1];
+  return `${first}. ${last}`;
+}
+
 function buildTeamScoringColumns(scoring: FootballScoring): TeamScoringColumn[] {
   const columns: TeamScoringColumn[] = [];
   const hasPassing = scoring.roster.QB > 0;
@@ -290,16 +299,16 @@ export default function FootballLeaderboardPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[420px_1fr]">
+        <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
           <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-8">
             <h2 className="text-2xl font-black uppercase tracking-wide text-slate-300">
-              Standings
+              Leaderboard
             </h2>
             <p className="mt-2 text-sm font-semibold text-slate-500">
               Totals use this pool&apos;s scoring settings against the newest
               available stat line.
             </p>
-            <div className="mt-6 space-y-3">
+            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {standings.map((team, index) => (
                 <div
                   key={team.team}
@@ -344,10 +353,10 @@ export default function FootballLeaderboardPage() {
                     <p className="mt-5 text-slate-500">No players drafted yet.</p>
                   ) : (
                     <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-                      <table className="w-full min-w-[980px] text-right text-sm font-black">
+                      <table className="w-full min-w-[1080px] table-fixed text-right text-sm font-black">
                         <thead className="text-xs uppercase tracking-wide text-slate-500">
                           <tr className="border-b border-white/10 bg-[#111827]">
-                            <th rowSpan={2} className="w-[320px] px-4 py-3 text-left">
+                            <th rowSpan={2} className="w-[360px] px-4 py-3 text-left">
                               Offense
                             </th>
                             <th rowSpan={2} className="px-4 py-3 text-emerald-300">
@@ -379,17 +388,17 @@ export default function FootballLeaderboardPage() {
                             return (
                               <tr key={player.id} className="border-b border-white/5 last:border-b-0">
                                 <td className="px-4 py-4 text-left">
-                                  <div className="grid grid-cols-[64px_1fr] items-center gap-3">
+                                  <div className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-3">
                                     <span
                                       className={`rounded-xl border px-3 py-2 text-center text-sm font-black ${positionBadgeClasses[player.position]}`}
                                     >
                                       {player.position}
                                     </span>
                                     <div className="min-w-0">
-                                      <p className="break-words text-base font-black text-white">
-                                        {player.name}
+                                      <p className="truncate whitespace-nowrap text-base font-black text-white">
+                                        {formatCompactName(player.name)}
                                       </p>
-                                      <p className="break-words text-xs font-bold text-slate-500">
+                                      <p className="truncate whitespace-nowrap text-xs font-bold text-slate-500">
                                         {player.school} • {player.opponent}
                                       </p>
                                     </div>
