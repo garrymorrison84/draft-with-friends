@@ -19,6 +19,7 @@ import {
   getProjectedScore,
   scoreFootballStats,
 } from "../lib/scoringEngine";
+import type { FootballStatLine } from "../lib/scoringEngine";
 
 const positions = ["ALL", "QB", "RB", "WR", "TE", "DST", "K"];
 
@@ -65,6 +66,68 @@ function formatStat(value: number | undefined) {
 
 function formatPoints(value: number) {
   return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
+const eligiblePlayerGrid =
+  "grid-cols-[260px_92px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px]";
+
+function gameLogColumnsForPosition(position: FootballPlayer["position"]) {
+  if (position === "QB") {
+    return [
+      { label: "Cmp", value: (stats: FootballStatLine) => stats.completions },
+      { label: "Pass Att", value: (stats: FootballStatLine) => stats.passingAttempts },
+      { label: "Pass Yd", value: (stats: FootballStatLine) => stats.passingYards },
+      { label: "Pass TD", value: (stats: FootballStatLine) => stats.passingTds },
+      { label: "INT", value: (stats: FootballStatLine) => stats.interceptionsThrown },
+      { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
+      { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
+      { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
+    ];
+  }
+
+  if (position === "RB") {
+    return [
+      { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
+      { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
+      { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
+      { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
+      { label: "Tar", value: (stats: FootballStatLine) => stats.receivingTargets },
+      { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
+      { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
+    ];
+  }
+
+  if (position === "WR" || position === "TE") {
+    return [
+      { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
+      { label: "Tar", value: (stats: FootballStatLine) => stats.receivingTargets },
+      { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
+      { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
+      { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
+      { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
+      { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
+    ];
+  }
+
+  if (position === "DST") {
+    return [
+      { label: "Sacks", value: (stats: FootballStatLine) => stats.sacks },
+      { label: "INT", value: (stats: FootballStatLine) => stats.defenseInterceptions },
+      { label: "Fum Rec", value: (stats: FootballStatLine) => stats.fumbleRecoveries },
+      { label: "TD", value: (stats: FootballStatLine) => stats.defenseTds },
+      { label: "Safety", value: (stats: FootballStatLine) => stats.safeties },
+      { label: "Blk Kick", value: (stats: FootballStatLine) => stats.blockedKicks },
+      { label: "Ret TD", value: (stats: FootballStatLine) => stats.returnTds },
+    ];
+  }
+
+  return [
+    { label: "XP", value: (stats: FootballStatLine) => stats.extraPointsMade },
+    { label: "Miss XP", value: (stats: FootballStatLine) => stats.extraPointsMissed },
+    { label: "FG", value: (stats: FootballStatLine) => stats.fieldGoalsMade },
+    { label: "Miss FG", value: (stats: FootballStatLine) => stats.fieldGoalsMissed },
+    { label: "50+ Bonus", value: (stats: FootballStatLine) => stats.fieldGoals50Plus },
+  ];
 }
 
 function positionCountsForTeam(
@@ -163,10 +226,12 @@ function PlayerStatColumns({
 }) {
   const stats = player.projectedStats;
   const projectedScore = getProjectedScore(player, scoring);
+  const ppg = getPlayerPpg(player, scoring);
 
   return (
     <>
       <div className="text-left text-emerald-300">{formatPoints(projectedScore.total)}</div>
+      <div className="text-left text-slate-300">{formatPoints(ppg)}</div>
       <div className="text-left text-slate-400">{player.gameTime} {player.opponent}</div>
       <div>{formatStat(stats.rushingAttempts)}</div>
       <div>{formatStat(stats.rushingYards)}</div>
@@ -197,44 +262,47 @@ function PlayerDetailsModal({
   const projection = getProjectedScore(player, scoring);
   const rows = playerGameRows(player, scoring);
   const hasReplayGameLogs = Boolean(player.gameLogs?.length);
+  const gameLogColumns = gameLogColumnsForPosition(player.position);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
-        <div className="flex flex-col gap-5 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
-                {player.position}
-              </span>
-              <span className="text-sm font-black uppercase tracking-wide text-slate-400">
-                {player.school}
-              </span>
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                  {player.position}
+                </span>
+                <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                  {player.school}
+                </span>
+              </div>
+              <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
+                {player.name}
+              </h2>
+              <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
+                {player.conference} • {player.gameTime} {player.opponent}
+              </p>
             </div>
-            <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
-              {player.name}
-            </h2>
-            <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
-              {player.conference} • {player.gameTime} {player.opponent}
-            </p>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-            <div className="rounded-2xl bg-[#030712] p-4">
-              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Projected</p>
-              <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(projection.total)}</p>
+            <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
+              <div className="rounded-2xl bg-[#030712] p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Projected</p>
+                <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(projection.total)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={onDraft}
+                className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
+              >
+                Draft
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onDraft}
-              className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
-            >
-              Draft
-            </button>
           </div>
         </div>
 
-        <div className="max-h-[58vh] overflow-y-auto p-5 sm:p-7">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <h3 className="text-xl font-black">Game Log</h3>
           <p className="mt-2 text-sm font-semibold text-slate-400">
             Fantasy points use this pool&apos;s scoring rules. No player photos or school logos are shown.
@@ -246,60 +314,42 @@ function PlayerDetailsModal({
           )}
 
           <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-            <div className="grid min-w-[940px] grid-cols-[70px_150px_86px_70px_70px_70px_70px_70px_70px_70px_70px_70px_70px] gap-x-4 border-b border-white/10 px-4 py-3 text-right text-xs font-black uppercase tracking-wide text-slate-500">
-              <div className="text-left">Week</div>
-              <div className="text-left">Opp</div>
-              <div className="text-emerald-300">Pts</div>
-              <div>Rush Att</div>
-              <div>Rush Yd</div>
-              <div>Rush TD</div>
-              <div>Rec</div>
-              <div>Tar</div>
-              <div>Rec Yd</div>
-              <div>Rec TD</div>
-              <div>Cmp</div>
-              <div>Pass Att</div>
-              <div>Pass Yd</div>
-            </div>
-            {rows.map((row) => (
-              <div
-                key={`${row.label}-${row.opponent}`}
-                className="grid min-w-[940px] grid-cols-[70px_150px_86px_70px_70px_70px_70px_70px_70px_70px_70px_70px_70px] gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-200 last:border-b-0"
-              >
-                <div className="text-left text-slate-400">{row.label}</div>
-                <div className="truncate text-left">{row.opponent}</div>
-                <div className="text-emerald-300">{formatPoints(row.points)}</div>
-                <div>{formatStat(row.statLine.rushingAttempts)}</div>
-                <div>{formatStat(row.statLine.rushingYards)}</div>
-                <div>{formatStat(row.statLine.rushingTds)}</div>
-                <div>{formatStat(row.statLine.receptions)}</div>
-                <div>{formatStat(row.statLine.receivingTargets)}</div>
-                <div>{formatStat(row.statLine.receivingYards)}</div>
-                <div>{formatStat(row.statLine.receivingTds)}</div>
-                <div>{formatStat(row.statLine.completions)}</div>
-                <div>{formatStat(row.statLine.passingAttempts)}</div>
-                <div>{formatStat(row.statLine.passingYards)}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {projection.components.slice(0, 6).map((component) => (
-              <div key={component.label} className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
-                <p className="text-sm font-bold text-slate-400">{component.label}</p>
-                <p className="mt-1 text-xl font-black text-emerald-300">
-                  {component.points.toFixed(1)}
-                </p>
-              </div>
-            ))}
+            <table className="min-w-[760px] w-full text-right text-sm font-black text-slate-200">
+              <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Week</th>
+                  <th className="px-4 py-3 text-left">Opp</th>
+                  <th className="px-4 py-3 text-emerald-300">Pts</th>
+                  {gameLogColumns.map((column) => (
+                    <th key={column.label} className="px-4 py-3">
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={`${row.label}-${row.opponent}`} className="border-b border-white/5 last:border-b-0">
+                    <td className="px-4 py-4 text-left text-slate-400">{row.label}</td>
+                    <td className="max-w-[180px] truncate px-4 py-4 text-left">{row.opponent}</td>
+                    <td className="px-4 py-4 text-emerald-300">{formatPoints(row.points)}</td>
+                    {gameLogColumns.map((column) => (
+                      <td key={column.label} className="px-4 py-4">
+                        {formatStat(column.value(row.statLine))}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-white/10 p-4">
+        <div className="shrink-0 border-t border-white/10 p-4 sm:flex sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 hover:bg-white/5"
+            className="w-full rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 hover:bg-white/5 sm:w-auto"
           >
             Close
           </button>
@@ -599,10 +649,11 @@ export default function FootballDraftPage() {
 
             <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
               <div className="overflow-x-auto">
-                <div className="min-w-[1180px] border-b border-white/10 bg-[#1F2937] px-4 py-3">
-                  <div className="grid grid-cols-[260px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px] items-center gap-x-4 text-right text-xs font-black uppercase tracking-wide text-slate-500">
+                <div className="min-w-[1720px] border-b border-white/10 bg-[#1F2937] px-4 py-3">
+                  <div className={`grid ${eligiblePlayerGrid} items-center gap-x-4 text-right text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
                     <div className="text-left text-emerald-300">Pts</div>
+                    <div className="text-left">PPG</div>
                     <div className="text-left">Game</div>
                     <div>Rush Att</div>
                     <div>Rush Yd</div>
@@ -622,12 +673,11 @@ export default function FootballDraftPage() {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
-                const projectedScore = getProjectedScore(player, pool.scoring);
 
                 return (
                   <div
                     key={player.id}
-                    className={`grid min-w-[1180px] grid-cols-[260px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px] items-center gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-300 last:border-b-0 ${
+                    className={`grid min-w-[1720px] ${eligiblePlayerGrid} items-center gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-300 last:border-b-0 ${
                       drafted
                         ? "bg-[#030712] opacity-45"
                         : selected
@@ -649,7 +699,7 @@ export default function FootballDraftPage() {
                             {player.name}
                           </p>
                           <p className="truncate text-xs font-bold text-slate-500">
-                            {player.school} • {player.conference} • {formatPoints(projectedScore.total)} proj
+                            {player.school} • {player.conference}
                           </p>
                         </div>
                       </div>
@@ -687,7 +737,7 @@ export default function FootballDraftPage() {
               )}
           </section>
 
-          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+          <section className="flex min-w-0 flex-col rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-3xl font-black">Draft Board</h2>
@@ -700,7 +750,7 @@ export default function FootballDraftPage() {
               </span>
             </div>
 
-            <div className="mt-6 max-h-[70vh] overflow-auto rounded-3xl border border-white/5 sm:mt-8">
+            <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-white/5 sm:mt-8 lg:min-h-[760px]">
               <div style={{ minWidth: `${pool.numberOfTeams * 190}px` }}>
                 <div
                   className="sticky top-0 z-20 grid bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#0F766E] shadow-lg shadow-emerald-950/40"

@@ -42,11 +42,6 @@ export type PlayerScoreResult = {
   components: ScoreComponent[];
 };
 
-function applyScoreOptions(points: number, scoring: FootballScoring) {
-  if (!scoring.negativePoints && points < 0) return 0;
-  return points;
-}
-
 function finishScore(points: number, scoring: FootballScoring) {
   const adjusted = scoring.fractionalPoints ? points : Math.round(points);
   return Number(adjusted.toFixed(1));
@@ -61,12 +56,9 @@ function addComponent(
 ) {
   if (!statValue || points === 0) return;
 
-  const adjusted = applyScoreOptions(points, scoring);
-  if (adjusted === 0) return;
-
   components.push({
     label,
-    points: finishScore(adjusted, scoring),
+    points: finishScore(points, scoring),
   });
 }
 

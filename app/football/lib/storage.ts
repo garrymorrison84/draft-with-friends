@@ -392,10 +392,10 @@ export const defaultScoring: FootballScoring = {
   },
   kicking: {
     extraPoint: 1,
-    missedExtraPoint: -1,
+    missedExtraPoint: 0,
     fieldGoal: 3,
-    missedFieldGoal: -1,
-    fieldGoal50Bonus: 2,
+    missedFieldGoal: 0,
+    fieldGoal50Bonus: 0,
   },
 };
 

@@ -50,7 +50,7 @@ const tabs: { key: ScoringCategory; label: string }[] = [
 function mergeScoring(savedScoring?: FootballScoring): FootballScoring {
   if (!savedScoring) return defaultScoring;
 
-  return {
+  const merged = {
     ...defaultScoring,
     ...savedScoring,
     roster: { ...defaultScoring.roster, ...savedScoring.roster },
@@ -59,6 +59,25 @@ function mergeScoring(savedScoring?: FootballScoring): FootballScoring {
     receiving: { ...defaultScoring.receiving, ...savedScoring.receiving },
     defense: { ...defaultScoring.defense, ...savedScoring.defense },
     kicking: { ...defaultScoring.kicking, ...savedScoring.kicking },
+  };
+
+  return {
+    ...merged,
+    kicking: {
+      ...merged.kicking,
+      missedExtraPoint:
+        savedScoring.negativePoints === false && merged.kicking.missedExtraPoint === -1
+          ? 0
+          : merged.kicking.missedExtraPoint,
+      missedFieldGoal:
+        savedScoring.negativePoints === false && merged.kicking.missedFieldGoal === -1
+          ? 0
+          : merged.kicking.missedFieldGoal,
+      fieldGoal50Bonus:
+        savedScoring.negativePoints === false && merged.kicking.fieldGoal50Bonus === 2
+          ? 0
+          : merged.kicking.fieldGoal50Bonus,
+    },
   };
 }
 
@@ -441,19 +460,12 @@ export default function FootballScoringPage() {
 
             <div className="mt-5 overflow-hidden rounded-2xl border border-white/5 bg-[#030712] sm:mt-6">
               {activeTab === "misc" && (
-                <div className="grid gap-3 border-b border-white/5 p-4 sm:gap-4 sm:p-5 md:grid-cols-2">
+                <div className="grid gap-3 border-b border-white/5 p-4 sm:gap-4 sm:p-5">
                   <SwitchCard
                     label="Fractional Points"
                     checked={scoring.fractionalPoints}
                     onChange={(checked) =>
                       setScoring((current) => ({ ...current, fractionalPoints: checked }))
-                    }
-                  />
-                  <SwitchCard
-                    label="Negative Points"
-                    checked={scoring.negativePoints}
-                    onChange={(checked) =>
-                      setScoring((current) => ({ ...current, negativePoints: checked }))
                     }
                   />
                 </div>
