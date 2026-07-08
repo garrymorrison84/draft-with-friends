@@ -70,7 +70,7 @@ function formatPoints(value: number) {
 }
 
 const eligiblePlayerGrid =
-  "grid-cols-[260px_92px_92px_220px_72px_72px_72px_72px_72px_72px_72px_72px_72px_72px_104px]";
+  "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(260px,1.15fr)_92px_92px_minmax(190px,0.9fr)_104px]";
 
 function gameLogColumnsForPosition(
   position: FootballPlayer["position"],
@@ -225,25 +225,18 @@ function PlayerStatColumns({
   player: FootballPlayer;
   scoring: FootballPool["scoring"];
 }) {
-  const stats = player.projectedStats;
   const projectedScore = getProjectedScore(player, scoring);
   const ppg = getPlayerPpg(player, scoring);
 
   return (
     <>
-      <div className="text-left text-emerald-300">{formatPoints(projectedScore.total)}</div>
-      <div className="text-left text-slate-300">{formatPoints(ppg)}</div>
-      <div className="text-left text-slate-400">{player.gameTime} {player.opponent}</div>
-      <div>{formatStat(stats.rushingAttempts)}</div>
-      <div>{formatStat(stats.rushingYards)}</div>
-      <div>{formatStat(stats.rushingTds)}</div>
-      <div>{formatStat(stats.receptions)}</div>
-      <div>{formatStat(stats.receivingTargets)}</div>
-      <div>{formatStat(stats.receivingYards)}</div>
-      <div>{formatStat(stats.receivingTds)}</div>
-      <div>{formatStat(stats.completions)}</div>
-      <div>{formatStat(stats.passingAttempts)}</div>
-      <div>{formatStat(stats.passingYards)}</div>
+      <div className="hidden text-left text-slate-300 md:block">{formatPoints(ppg)}</div>
+      <div className="text-right text-emerald-300 md:text-left">
+        {formatPoints(projectedScore.total)}
+      </div>
+      <div className="hidden text-left text-slate-400 md:block">
+        {player.gameTime} {player.opponent}
+      </div>
     </>
   );
 }
@@ -621,7 +614,7 @@ export default function FootballDraftPage() {
         </div>
 
         <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[minmax(520px,640px)_1fr]">
-          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+          <section className="order-2 min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:order-1">
             <h2 className="text-3xl font-black">Eligible Players</h2>
             <p className="mt-3 text-slate-400">
               Filter by position, search player or school, then draft from the list.
@@ -649,24 +642,14 @@ export default function FootballDraftPage() {
             </select>
 
             <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
-              <div className="overflow-x-auto">
-                <div className="min-w-[1720px] border-b border-white/10 bg-[#1F2937] px-4 py-3">
+              <div className="max-h-[620px] overflow-y-auto">
+                <div className="sticky top-0 z-10 border-b border-white/10 bg-[#1F2937] px-4 py-3">
                   <div className={`grid ${eligiblePlayerGrid} items-center gap-x-4 text-right text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
-                    <div className="text-left text-emerald-300">Pts</div>
-                    <div className="text-left">PPG</div>
-                    <div className="text-left">Game</div>
-                    <div>Rush Att</div>
-                    <div>Rush Yd</div>
-                    <div>Rush TD</div>
-                    <div>Rec</div>
-                    <div>Tar</div>
-                    <div>Rec Yd</div>
-                    <div>Rec TD</div>
-                    <div>Cmp</div>
-                    <div>Pass Att</div>
-                    <div>Pass Yd</div>
-                    <div>Action</div>
+                    <div className="hidden text-left md:block">Avg PPG</div>
+                    <div className="text-right text-emerald-300 md:text-left">Proj Pts</div>
+                    <div className="hidden text-left md:block">Game</div>
+                    <div className="hidden md:block">Action</div>
                   </div>
                 </div>
 
@@ -674,11 +657,12 @@ export default function FootballDraftPage() {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
+                const ppg = getPlayerPpg(player, pool.scoring);
 
                 return (
                   <div
                     key={player.id}
-                    className={`grid min-w-[1720px] ${eligiblePlayerGrid} items-center gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-300 last:border-b-0 ${
+                    className={`grid ${eligiblePlayerGrid} items-center gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-300 last:border-b-0 ${
                       drafted
                         ? "bg-[#030712] opacity-45"
                         : selected
@@ -702,6 +686,9 @@ export default function FootballDraftPage() {
                           <p className="truncate text-xs font-bold text-slate-500">
                             {player.school} • {player.conference}
                           </p>
+                          <p className="mt-1 truncate text-xs font-bold text-slate-600 md:hidden">
+                            Avg {formatPoints(ppg)} • {player.gameTime} {player.opponent}
+                          </p>
                         </div>
                       </div>
                     </button>
@@ -712,7 +699,7 @@ export default function FootballDraftPage() {
                       type="button"
                       onClick={() => draftPlayer(player)}
                       disabled={drafted || draftComplete}
-                      className="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                      className="hidden rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 md:block"
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
                     </button>
@@ -738,7 +725,7 @@ export default function FootballDraftPage() {
               )}
           </section>
 
-          <section className="flex min-w-0 flex-col rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+          <section className="order-1 flex min-w-0 flex-col rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:order-2">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-3xl font-black">Draft Board</h2>
