@@ -71,24 +71,48 @@ function formatCompactName(name: string) {
 }
 
 function assignRosterSlots(players: FootballPlayer[], scoring: FootballScoring): TeamRosterEntry[] {
-  const baseCounts = { RB: 0, WR: 0, TE: 0 };
-  let flexUsed = 0;
+  const remaining = [...players];
+  const entries: TeamRosterEntry[] = [];
 
-  return players.map((player) => {
-    let slotLabel: TeamRosterEntry["slotLabel"] = player.position;
+  const takeNext = (
+    predicate: (player: FootballPlayer) => boolean,
+    slotLabel: TeamRosterEntry["slotLabel"]
+  ) => {
+    const index = remaining.findIndex(predicate);
+    if (index === -1) return;
 
-    if (player.position === "RB" || player.position === "WR" || player.position === "TE") {
-      const baseLimit = scoring.roster[player.position];
-      if (baseCounts[player.position] < baseLimit) {
-        baseCounts[player.position] += 1;
-      } else if (flexUsed < scoring.roster.FLEX) {
-        flexUsed += 1;
-        slotLabel = "FLEX";
-      }
+    const [player] = remaining.splice(index, 1);
+    entries.push({ player, slotLabel });
+  };
+
+  const takePosition = (position: FootballPlayer["position"], count: number) => {
+    for (let index = 0; index < count; index += 1) {
+      takeNext((player) => player.position === position, position);
     }
+  };
 
-    return { player, slotLabel };
-  });
+  takePosition("QB", scoring.roster.QB);
+  takePosition("RB", scoring.roster.RB);
+  takePosition("WR", scoring.roster.WR);
+  takePosition("TE", scoring.roster.TE);
+
+  for (let index = 0; index < scoring.roster.FLEX; index += 1) {
+    takeNext(
+      (player) => player.position === "RB" || player.position === "WR" || player.position === "TE",
+      "FLEX"
+    );
+  }
+
+  takePosition("DST", scoring.roster.DST);
+  takePosition("K", scoring.roster.K);
+
+  return [
+    ...entries,
+    ...remaining.map((player) => ({
+      player,
+      slotLabel: player.position,
+    })),
+  ];
 }
 
 function buildOffenseColumns(scoring: FootballScoring): TeamScoringColumn[] {
@@ -528,15 +552,15 @@ export default function FootballLeaderboardPage() {
                         scoring={pool.scoring ?? defaultScoring}
                       />
                       <TeamStatTable
-                        title="Kickers"
-                        entries={team.players.filter((entry) => entry.player.position === "K")}
-                        columns={kickingColumns}
-                        scoring={pool.scoring ?? defaultScoring}
-                      />
-                      <TeamStatTable
                         title="Defense / Special Teams"
                         entries={team.players.filter((entry) => entry.player.position === "DST")}
                         columns={defenseColumns}
+                        scoring={pool.scoring ?? defaultScoring}
+                      />
+                      <TeamStatTable
+                        title="Kickers"
+                        entries={team.players.filter((entry) => entry.player.position === "K")}
+                        columns={kickingColumns}
                         scoring={pool.scoring ?? defaultScoring}
                       />
                     </>
