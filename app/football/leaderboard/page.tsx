@@ -32,11 +32,11 @@ type TeamRosterEntry = {
 
 const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   QB: "border-fuchsia-300/55 bg-fuchsia-400/20 text-fuchsia-100",
-  RB: "border-teal-200/55 bg-teal-300/20 text-teal-100",
-  WR: "border-sky-200/60 bg-sky-300/25 text-sky-50",
-  TE: "border-amber-200/55 bg-amber-300/20 text-amber-100",
-  DST: "border-lime-200/55 bg-lime-300/20 text-lime-100",
-  K: "border-violet-200/55 bg-violet-300/20 text-violet-100",
+  RB: "border-blue-300/65 bg-blue-500/20 text-blue-100",
+  WR: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100",
+  TE: "border-orange-300/65 bg-orange-500/20 text-orange-100",
+  DST: "border-red-300/65 bg-red-500/20 text-red-100",
+  K: "border-white/70 bg-white/15 text-white",
 };
 
 function hasStatLine(stats?: FootballStatLine) {
@@ -234,6 +234,10 @@ function columnGroups(columns: TeamScoringColumn[]) {
   }, []);
 }
 
+function isGroupStart(columns: TeamScoringColumn[], index: number) {
+  return index === 0 || columns[index - 1].group !== columns[index].group;
+}
+
 function PositionBadge({ entry }: { entry: TeamRosterEntry }) {
   const { player, slotLabel } = entry;
 
@@ -274,7 +278,7 @@ function TeamStatTable({
                 <th rowSpan={2} className="w-[300px] px-4 py-3 text-left">
                   Player
                 </th>
-                <th rowSpan={2} className="w-[76px] px-4 py-3 text-emerald-300">
+                <th rowSpan={2} className="w-[76px] px-4 py-3 text-center align-middle text-emerald-300">
                   Pts
                 </th>
                 {groups.map((group) => (
@@ -292,11 +296,18 @@ function TeamStatTable({
               {!groups && (
                 <>
                   <th className="w-[300px] px-4 py-3 text-left">Player</th>
-                  <th className="w-[76px] px-4 py-3 text-emerald-300">Pts</th>
+                  <th className="w-[76px] px-4 py-3 text-center text-emerald-300">
+                    Pts
+                  </th>
                 </>
               )}
-              {columns.map((column) => (
-                <th key={`${title}-${column.group}-${column.label}`} className="px-3 py-3">
+              {columns.map((column, index) => (
+                <th
+                  key={`${title}-${column.group}-${column.label}`}
+                  className={`px-3 py-3 text-center ${
+                    groups && isGroupStart(columns, index) ? "border-l border-white/10" : ""
+                  }`}
+                >
                   {column.label}
                 </th>
               ))}
@@ -323,11 +334,15 @@ function TeamStatTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-emerald-300">{points.toFixed(1)}</td>
-                  {columns.map((column) => (
+                  <td className="px-4 py-4 text-center align-middle text-emerald-300">
+                    {points.toFixed(1)}
+                  </td>
+                  {columns.map((column, index) => (
                     <td
                       key={`${player.id}-${title}-${column.group}-${column.label}`}
-                      className="px-3 py-4 text-slate-300"
+                      className={`px-3 py-4 text-center align-middle text-slate-300 ${
+                        groups && isGroupStart(columns, index) ? "border-l border-white/10" : ""
+                      }`}
                     >
                       {formatNumber(column.value(stats))}
                     </td>
@@ -494,10 +509,9 @@ export default function FootballLeaderboardPage() {
               Leaderboard
             </h2>
             <p className="mt-2 text-sm font-semibold text-slate-500">
-              {scoringModeLabel} totals use this pool&apos;s scoring settings
-              against the newest available stat line.
+              {`${scoringModeLabel} totals use this pool's scoring settings against the newest available stat line.`}
             </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-6 max-w-3xl space-y-3">
               {standings.map((team, index) => (
                 <div
                   key={team.team}

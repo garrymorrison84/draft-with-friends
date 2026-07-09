@@ -55,7 +55,7 @@ const eligiblePreviewRows = [
     conference: "ACC",
     avg: "22.7",
     proj: "33.8",
-    color: "border-teal-200/60 bg-teal-300/20 text-teal-100",
+    color: "border-blue-300/65 bg-blue-500/20 text-blue-100",
   },
   {
     slot: "WR",
@@ -64,15 +64,15 @@ const eligiblePreviewRows = [
     conference: "Big 12",
     avg: "24.4",
     proj: "40.7",
-    color: "border-sky-200/60 bg-sky-300/25 text-sky-50",
+    color: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100",
   },
 ];
 
 const teamPreviewRows = [
   { slot: "QB", name: "J. Daniels", school: "LSU", points: "29.9", color: "border-fuchsia-300/60 bg-fuchsia-400/20 text-fuchsia-100" },
-  { slot: "RB", name: "O. Hampton", school: "North Carolina", points: "22.7", color: "border-teal-200/60 bg-teal-300/20 text-teal-100" },
-  { slot: "RB", name: "B. Corum", school: "Michigan", points: "21.4", color: "border-teal-200/60 bg-teal-300/20 text-teal-100" },
-  { slot: "WR", name: "H. Clement", school: "West Virginia", points: "24.4", color: "border-sky-200/60 bg-sky-300/25 text-sky-50" },
+  { slot: "RB", name: "O. Hampton", school: "North Carolina", points: "22.7", color: "border-blue-300/65 bg-blue-500/20 text-blue-100" },
+  { slot: "RB", name: "B. Corum", school: "Michigan", points: "21.4", color: "border-blue-300/65 bg-blue-500/20 text-blue-100" },
+  { slot: "WR", name: "H. Clement", school: "West Virginia", points: "24.4", color: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100" },
 ];
 
 const leaderboardRows = [

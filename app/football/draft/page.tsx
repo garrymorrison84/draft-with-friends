@@ -34,29 +34,29 @@ const positionStyles: Record<
     board: "border-fuchsia-300/70 bg-fuchsia-400/20",
   },
   RB: {
-    badge: "border-teal-200/55 bg-teal-300/20 text-teal-100",
-    card: "hover:border-teal-300/70",
-    board: "border-teal-200/70 bg-teal-300/20",
+    badge: "border-blue-300/65 bg-blue-500/20 text-blue-100",
+    card: "hover:border-blue-300/75",
+    board: "border-blue-300/70 bg-blue-500/20",
   },
   WR: {
-    badge: "border-sky-200/60 bg-sky-300/25 text-sky-50",
-    card: "hover:border-sky-300/80",
-    board: "border-sky-200/75 bg-sky-300/24",
+    badge: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100",
+    card: "hover:border-yellow-300/75",
+    board: "border-yellow-300/70 bg-yellow-400/20",
   },
   TE: {
-    badge: "border-amber-200/55 bg-amber-300/20 text-amber-100",
-    card: "hover:border-amber-300/70",
-    board: "border-amber-200/70 bg-amber-300/20",
+    badge: "border-orange-300/65 bg-orange-500/20 text-orange-100",
+    card: "hover:border-orange-300/75",
+    board: "border-orange-300/70 bg-orange-500/20",
   },
   DST: {
-    badge: "border-lime-200/55 bg-lime-300/20 text-lime-100",
-    card: "hover:border-lime-300/70",
-    board: "border-lime-200/70 bg-lime-300/20",
+    badge: "border-red-300/65 bg-red-500/20 text-red-100",
+    card: "hover:border-red-300/75",
+    board: "border-red-300/70 bg-red-500/20",
   },
   K: {
-    badge: "border-violet-200/55 bg-violet-300/20 text-violet-100",
-    card: "hover:border-violet-300/70",
-    board: "border-violet-200/70 bg-violet-300/20",
+    badge: "border-white/70 bg-white/15 text-white",
+    card: "hover:border-white/70",
+    board: "border-white/50 bg-white/10",
   },
 };
 
@@ -903,8 +903,8 @@ export default function FootballDraftPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
           <div className="w-full max-w-lg rounded-3xl border border-emerald-400/30 bg-[#111827] p-8 text-center shadow-2xl shadow-black/60">
             <h2 className="text-4xl font-black">
-              <span className="block">Congratulations!</span>
-              <span className="block">Draft Completed!</span>
+              <span className="block">Congratulations</span>
+              <span className="block">Draft Complete</span>
             </h2>
             <p className="mt-4 text-slate-300">
               Your college football pool is ready for live tracking.
