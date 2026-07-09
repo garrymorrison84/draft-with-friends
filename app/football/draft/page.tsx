@@ -614,7 +614,7 @@ export default function FootballDraftPage() {
         </div>
 
         <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[minmax(520px,640px)_1fr]">
-          <section className="order-2 min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:order-1">
+          <section className="order-2 min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden">
             <h2 className="text-3xl font-black">Eligible Players</h2>
             <p className="mt-3 text-slate-400">
               Filter by position, search player or school, then draft from the list.
@@ -642,7 +642,7 @@ export default function FootballDraftPage() {
             </select>
 
             <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
-              <div className="max-h-[620px] overflow-y-auto">
+              <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-380px)] lg:max-h-none">
                 <div className="sticky top-0 z-10 border-b border-white/10 bg-[#1F2937] px-4 py-3">
                   <div className={`grid ${eligiblePlayerGrid} items-center gap-x-4 text-right text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
@@ -725,7 +725,7 @@ export default function FootballDraftPage() {
               )}
           </section>
 
-          <section className="order-1 flex min-w-0 flex-col rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:order-2">
+          <section className="order-1 flex min-w-0 flex-col rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-3xl font-black">Draft Board</h2>
@@ -748,7 +748,7 @@ export default function FootballDraftPage() {
               </div>
             </div>
 
-            <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-white/5 sm:mt-8 lg:min-h-[760px]">
+            <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-white/5 sm:mt-8 lg:min-h-0">
               <div style={{ minWidth: `${pool.numberOfTeams * 190}px` }}>
                 <div
                   className="sticky top-0 z-20 grid bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#0F766E] shadow-lg shadow-emerald-950/40"
@@ -914,6 +914,12 @@ export default function FootballDraftPage() {
               className="mt-8 inline-flex rounded-2xl bg-emerald-400 px-8 py-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
             >
               Live Tracking Leaderboard
+            </Link>
+            <Link
+              href={`/football/pool?id=${pool.id}`}
+              className="mt-3 inline-flex rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-lg font-black text-emerald-300 hover:bg-emerald-400/15"
+            >
+              Commissioner Lobby
             </Link>
           </div>
         </div>

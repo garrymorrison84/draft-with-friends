@@ -480,10 +480,10 @@ export default function FootballLeaderboardPage() {
               Draft Room
             </Link>
             <Link
-              href="/football"
+              href={`/football/pool?id=${pool.id}`}
               className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 hover:bg-emerald-300 sm:px-8 sm:text-lg"
             >
-              Football Home
+              Commissioner Lobby
             </Link>
           </div>
         </div>
