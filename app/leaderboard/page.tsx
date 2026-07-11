@@ -36,6 +36,8 @@ type GolferScoreRow = {
   round_2: number | null;
   round_3: number | null;
   round_4: number | null;
+  position?: string | null;
+  status?: string | null;
 };
 
 type TeamGolfer = {
@@ -102,16 +104,42 @@ function calculateGolferTotal(scoreData?: GolferScoreRow) {
   };
 }
 
+function isMissedCutScore(scoreData?: GolferScoreRow) {
+  const statusText = `${scoreData?.position ?? ""} ${scoreData?.status ?? ""}`
+    .toUpperCase()
+    .trim();
+
+  return /\b(MC|CUT|MISSED CUT)\b/.test(statusText);
+}
+
+function normalizeFutureRoundScore(
+  score: number | null | undefined,
+  scoreData?: GolferScoreRow
+) {
+  if (score === null || score === undefined) return null;
+
+  // SportsData can leave +8 placeholders for players who have not teed off.
+  // Do not treat those placeholders as actual scoring or missed-cut proof.
+  if (score === 8 && !isMissedCutScore(scoreData)) return null;
+
+  return score;
+}
+
 function normalizeGolferScore(
   scoreData?: GolferScoreRow,
   options: { showRound4?: boolean } = {}
 ) {
   const showRound4 = options.showRound4 ?? true;
-  const missedCut = scoreData?.round_3 === 8 && scoreData?.round_4 === 8;
+  const missedCut = isMissedCutScore(scoreData);
   const round1 = scoreData?.round_1 ?? null;
   const round2 = scoreData?.round_2 ?? null;
-  const round3 = missedCut ? null : scoreData?.round_3 ?? null;
-  const round4 = showRound4 && !missedCut ? scoreData?.round_4 ?? null : null;
+  const round3 = missedCut
+    ? null
+    : normalizeFutureRoundScore(scoreData?.round_3, scoreData);
+  const round4 =
+    showRound4 && !missedCut
+      ? normalizeFutureRoundScore(scoreData?.round_4, scoreData)
+      : null;
   const completedRounds = [
     round1,
     round2,
@@ -339,7 +367,7 @@ export default function LeaderboardPage() {
   });
 
   const hasRealRound4Scores = golferScores.some(
-    (score) => typeof score.round_4 === "number" && score.round_4 !== 8
+    (score) => typeof normalizeFutureRoundScore(score.round_4, score) === "number"
   );
   const rankMap = getRankMap(golferScores, hasRealRound4Scores);
 

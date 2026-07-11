@@ -66,16 +66,21 @@ function roundScoreToPar(round: any): number | null {
 
   const score = asNumber(round.Score);
   const par = asNumber(round.Par);
+  const holes = Array.isArray(round.Holes) ? round.Holes : [];
 
   if (score === 0 && par === 0) {
     return null;
   }
 
   if (score !== null && par !== null && score > 0 && par > 0) {
-    return score - par;
-  }
+    const scoreToPar = score - par;
 
-  const holes = Array.isArray(round.Holes) ? round.Holes : [];
+    if (scoreToPar === 8 && holes.length === 0) {
+      return null;
+    }
+
+    return scoreToPar;
+  }
 
   if (holes.length > 0) {
     const holePars = holes
@@ -282,10 +287,6 @@ export async function GET() {
   }
 
   for (const row of penaltyRows || []) {
-    if (row.round_3 === 8 && row.round_4 === 8) {
-      continue;
-    }
-
     const round1 = typeof row.round_1 === "number" ? row.round_1 : 0;
     const round2 = typeof row.round_2 === "number" ? row.round_2 : 0;
     const round3 = row.round_3 === 8 ? null : row.round_3;
@@ -320,7 +321,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-normalized-name-sync-v7-no-cut-penalty-cleanup",
+    scoringVersion: "active-event-normalized-name-sync-v8-hide-future-round-placeholders",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
