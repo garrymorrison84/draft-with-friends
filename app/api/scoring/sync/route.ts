@@ -218,9 +218,7 @@ export async function GET() {
       supabaseGolfer: matchedGolfer,
       sportsDataName,
       sportsdata_total_score: sportsDataTotal,
-      tournament_score: hasAnyScore
-        ? sportsDataTotal ?? calculatedTotal
-        : null,
+      tournament_score: hasAnyScore ? sportsDataTotal ?? calculatedTotal : null,
       round_1: round1,
       round_2: round2,
       round_3: round3,
@@ -284,6 +282,10 @@ export async function GET() {
   }
 
   for (const row of penaltyRows || []) {
+    if (row.round_3 === 8 && row.round_4 === 8) {
+      continue;
+    }
+
     const round1 = typeof row.round_1 === "number" ? row.round_1 : 0;
     const round2 = typeof row.round_2 === "number" ? row.round_2 : 0;
     const round3 = row.round_3 === 8 ? null : row.round_3;

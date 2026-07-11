@@ -42,6 +42,7 @@ type TeamGolfer = {
   name: string;
   rank: number;
   position: string;
+  missedCut: boolean;
   round1: number | null;
   round2: number | null;
   round3: number | null;
@@ -81,29 +82,44 @@ function formatRoundScore(score: number | null | undefined) {
 }
 
 function calculateGolferTotal(scoreData?: GolferScoreRow) {
+  const normalized = normalizeGolferScore(scoreData);
+
+  return {
+    hasScore: normalized.hasScore,
+    total: normalized.total,
+  };
+}
+
+function normalizeGolferScore(
+  scoreData?: GolferScoreRow,
+  options: { showRound4?: boolean } = {}
+) {
+  const showRound4 = options.showRound4 ?? true;
+  const missedCut = scoreData?.round_3 === 8 && scoreData?.round_4 === 8;
+  const round1 = scoreData?.round_1 ?? null;
+  const round2 = scoreData?.round_2 ?? null;
+  const round3 = missedCut ? null : scoreData?.round_3 ?? null;
+  const round4 = showRound4 && !missedCut ? scoreData?.round_4 ?? null : null;
   const completedRounds = [
-    scoreData?.round_1,
-    scoreData?.round_2,
-    scoreData?.round_3,
-    scoreData?.round_4,
+    round1,
+    round2,
+    round3,
+    round4,
   ].filter((score): score is number => typeof score === "number");
 
   return {
+    missedCut,
+    round1,
+    round2,
+    round3,
+    round4,
     hasScore: completedRounds.length > 0,
     total: completedRounds.reduce((sum, score) => sum + score, 0),
   };
 }
 
 function hasUsableScore(scores: GolferScoreRow[]) {
-  return scores.some((score) =>
-    [
-      score.tournament_score,
-      score.round_1,
-      score.round_2,
-      score.round_3,
-      score.round_4,
-    ].some((value) => typeof value === "number")
-  );
+  return scores.some((score) => normalizeGolferScore(score).hasScore);
 }
 
 function sameEventName(first?: string | null, second?: string | null) {
@@ -119,18 +135,19 @@ function sameEventName(first?: string | null, second?: string | null) {
   );
 }
 
-function getRankMap(scores: GolferScoreRow[]) {
+function getRankMap(scores: GolferScoreRow[], showRound4: boolean) {
   const validScores = scores
     .map((score) => {
-      const calculated = calculateGolferTotal(score);
+      const calculated = normalizeGolferScore(score, { showRound4 });
 
       return {
         ...score,
         calculatedTotal: calculated.total,
         hasScore: calculated.hasScore,
+        missedCut: calculated.missedCut,
       };
     })
-    .filter((score) => score.hasScore)
+    .filter((score) => score.hasScore && !score.missedCut)
     .sort((a, b) => a.calculatedTotal - b.calculatedTotal);
 
   const rankMap: Record<string, string> = {};
@@ -309,7 +326,10 @@ export default function LeaderboardPage() {
     scoreMap[normalizeName(score.name)] = score;
   });
 
-  const rankMap = getRankMap(golferScores);
+  const hasRealRound4Scores = golferScores.some(
+    (score) => typeof score.round_4 === "number" && score.round_4 !== 8
+  );
+  const rankMap = getRankMap(golferScores, hasRealRound4Scores);
 
   const teamsWithGolfers: TeamResult[] = pool.teamNames.map((teamName) => {
     const teamPicks = draftPicks
@@ -318,30 +338,38 @@ export default function LeaderboardPage() {
 
     const rawGolfers = teamPicks.map((pick) => {
       const scoreData = scoreMap[normalizeName(pick.golfer_name)];
-      const calculated = calculateGolferTotal(scoreData);
+      const normalizedScore = normalizeGolferScore(scoreData, {
+        showRound4: hasRealRound4Scores,
+      });
 
       return {
         name: pick.golfer_name,
         rank: pick.golfer_rank,
-        position: scoreData ? rankMap[normalizeName(scoreData.name)] || "-" : "-",
-        round1: scoreData?.round_1 ?? null,
-        round2: scoreData?.round_2 ?? null,
-        round3: scoreData?.round_3 ?? null,
-        round4: scoreData?.round_4 ?? null,
-        total: calculated.total,
-        hasScore: calculated.hasScore,
+        position: normalizedScore.missedCut
+          ? "MC"
+          : scoreData
+            ? rankMap[normalizeName(scoreData.name)] || "-"
+            : "-",
+        missedCut: normalizedScore.missedCut,
+        round1: normalizedScore.round1,
+        round2: normalizedScore.round2,
+        round3: normalizedScore.round3,
+        round4: normalizedScore.round4,
+        total: normalizedScore.total,
+        hasScore: normalizedScore.hasScore,
         counts: false,
       };
     });
 
     const sortedForScoring = [...rawGolfers].sort((a, b) => {
+      if (a.missedCut !== b.missedCut) return a.missedCut ? 1 : -1;
       if (a.hasScore !== b.hasScore) return a.hasScore ? -1 : 1;
       return a.total - b.total;
     });
 
     const scoringNames = new Set(
       sortedForScoring
-        .filter((golfer) => golfer.hasScore)
+        .filter((golfer) => golfer.hasScore && !golfer.missedCut)
         .slice(0, pool.scoresToCount)
         .map((golfer) => normalizeName(golfer.name))
     );
@@ -353,6 +381,7 @@ export default function LeaderboardPage() {
       }))
       .sort((a, b) => {
         if (a.counts !== b.counts) return a.counts ? -1 : 1;
+        if (a.missedCut !== b.missedCut) return a.missedCut ? 1 : -1;
         if (a.hasScore !== b.hasScore) return a.hasScore ? -1 : 1;
         return a.total - b.total;
       });
