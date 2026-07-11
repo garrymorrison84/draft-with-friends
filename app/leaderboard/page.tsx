@@ -81,6 +81,18 @@ function formatRoundScore(score: number | null | undefined) {
   return score.toString();
 }
 
+function formatGolferTotal(golfer: TeamGolfer) {
+  if (golfer.missedCut) return "MC";
+  if (!golfer.hasScore) return "-";
+  return formatScore(golfer.total);
+}
+
+function getGolferRowClass(golfer: TeamGolfer) {
+  if (golfer.counts) return "text-white";
+  if (golfer.missedCut) return "text-slate-500";
+  return "text-slate-500 line-through";
+}
+
 function calculateGolferTotal(scoreData?: GolferScoreRow) {
   const normalized = normalizeGolferScore(scoreData);
 
@@ -506,9 +518,7 @@ export default function LeaderboardPage() {
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
                         className={`mt-2 grid grid-cols-[80px_1fr_70px_70px_70px_70px_90px] items-center rounded-xl border border-white/5 bg-[#1F2937] px-3 py-3 ${
-                          golfer.counts
-                            ? "text-white"
-                            : "text-slate-500 line-through"
+                          getGolferRowClass(golfer)
                         }`}
                       >
                         <div className="text-lg font-black text-slate-400">
@@ -533,8 +543,14 @@ export default function LeaderboardPage() {
                           {formatRoundScore(golfer.round4)}
                         </div>
 
-                        <div className="text-right text-lg font-black text-emerald-300">
-                          {golfer.hasScore ? formatScore(golfer.total) : "-"}
+                        <div
+                          className={`text-right text-lg font-black ${
+                            golfer.missedCut
+                              ? "text-slate-400"
+                              : "text-emerald-300"
+                          }`}
+                        >
+                          {formatGolferTotal(golfer)}
                         </div>
                       </div>
                     ))}
@@ -557,9 +573,7 @@ export default function LeaderboardPage() {
                       <div
                         key={`${team.teamName}-${golfer.name}-${golferIndex}`}
                         className={`mt-2 grid grid-cols-[38px_minmax(105px,1fr)_30px_30px_30px_30px_44px] items-center gap-1 rounded-xl border border-white/5 bg-[#1F2937] px-2 py-2.5 ${
-                          golfer.counts
-                            ? "text-white"
-                            : "text-slate-500 line-through"
+                          getGolferRowClass(golfer)
                         }`}
                       >
                         <div className="text-sm font-black text-slate-400">
@@ -586,8 +600,14 @@ export default function LeaderboardPage() {
                           {formatRoundScore(golfer.round4)}
                         </div>
 
-                        <div className="text-right text-sm font-black text-emerald-300">
-                          {golfer.hasScore ? formatScore(golfer.total) : "-"}
+                        <div
+                          className={`text-right text-sm font-black ${
+                            golfer.missedCut
+                              ? "text-slate-400"
+                              : "text-emerald-300"
+                          }`}
+                        >
+                          {formatGolferTotal(golfer)}
                         </div>
                       </div>
                     ))}
