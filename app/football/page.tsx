@@ -46,7 +46,7 @@ const eligiblePreviewRows = [
     conference: "SEC",
     avg: "29.9",
     proj: "31.2",
-    color: "border-violet-300/70 bg-violet-400/20 text-violet-100",
+    color: "border-purple-200 bg-purple-500/45 text-purple-50 shadow-purple-500/20",
   },
   {
     slot: "RB",
@@ -55,7 +55,7 @@ const eligiblePreviewRows = [
     conference: "ACC",
     avg: "22.7",
     proj: "33.8",
-    color: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100",
+    color: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20",
   },
   {
     slot: "WR",
@@ -64,15 +64,15 @@ const eligiblePreviewRows = [
     conference: "Big 12",
     avg: "24.4",
     proj: "40.7",
-    color: "border-amber-300/70 bg-amber-400/20 text-amber-100",
+    color: "border-yellow-200 bg-yellow-500/45 text-yellow-50 shadow-yellow-500/20",
   },
 ];
 
 const teamPreviewRows = [
-  { slot: "QB", name: "J. Daniels", school: "LSU", points: "29.9", color: "border-violet-300/70 bg-violet-400/20 text-violet-100" },
-  { slot: "RB", name: "O. Hampton", school: "North Carolina", points: "22.7", color: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100" },
-  { slot: "RB", name: "B. Corum", school: "Michigan", points: "21.4", color: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100" },
-  { slot: "WR", name: "H. Clement", school: "West Virginia", points: "24.4", color: "border-amber-300/70 bg-amber-400/20 text-amber-100" },
+  { slot: "QB", name: "J. Daniels", school: "LSU", points: "29.9", color: "border-purple-200 bg-purple-500/45 text-purple-50 shadow-purple-500/20" },
+  { slot: "RB", name: "O. Hampton", school: "North Carolina", points: "22.7", color: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20" },
+  { slot: "RB", name: "B. Corum", school: "Michigan", points: "21.4", color: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20" },
+  { slot: "WR", name: "H. Clement", school: "West Virginia", points: "24.4", color: "border-yellow-200 bg-yellow-500/45 text-yellow-50 shadow-yellow-500/20" },
 ];
 
 const leaderboardRows = [
@@ -119,11 +119,11 @@ export default function FootballHomePage() {
           </Link>
         </div>
 
-        <section className="mt-8 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] shadow-xl shadow-black/40 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
-          <div className="flex flex-col justify-between p-5 sm:p-6 md:p-7 lg:min-h-[760px] lg:p-12">
+        <section className="mt-8 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] shadow-xl shadow-black/40 lg:grid lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)]">
+          <div className="p-5 sm:p-6 md:p-8 lg:p-12">
             <div>
               <p className="text-xl font-black uppercase tracking-[0.14em] text-emerald-300 sm:text-3xl md:text-5xl">
-              College Football
+                College Football
               </p>
               <h1 className="mt-5 max-w-4xl text-4xl font-black leading-[1.04] sm:text-5xl md:mt-7 md:text-6xl xl:text-[4.25rem]">
                 Fantasy Football for Saturday.
@@ -135,13 +135,27 @@ export default function FootballHomePage() {
               </p>
             </div>
 
-            <div className="mt-7 md:mt-9">
+            <div className="mt-7 rounded-3xl border border-emerald-300/30 bg-emerald-300/10 p-4 sm:p-5 md:mt-9">
+              <p className="text-sm font-black uppercase tracking-widest text-emerald-200">
+                Next step
+              </p>
+              <p className="mt-2 text-lg font-black text-white sm:text-xl">
+                Build your CFB Week 1 pool
+              </p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                Choose teams, conferences, roster spots, and scoring before the draft room opens.
+              </p>
               <Link
                 href="/football/create"
-                className="inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-400 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300 sm:w-auto md:min-h-20 md:min-w-[360px] md:px-10 md:py-5 md:text-xl"
+                className="mt-5 inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-300 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 md:min-h-20 md:px-10 md:py-5 md:text-xl"
               >
                 Start a Weekend Pool
               </Link>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs font-black uppercase tracking-wide text-slate-300">
+                <span className="rounded-xl bg-[#030712] px-3 py-3">Setup</span>
+                <span className="rounded-xl bg-[#030712] px-3 py-3">Scoring</span>
+                <span className="rounded-xl bg-[#030712] px-3 py-3">Draft</span>
+              </div>
             </div>
           </div>
 
@@ -234,7 +248,7 @@ export default function FootballHomePage() {
                           className="grid grid-cols-[minmax(0,1fr)_70px_70px] items-center gap-3 border-b border-white/5 px-4 py-3 last:border-b-0"
                         >
                           <div className="flex min-w-0 items-center gap-3">
-                            <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black ${player.color}`}>
+                            <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black shadow-lg ${player.color}`}>
                               {player.slot}
                             </span>
                             <div className="min-w-0">
@@ -308,7 +322,7 @@ export default function FootballHomePage() {
                         key={player.name}
                         className="grid grid-cols-[64px_minmax(0,1fr)_64px] items-center gap-3 border-b border-white/5 p-4 last:border-b-0"
                       >
-                        <span className={`rounded-xl border px-3 py-2 text-center text-sm font-black ${player.color}`}>
+                        <span className={`rounded-xl border px-3 py-2 text-center text-sm font-black shadow-lg ${player.color}`}>
                           {player.slot}
                         </span>
                         <div className="min-w-0">

@@ -29,34 +29,34 @@ const positionStyles: Record<
   { badge: string; card: string; board: string }
 > = {
   QB: {
-    badge: "border-violet-300/70 bg-violet-400/20 text-violet-100",
-    card: "hover:border-violet-300/80",
-    board: "border-violet-300/45 bg-violet-400/12",
+    badge: "border-purple-200 bg-purple-500/45 text-purple-50 shadow-purple-500/20",
+    card: "hover:border-purple-200/90",
+    board: "border-purple-300/60 bg-purple-500/20",
   },
   RB: {
-    badge: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100",
-    card: "hover:border-cyan-300/80",
-    board: "border-cyan-300/45 bg-cyan-400/12",
+    badge: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20",
+    card: "hover:border-sky-200/90",
+    board: "border-sky-300/60 bg-sky-500/20",
   },
   WR: {
-    badge: "border-amber-300/70 bg-amber-400/20 text-amber-100",
-    card: "hover:border-amber-300/80",
-    board: "border-amber-300/45 bg-amber-400/12",
+    badge: "border-yellow-200 bg-yellow-500/45 text-yellow-50 shadow-yellow-500/20",
+    card: "hover:border-yellow-200/90",
+    board: "border-yellow-300/60 bg-yellow-500/20",
   },
   TE: {
-    badge: "border-lime-300/70 bg-lime-400/20 text-lime-100",
-    card: "hover:border-lime-300/80",
-    board: "border-lime-300/45 bg-lime-400/12",
+    badge: "border-green-200 bg-green-500/45 text-green-50 shadow-green-500/20",
+    card: "hover:border-green-200/90",
+    board: "border-green-300/60 bg-green-500/20",
   },
   DST: {
-    badge: "border-rose-300/70 bg-rose-400/20 text-rose-100",
-    card: "hover:border-rose-300/80",
-    board: "border-rose-300/45 bg-rose-400/12",
+    badge: "border-red-200 bg-red-500/45 text-red-50 shadow-red-500/20",
+    card: "hover:border-red-200/90",
+    board: "border-red-300/60 bg-red-500/20",
   },
   K: {
-    badge: "border-sky-200/70 bg-sky-300/20 text-sky-100",
-    card: "hover:border-sky-200/80",
-    board: "border-sky-200/45 bg-sky-300/12",
+    badge: "border-slate-100 bg-slate-400/45 text-white shadow-slate-400/20",
+    card: "hover:border-slate-100/90",
+    board: "border-slate-200/60 bg-slate-400/20",
   },
 };
 
