@@ -17,7 +17,7 @@ const scoringPreviewGroups = [
     rows: [
       ["Pass TD", "4 pts"],
       ["Pass Yds", "25 = 1"],
-      ["Completion", "0.2"],
+      ["Completion", "Off"],
     ],
   },
   {
@@ -25,7 +25,7 @@ const scoringPreviewGroups = [
     rows: [
       ["Rush TD", "6 pts"],
       ["Rush Yds", "10 = 1"],
-      ["Rush Att", "0.2"],
+      ["Rush Att", "Off"],
     ],
   },
   {
@@ -46,7 +46,7 @@ const eligiblePreviewRows = [
     conference: "SEC",
     avg: "29.9",
     proj: "31.2",
-    color: "border-fuchsia-300/60 bg-fuchsia-400/20 text-fuchsia-100",
+    color: "border-violet-300/70 bg-violet-400/20 text-violet-100",
   },
   {
     slot: "RB",
@@ -55,7 +55,7 @@ const eligiblePreviewRows = [
     conference: "ACC",
     avg: "22.7",
     proj: "33.8",
-    color: "border-blue-300/65 bg-blue-500/20 text-blue-100",
+    color: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100",
   },
   {
     slot: "WR",
@@ -64,15 +64,15 @@ const eligiblePreviewRows = [
     conference: "Big 12",
     avg: "24.4",
     proj: "40.7",
-    color: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100",
+    color: "border-amber-300/70 bg-amber-400/20 text-amber-100",
   },
 ];
 
 const teamPreviewRows = [
-  { slot: "QB", name: "J. Daniels", school: "LSU", points: "29.9", color: "border-fuchsia-300/60 bg-fuchsia-400/20 text-fuchsia-100" },
-  { slot: "RB", name: "O. Hampton", school: "North Carolina", points: "22.7", color: "border-blue-300/65 bg-blue-500/20 text-blue-100" },
-  { slot: "RB", name: "B. Corum", school: "Michigan", points: "21.4", color: "border-blue-300/65 bg-blue-500/20 text-blue-100" },
-  { slot: "WR", name: "H. Clement", school: "West Virginia", points: "24.4", color: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100" },
+  { slot: "QB", name: "J. Daniels", school: "LSU", points: "29.9", color: "border-violet-300/70 bg-violet-400/20 text-violet-100" },
+  { slot: "RB", name: "O. Hampton", school: "North Carolina", points: "22.7", color: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100" },
+  { slot: "RB", name: "B. Corum", school: "Michigan", points: "21.4", color: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100" },
+  { slot: "WR", name: "H. Clement", school: "West Virginia", points: "24.4", color: "border-amber-300/70 bg-amber-400/20 text-amber-100" },
 ];
 
 const leaderboardRows = [
@@ -81,10 +81,34 @@ const leaderboardRows = [
   ["3", "Steve", "204.0"],
 ];
 
+const formatPlayerName = (name: string) => {
+  const clean = name.replace(/\s+/g, " ").trim();
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length <= 1) return clean;
+
+  const suffixMap: Record<string, string> = {
+    jr: "Jr.",
+    "jr.": "Jr.",
+    sr: "Sr.",
+    "sr.": "Sr.",
+    ii: "II",
+    iii: "III",
+    iv: "IV",
+    v: "V",
+  };
+
+  const lastPart = parts[parts.length - 1].replace(/,$/, "");
+  const suffix = suffixMap[lastPart.toLowerCase()];
+  const lastName = suffix ? parts[parts.length - 2] : parts[parts.length - 1];
+  const firstName = parts[0];
+
+  return `${firstName.charAt(0)}. ${lastName}${suffix ? ` ${suffix}` : ""}`;
+};
+
 export default function FootballHomePage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
@@ -96,7 +120,7 @@ export default function FootballHomePage() {
         </div>
 
         <section className="mt-8 overflow-hidden rounded-3xl border border-white/5 bg-[#111827] shadow-xl shadow-black/40 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
-          <div className="flex flex-col justify-between p-5 sm:p-8 md:p-10 lg:min-h-[760px] lg:p-12">
+          <div className="flex flex-col justify-between p-5 sm:p-6 md:p-7 lg:min-h-[760px] lg:p-12">
             <div>
               <p className="text-xl font-black uppercase tracking-[0.14em] text-emerald-300 sm:text-3xl md:text-5xl">
               College Football
@@ -121,10 +145,10 @@ export default function FootballHomePage() {
             </div>
           </div>
 
-          <div className="border-t border-emerald-400/20 bg-[#06111f] p-5 sm:p-8 lg:border-l lg:border-t-0 lg:p-8">
+          <div className="border-t border-emerald-400/20 bg-[#06111f] p-5 sm:p-6 lg:border-l lg:border-t-0 lg:p-6">
             <div className="grid gap-5">
               <div className="rounded-3xl border border-white/10 bg-[#162033] p-4 shadow-2xl shadow-black/40 sm:p-5">
-                <div className="flex items-start justify-between gap-4">
+                <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
                   <div className="min-w-0">
                     <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
                       Step 1
@@ -137,17 +161,21 @@ export default function FootballHomePage() {
                       flex, defense, and kickers.
                     </p>
                   </div>
-                  <div className="rounded-full bg-emerald-400 px-4 py-2 text-sm font-black text-slate-950">
-                    Week 1
-                  </div>
+                  <Link
+                    href="/football/create"
+                    className="inline-flex min-h-16 w-full items-center justify-center rounded-2xl border border-emerald-200/70 bg-emerald-300 px-5 py-3 text-center text-base font-black uppercase tracking-wide text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 sm:w-auto sm:min-w-[170px]"
+                    aria-label="Create a CFB Week 1 pool"
+                  >
+                    CFB Week 1
+                  </Link>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-white/10 bg-[#030712] p-4">
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="mt-4 rounded-2xl border border-white/10 bg-[#030712] p-3 sm:p-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
                     {rosterPreviewRows.map(([slot, count]) => (
                       <div
                         key={slot}
-                        className="flex items-center justify-between gap-3 rounded-xl bg-[#111827] px-4 py-3"
+                        className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-xl bg-[#111827] px-4 py-3"
                       >
                         <span className="text-sm font-black text-slate-300">{slot}</span>
                         <span className="text-lg font-black text-emerald-300">{count}</span>
@@ -169,16 +197,16 @@ export default function FootballHomePage() {
                         key={group.label}
                         className="overflow-hidden rounded-2xl border border-white/10 bg-[#030712]"
                       >
-                        <div className="border-b border-white/10 bg-[#111827] px-4 py-3 text-sm font-black uppercase tracking-widest text-slate-300">
+                        <div className="border-b border-white/10 bg-[#111827] px-4 py-3 text-center text-sm font-black uppercase tracking-widest text-slate-300">
                           {group.label}
                         </div>
                         {group.rows.map(([label, value]) => (
                           <div
                             key={`${group.label}-${label}`}
-                            className="flex items-center justify-between gap-4 border-b border-white/5 px-4 py-3 last:border-b-0"
+                            className="grid grid-cols-[minmax(0,1fr)_72px] items-center gap-3 border-b border-white/5 px-4 py-3 text-center last:border-b-0"
                           >
                             <span className="min-w-0 text-sm font-black text-slate-300">{label}</span>
-                            <span className="shrink-0 rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950">
+                            <span className="rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950">
                               {value}
                             </span>
                           </div>

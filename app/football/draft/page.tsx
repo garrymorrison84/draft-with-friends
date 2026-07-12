@@ -29,34 +29,34 @@ const positionStyles: Record<
   { badge: string; card: string; board: string }
 > = {
   QB: {
-    badge: "border-fuchsia-300/55 bg-fuchsia-400/20 text-fuchsia-100",
-    card: "hover:border-fuchsia-400/70",
-    board: "border-fuchsia-300/70 bg-fuchsia-400/20",
+    badge: "border-violet-300/70 bg-violet-400/20 text-violet-100",
+    card: "hover:border-violet-300/80",
+    board: "border-violet-300/45 bg-violet-400/12",
   },
   RB: {
-    badge: "border-blue-300/65 bg-blue-500/20 text-blue-100",
-    card: "hover:border-blue-300/75",
-    board: "border-blue-300/70 bg-blue-500/20",
+    badge: "border-cyan-300/70 bg-cyan-400/20 text-cyan-100",
+    card: "hover:border-cyan-300/80",
+    board: "border-cyan-300/45 bg-cyan-400/12",
   },
   WR: {
-    badge: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100",
-    card: "hover:border-yellow-300/75",
-    board: "border-yellow-300/70 bg-yellow-400/20",
+    badge: "border-amber-300/70 bg-amber-400/20 text-amber-100",
+    card: "hover:border-amber-300/80",
+    board: "border-amber-300/45 bg-amber-400/12",
   },
   TE: {
-    badge: "border-orange-300/65 bg-orange-500/20 text-orange-100",
-    card: "hover:border-orange-300/75",
-    board: "border-orange-300/70 bg-orange-500/20",
+    badge: "border-lime-300/70 bg-lime-400/20 text-lime-100",
+    card: "hover:border-lime-300/80",
+    board: "border-lime-300/45 bg-lime-400/12",
   },
   DST: {
-    badge: "border-red-300/65 bg-red-500/20 text-red-100",
-    card: "hover:border-red-300/75",
-    board: "border-red-300/70 bg-red-500/20",
+    badge: "border-rose-300/70 bg-rose-400/20 text-rose-100",
+    card: "hover:border-rose-300/80",
+    board: "border-rose-300/45 bg-rose-400/12",
   },
   K: {
-    badge: "border-white/70 bg-white/15 text-white",
-    card: "hover:border-white/70",
-    board: "border-white/50 bg-white/10",
+    badge: "border-sky-200/70 bg-sky-300/20 text-sky-100",
+    card: "hover:border-sky-200/80",
+    board: "border-sky-200/45 bg-sky-300/12",
   },
 };
 
@@ -230,11 +230,11 @@ function PlayerStatColumns({
 
   return (
     <>
-      <div className="hidden text-left text-slate-300 md:block">{formatPoints(ppg)}</div>
-      <div className="text-right text-emerald-300 md:text-left">
+      <div className="hidden text-center text-slate-300 md:block">{formatPoints(ppg)}</div>
+      <div className="text-right text-emerald-300 md:text-center">
         {formatPoints(projectedScore.total)}
       </div>
-      <div className="hidden text-left text-slate-400 md:block">
+      <div className="hidden text-center text-slate-400 md:block">
         {player.gameTime} {player.opponent}
       </div>
     </>
@@ -352,6 +352,30 @@ function PlayerDetailsModal({
     </div>
   );
 }
+
+const formatPlayerName = (name: string) => {
+  const clean = name.replace(/\s+/g, " ").trim();
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length <= 1) return clean;
+
+  const suffixMap: Record<string, string> = {
+    jr: "Jr.",
+    "jr.": "Jr.",
+    sr: "Sr.",
+    "sr.": "Sr.",
+    ii: "II",
+    iii: "III",
+    iv: "IV",
+    v: "V",
+  };
+
+  const lastPart = parts[parts.length - 1].replace(/,$/, "");
+  const suffix = suffixMap[lastPart.toLowerCase()];
+  const lastName = suffix ? parts[parts.length - 2] : parts[parts.length - 1];
+  const firstName = parts[0];
+
+  return `${firstName.charAt(0)}. ${lastName}${suffix ? ` ${suffix}` : ""}`;
+};
 
 export default function FootballDraftPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
@@ -575,8 +599,8 @@ export default function FootballDraftPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
-      <div className="mx-auto w-full max-w-[1500px] px-4 py-8 sm:px-6">
+    <main className="min-h-screen overflow-x-hidden bg-[#07111d] text-white">
+      <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <Link href="/" aria-label="Draft With Friends home">
@@ -613,8 +637,8 @@ export default function FootballDraftPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-6 lg:grid-cols-[minmax(520px,640px)_1fr]">
-          <section className="order-2 min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden">
+        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-4 lg:grid-cols-[minmax(520px,640px)_1fr]">
+          <section className="order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#101a29] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden">
             <h2 className="text-3xl font-black">Eligible Players</h2>
             <p className="mt-3 text-slate-400">
               Filter by position, search player or school, then draft from the list.
@@ -626,13 +650,13 @@ export default function FootballDraftPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search players..."
-              className="mt-6 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-4 text-white outline-none placeholder:text-slate-500"
+              className="mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60"
             />
 
             <select
               value={position}
               onChange={(event) => setPosition(event.target.value)}
-              className="mt-4 w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-4 text-white"
+              className="mt-4 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-4 text-white focus:border-emerald-300/60"
             >
               {positions.filter((item) => draftablePositions.has(item)).map((item) => (
                 <option key={item} value={item}>
@@ -641,14 +665,14 @@ export default function FootballDraftPage() {
               ))}
             </select>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
               <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-380px)] lg:max-h-none">
-                <div className="sticky top-0 z-10 border-b border-white/10 bg-[#1F2937] px-4 py-3">
-                  <div className={`grid ${eligiblePlayerGrid} items-center gap-x-4 text-right text-xs font-black uppercase tracking-wide text-slate-500`}>
+                <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
+                  <div className={`grid ${eligiblePlayerGrid} items-center gap-x-4 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
-                    <div className="hidden text-left md:block">Avg PPG</div>
-                    <div className="text-right text-emerald-300 md:text-left">Proj Pts</div>
-                    <div className="hidden text-left md:block">Game</div>
+                    <div className="hidden md:block">Avg PPG</div>
+                    <div className="text-right text-emerald-300 md:text-center">Proj Pts</div>
+                    <div className="hidden md:block">Game</div>
                     <div className="hidden md:block">Action</div>
                   </div>
                 </div>
@@ -662,12 +686,12 @@ export default function FootballDraftPage() {
                 return (
                   <div
                     key={player.id}
-                    className={`grid ${eligiblePlayerGrid} items-center gap-x-4 border-b border-white/5 px-4 py-4 text-right text-sm font-black text-slate-300 last:border-b-0 ${
+                    className={`grid ${eligiblePlayerGrid} items-center gap-x-4 border-b border-slate-700/45 px-4 py-4 text-center text-sm font-black text-slate-300 last:border-b-0 ${
                       drafted
-                        ? "bg-[#030712] opacity-45"
+                        ? "bg-[#050a13] opacity-45"
                         : selected
                           ? "bg-emerald-400/10"
-                          : "bg-[#030712]"
+                          : "bg-[#050a13]"
                     }`}
                   >
                     <button
@@ -725,7 +749,7 @@ export default function FootballDraftPage() {
               )}
           </section>
 
-          <section className="order-1 flex min-w-0 flex-col rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
+          <section className="order-1 flex min-w-0 flex-col rounded-3xl border border-slate-600/35 bg-[#101a29] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-3xl font-black">Draft Board</h2>
@@ -748,10 +772,10 @@ export default function FootballDraftPage() {
               </div>
             </div>
 
-            <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-white/5 sm:mt-8 lg:min-h-0">
+            <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-slate-600/35 sm:mt-8 lg:min-h-0">
               <div style={{ minWidth: `${pool.numberOfTeams * 190}px` }}>
                 <div
-                  className="sticky top-0 z-20 grid bg-gradient-to-r from-[#064E3B] via-[#047857] to-[#0F766E] shadow-lg shadow-emerald-950/40"
+                  className="sticky top-0 z-20 grid bg-gradient-to-r from-[#12324a] via-[#0f5c59] to-[#28622f] shadow-lg shadow-black/30"
                   style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(190px, 1fr))` }}
                 >
                   {pool.draftOrder.map((team) => (
@@ -789,7 +813,7 @@ export default function FootballDraftPage() {
                               ? styles.board
                               : isCurrentPick
                                 ? "border-emerald-400/20 bg-emerald-400/15"
-                                : "border-white/5 bg-[#030712]"
+                                : "border-slate-700/45 bg-[#050a13]"
                           }`}
                         >
                           <div
@@ -901,9 +925,9 @@ export default function FootballDraftPage() {
 
       {showCompleted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
-          <div className="w-full max-w-lg rounded-3xl border border-emerald-400/30 bg-[#111827] p-8 text-center shadow-2xl shadow-black/60">
+          <div className="w-full max-w-lg rounded-3xl border border-emerald-400/30 bg-[#111827] p-6 text-center shadow-2xl shadow-black/60">
             <h2 className="text-4xl font-black">
-              <span className="block">Congratulations</span>
+              <span className="block">Congratulations!</span>
               <span className="block">Draft Complete</span>
             </h2>
             <p className="mt-4 text-slate-300">
@@ -911,15 +935,9 @@ export default function FootballDraftPage() {
             </p>
             <Link
               href={`/football/leaderboard?id=${pool.id}`}
-              className="mt-8 inline-flex rounded-2xl bg-emerald-400 px-8 py-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
+              className="mt-8 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-emerald-400 px-8 py-4 text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/25 transition hover:bg-emerald-300"
             >
-              Live Tracking Leaderboard
-            </Link>
-            <Link
-              href={`/football/pool?id=${pool.id}`}
-              className="mt-3 inline-flex rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-lg font-black text-emerald-300 hover:bg-emerald-400/15"
-            >
-              Commissioner Lobby
+              Live Leaderboard
             </Link>
           </div>
         </div>

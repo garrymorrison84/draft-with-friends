@@ -364,7 +364,7 @@ export const defaultScoring: FootballScoring = {
   passing: {
     passingTd: 4,
     passingYardsPerPoint: 25,
-    completion: 0.2,
+    completion: 0,
     interception: -2,
     twoPointConversion: 0,
     fumbleLost: 0,
@@ -372,7 +372,7 @@ export const defaultScoring: FootballScoring = {
   rushing: {
     rushingTd: 6,
     rushingYardsPerPoint: 10,
-    attempt: 0.2,
+    attempt: 0,
     twoPointConversion: 0,
   },
   receiving: {

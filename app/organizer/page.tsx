@@ -195,12 +195,6 @@ export default function OrganizerPage() {
                     Lobby
                   </Link>
                   <Link
-                    href={`/draft?id=${pool.id}`}
-                    className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40"
-                  >
-                    Draft Room
-                  </Link>
-                  <Link
                     href={`/leaderboard?id=${pool.id}`}
                     className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40"
                   >

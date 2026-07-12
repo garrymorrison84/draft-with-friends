@@ -31,12 +31,12 @@ type TeamRosterEntry = {
 };
 
 const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
-  QB: "border-fuchsia-300/55 bg-fuchsia-400/20 text-fuchsia-100",
-  RB: "border-blue-300/65 bg-blue-500/20 text-blue-100",
-  WR: "border-yellow-300/65 bg-yellow-400/20 text-yellow-100",
-  TE: "border-orange-300/65 bg-orange-500/20 text-orange-100",
-  DST: "border-red-300/65 bg-red-500/20 text-red-100",
-  K: "border-white/70 bg-white/15 text-white",
+  QB: "bg-violet-400/20 border-violet-300/70 text-violet-100",
+  RB: "bg-cyan-400/20 border-cyan-300/70 text-cyan-100",
+  WR: "bg-amber-400/20 border-amber-300/70 text-amber-100",
+  TE: "bg-lime-400/20 border-lime-300/70 text-lime-100",
+  DST: "bg-rose-400/20 border-rose-300/70 text-rose-100",
+  K: "bg-sky-300/20 border-sky-200/70 text-sky-100",
 };
 
 function hasStatLine(stats?: FootballStatLine) {
@@ -65,9 +65,23 @@ function formatCompactName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length < 2) return name;
 
+  const suffixMap: Record<string, string> = {
+    jr: "Jr.",
+    "jr.": "Jr.",
+    sr: "Sr.",
+    "sr.": "Sr.",
+    ii: "II",
+    iii: "III",
+    iv: "IV",
+    v: "V",
+  };
+
   const first = parts[0]?.[0] ?? "";
-  const last = parts[parts.length - 1];
-  return `${first}. ${last}`;
+  const lastPart = parts[parts.length - 1].replace(/,$/, "");
+  const suffix = suffixMap[lastPart.toLowerCase()];
+  const lastName = suffix ? parts[parts.length - 2] : parts[parts.length - 1];
+
+  return `${first}. ${lastName}${suffix ? ` ${suffix}` : ""}`;
 }
 
 function assignRosterSlots(players: FootballPlayer[], scoring: FootballScoring): TeamRosterEntry[] {
@@ -357,6 +371,30 @@ function TeamStatTable({
   );
 }
 
+const formatPlayerName = (name: string) => {
+  const clean = name.replace(/\s+/g, " ").trim();
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length <= 1) return clean;
+
+  const suffixMap: Record<string, string> = {
+    jr: "Jr.",
+    "jr.": "Jr.",
+    sr: "Sr.",
+    "sr.": "Sr.",
+    ii: "II",
+    iii: "III",
+    iv: "IV",
+    v: "V",
+  };
+
+  const lastPart = parts[parts.length - 1].replace(/,$/, "");
+  const suffix = suffixMap[lastPart.toLowerCase()];
+  const lastName = suffix ? parts[parts.length - 2] : parts[parts.length - 1];
+  const firstName = parts[0];
+
+  return `${firstName.charAt(0)}. ${lastName}${suffix ? ` ${suffix}` : ""}`;
+};
+
 export default function FootballLeaderboardPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
@@ -474,12 +512,12 @@ export default function FootballLeaderboardPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7">
         <Link href="/" aria-label="Draft With Friends home">
           <BrandMark size="lg" />
         </Link>
 
-        <div className="mt-8 flex flex-col gap-6 md:mt-10 md:flex-row md:items-end md:justify-between">
+        <div className="mt-8 flex flex-col gap-4 md:mt-10 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <h1 className="text-4xl font-black sm:text-5xl md:text-7xl">Leaderboard</h1>
             <p className="mt-4 break-words text-base font-bold text-slate-400 sm:text-xl">
@@ -488,23 +526,11 @@ export default function FootballLeaderboardPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              href={`/football/draft?id=${pool.id}`}
-              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-4 text-center text-base font-black text-emerald-300 hover:bg-emerald-400/15 sm:px-8 sm:text-lg"
-            >
-              Draft Room
-            </Link>
-            <Link
-              href={`/football/pool?id=${pool.id}`}
-              className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 hover:bg-emerald-300 sm:px-8 sm:text-lg"
-            >
-              Commissioner Lobby
-            </Link>
           </div>
         </div>
 
         <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-8">
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
             <h2 className="text-2xl font-black uppercase tracking-wide text-slate-300">
               Leaderboard
             </h2>
@@ -531,7 +557,7 @@ export default function FootballLeaderboardPage() {
             </div>
           </section>
 
-          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-8">
+          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
             <div className="flex flex-col gap-2">
               <h2 className="text-2xl font-black">Team Player Scoring</h2>
               <p className="text-sm font-semibold text-slate-500">
