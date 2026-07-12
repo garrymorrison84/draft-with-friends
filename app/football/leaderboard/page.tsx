@@ -34,8 +34,8 @@ const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   QB: "bg-purple-500/45 border-purple-200 text-purple-50 shadow-purple-500/20",
   RB: "bg-sky-500/45 border-sky-200 text-sky-50 shadow-sky-500/20",
   WR: "bg-yellow-500/45 border-yellow-200 text-yellow-50 shadow-yellow-500/20",
-  TE: "bg-green-500/45 border-green-200 text-green-50 shadow-green-500/20",
-  DST: "bg-red-500/45 border-red-200 text-red-50 shadow-red-500/20",
+  TE: "bg-red-500/45 border-red-200 text-red-50 shadow-red-500/20",
+  DST: "bg-green-500/45 border-green-200 text-green-50 shadow-green-500/20",
   K: "bg-slate-400/45 border-slate-100 text-white shadow-slate-400/20",
 };
 

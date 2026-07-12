@@ -44,14 +44,14 @@ const positionStyles: Record<
     board: "border-yellow-300/60 bg-yellow-500/20",
   },
   TE: {
-    badge: "border-green-200 bg-green-500/45 text-green-50 shadow-green-500/20",
-    card: "hover:border-green-200/90",
-    board: "border-green-300/60 bg-green-500/20",
-  },
-  DST: {
     badge: "border-red-200 bg-red-500/45 text-red-50 shadow-red-500/20",
     card: "hover:border-red-200/90",
     board: "border-red-300/60 bg-red-500/20",
+  },
+  DST: {
+    badge: "border-green-200 bg-green-500/45 text-green-50 shadow-green-500/20",
+    card: "hover:border-green-200/90",
+    board: "border-green-300/60 bg-green-500/20",
   },
   K: {
     badge: "border-slate-100 bg-slate-400/45 text-white shadow-slate-400/20",
