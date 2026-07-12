@@ -71,6 +71,8 @@ function formatPoints(value: number) {
 
 const eligiblePlayerGrid =
   "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(260px,1.15fr)_92px_92px_minmax(190px,0.9fr)_104px]";
+const compactEligiblePlayerGrid =
+  "grid-cols-[minmax(0,1fr)_72px] xl:grid-cols-[minmax(0,1fr)_72px_88px]";
 
 function gameLogColumnsForPosition(
   position: FootballPlayer["position"],
@@ -221,20 +223,24 @@ function playerGameRows(player: FootballPlayer, scoring: FootballPool["scoring"]
 function PlayerStatColumns({
   player,
   scoring,
+  compact = false,
 }: {
   player: FootballPlayer;
   scoring: FootballPool["scoring"];
+  compact?: boolean;
 }) {
   const projectedScore = getProjectedScore(player, scoring);
   const ppg = getPlayerPpg(player, scoring);
 
   return (
     <>
-      <div className="hidden text-center text-slate-300 md:block">{formatPoints(ppg)}</div>
+      <div className={compact ? "hidden" : "hidden text-center text-slate-300 md:block"}>
+        {formatPoints(ppg)}
+      </div>
       <div className="text-right text-emerald-300 md:text-center">
         {formatPoints(projectedScore.total)}
       </div>
-      <div className="hidden text-center text-slate-400 md:block">
+      <div className={compact ? "hidden" : "hidden text-center text-slate-400 md:block"}>
         {player.gameTime} {player.opponent}
       </div>
     </>
@@ -434,6 +440,11 @@ export default function FootballDraftPage() {
   const totalPicks = (pool?.numberOfTeams || 0) * rosterSlots;
   const draftComplete = totalPicks > 0 && picks.length >= totalPicks;
   const draftedIds = new Set(picks.map((pick) => pick.playerId));
+  const compactDraftLayout = (pool?.numberOfTeams || 0) > 3;
+  const draftRoomGridClass = compactDraftLayout
+    ? "lg:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] xl:grid-cols-[minmax(380px,460px)_minmax(0,1fr)]"
+    : "lg:grid-cols-[minmax(520px,640px)_1fr]";
+  const playerGridClass = compactDraftLayout ? compactEligiblePlayerGrid : eligiblePlayerGrid;
 
   const currentTeam = useMemo(() => {
     if (!pool || draftComplete) return "Draft Complete";
@@ -637,10 +648,12 @@ export default function FootballDraftPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-4 lg:grid-cols-[minmax(520px,640px)_1fr]">
-          <section className="order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#101a29] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden">
-            <h2 className="text-3xl font-black">Eligible Players</h2>
-            <p className="mt-3 text-slate-400">
+        <div className={`mt-8 grid gap-5 sm:mt-10 sm:gap-4 ${draftRoomGridClass}`}>
+          <section className={`order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#101a29] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden ${
+            compactDraftLayout ? "sm:p-4" : "sm:p-6"
+          }`}>
+            <h2 className={compactDraftLayout ? "text-2xl font-black" : "text-3xl font-black"}>Eligible Players</h2>
+            <p className={`mt-3 text-slate-400 ${compactDraftLayout ? "text-sm leading-6" : ""}`}>
               Filter by position, search player or school, then draft from the list.
             </p>
             <p className="mt-2 text-xs font-bold text-slate-500">{playerSource}</p>
@@ -650,13 +663,17 @@ export default function FootballDraftPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search players..."
-              className="mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60"
+              className={`mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60 ${
+                compactDraftLayout ? "py-3" : "py-4"
+              }`}
             />
 
             <select
               value={position}
               onChange={(event) => setPosition(event.target.value)}
-              className="mt-4 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-4 text-white focus:border-emerald-300/60"
+              className={`mt-4 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 text-white focus:border-emerald-300/60 ${
+                compactDraftLayout ? "py-3" : "py-4"
+              }`}
             >
               {positions.filter((item) => draftablePositions.has(item)).map((item) => (
                 <option key={item} value={item}>
@@ -665,15 +682,17 @@ export default function FootballDraftPage() {
               ))}
             </select>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
-              <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-380px)] lg:max-h-none">
+            <div className={`${compactDraftLayout ? "mt-4" : "mt-6"} overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]`}>
+              <div className={`max-h-[620px] overflow-y-auto lg:max-h-none ${
+                compactDraftLayout ? "lg:h-[calc(100vh-330px)]" : "lg:h-[calc(100vh-380px)]"
+              }`}>
                 <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className={`grid ${eligiblePlayerGrid} items-center gap-x-4 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
+                  <div className={`grid ${playerGridClass} items-center gap-x-4 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
-                    <div className="hidden md:block">Avg PPG</div>
+                    <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Avg PPG</div>
                     <div className="text-right text-emerald-300 md:text-center">Proj Pts</div>
-                    <div className="hidden md:block">Game</div>
-                    <div className="hidden md:block">Action</div>
+                    <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Game</div>
+                    <div className={compactDraftLayout ? "hidden xl:block" : "hidden md:block"}>Action</div>
                   </div>
                 </div>
 
@@ -686,13 +705,13 @@ export default function FootballDraftPage() {
                 return (
                   <div
                     key={player.id}
-                    className={`grid ${eligiblePlayerGrid} items-center gap-x-4 border-b border-slate-700/45 px-4 py-4 text-center text-sm font-black text-slate-300 last:border-b-0 ${
+                    className={`grid ${playerGridClass} items-center gap-x-4 border-b border-slate-700/45 px-4 text-center text-sm font-black text-slate-300 last:border-b-0 ${
                       drafted
                         ? "bg-[#050a13] opacity-45"
                         : selected
                           ? "bg-emerald-400/10"
                           : "bg-[#050a13]"
-                    }`}
+                    } ${compactDraftLayout ? "py-3" : "py-4"}`}
                   >
                     <button
                       type="button"
@@ -704,7 +723,7 @@ export default function FootballDraftPage() {
                           {player.position}
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-base font-black text-white">
+                          <p className={`${compactDraftLayout ? "text-sm" : "text-base"} truncate font-black text-white`}>
                             {player.name}
                           </p>
                           <p className="truncate text-xs font-bold text-slate-500">
@@ -717,13 +736,13 @@ export default function FootballDraftPage() {
                       </div>
                     </button>
 
-                    <PlayerStatColumns player={player} scoring={pool.scoring} />
+                    <PlayerStatColumns player={player} scoring={pool.scoring} compact={compactDraftLayout} />
 
                     <button
                       type="button"
                       onClick={() => draftPlayer(player)}
                       disabled={drafted || draftComplete}
-                      className="hidden rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 md:block"
+                      className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
                     </button>

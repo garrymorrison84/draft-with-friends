@@ -241,7 +241,7 @@ export default function FootballScoringPage() {
     if (activeTab === "defense") {
       return [
         {
-          label: "Sacks",
+          label: "Sack",
           value: scoring.defense.sack,
           onChange: (value) => updateSection("defense", "sack", value),
           options: [1],
@@ -249,7 +249,7 @@ export default function FootballScoringPage() {
           integerOnly: true,
         },
         {
-          label: "Interceptions",
+          label: "Interception",
           value: scoring.defense.interception,
           onChange: (value) => updateSection("defense", "interception", value),
           options: [2],
