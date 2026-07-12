@@ -860,9 +860,6 @@ export default function FootballDraftPage() {
                                   {player.position}
                                 </span>
                                 <span className="text-sm font-bold text-slate-400">{player.school}</span>
-                                <span className="text-sm font-bold text-emerald-300">
-                                  {getProjectedScore(player, pool.scoring).total.toFixed(1)} proj
-                                </span>
                               </div>
                             </>
                           ) : (
