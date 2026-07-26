@@ -10,6 +10,18 @@ import {
   getCurrentOrganizerUser,
 } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
+import FormSelect from "../components/FormSelect";
+import {
+  buildScheduledDraftAt,
+  defaultDraftTimeZone,
+  getDraftDateOptions,
+  getDraftTimeOptions,
+  getLocalDateValue,
+  draftTimeZoneOptions,
+  pickClockOptions,
+  untimedDraftTiming,
+  type DraftTimeZone,
+} from "../lib/draftTiming";
 import type { User } from "@supabase/supabase-js";
 
 function getCreatePoolErrorMessage(error: unknown) {
@@ -57,6 +69,11 @@ async function createSharedPool(pool: {
   owner_id?: string | null;
   draft_locked: boolean;
   archived: boolean;
+  draft_type?: "unscheduled" | "scheduled";
+  scheduled_draft_at?: string | null;
+  time_zone?: string;
+  pick_clock_seconds?: number;
+  auto_pick_on_timeout?: boolean;
 }) {
   const response = await fetch("/api/pools", {
     method: "POST",
@@ -86,6 +103,12 @@ export default function CreatePoolPage() {
   const [golfersPerTeam, setGolfersPerTeam] = useState(8);
   const [scoresToCount, setScoresToCount] = useState(4);
   const [draftOrderMethod, setDraftOrderMethod] = useState("random");
+  const [draftType, setDraftType] = useState<"unscheduled" | "scheduled">("unscheduled");
+  const [scheduledDraftDate, setScheduledDraftDate] = useState(() => getLocalDateValue());
+  const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
+  const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
+    useState<DraftTimeZone>(defaultDraftTimeZone);
+  const [pickClockSeconds, setPickClockSeconds] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -158,6 +181,11 @@ export default function CreatePoolPage() {
     setDraftOrder(updatedTeams);
   }
 
+  function updateGolfersPerTeam(value: number) {
+    setGolfersPerTeam(value);
+    setScoresToCount((current) => Math.min(current || 1, value));
+  }
+
   function updateTeamName(index: number, value: string) {
     const previousName = teamNames[index];
     const updatedTeams = [...teamNames];
@@ -218,6 +246,11 @@ export default function CreatePoolPage() {
       draftOrder.length === finalTeamNames.length
         ? draftOrder.map((team, index) => team?.trim() || finalTeamNames[index])
         : finalTeamNames;
+    const scheduledStart = buildScheduledDraftAt(
+      scheduledDraftDate,
+      scheduledDraftTime,
+      scheduledDraftTimeZone
+    );
 
     const localPool = {
       id: poolId,
@@ -229,6 +262,13 @@ export default function CreatePoolPage() {
       scoresToCount,
       teamNames: finalTeamNames,
       draftOrder: finalDraftOrder,
+      draftType,
+      scheduledDraftAt:
+        draftType === "scheduled" ? scheduledStart : untimedDraftTiming.scheduledDraftAt,
+      timeZone:
+        draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
+      pickClockSeconds: draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
+      autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
     };
 
     try {
@@ -245,6 +285,11 @@ export default function CreatePoolPage() {
         owner_id: organizer?.id || null,
         draft_locked: false,
         archived: false,
+        draft_type: localPool.draftType,
+        scheduled_draft_at: localPool.scheduledDraftAt,
+        time_zone: localPool.timeZone,
+        pick_clock_seconds: localPool.pickClockSeconds,
+        auto_pick_on_timeout: localPool.autoPickOnTimeout,
       });
 
       saveLocalPool(localPool);
@@ -263,10 +308,6 @@ export default function CreatePoolPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
-          </Link>
-
-          <Link href="/" className="text-sm font-medium text-emerald-300">
-            Back Home
           </Link>
         </div>
 
@@ -312,34 +353,36 @@ export default function CreatePoolPage() {
                 <label className="mb-2 block text-sm font-semibold">
                   Number of Teams
                 </label>
-                <select
+                <FormSelect
+                  ariaLabel="Number of teams"
                   value={numberOfTeams}
-                  onChange={(e) => updateNumberOfTeams(Number(e.target.value))}
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
-                >
-                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                    <option key={num} value={num}>
-                      {num} Teams
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => updateNumberOfTeams(Number(value))}
+                  options={[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map(
+                    (num) => ({
+                      value: num,
+                      label: `${num} Teams`,
+                    })
+                  )}
+                  buttonClassName="border-white/5 bg-[#1F2937] font-normal"
+                />
               </div>
 
               <div>
                 <label className="mb-2 block text-sm font-semibold">
                   Golfers Per Team
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={golfersPerTeam || ""}
-                  onChange={(e) =>
-                    setGolfersPerTeam(
-                      e.target.value === "" ? 0 : Number(e.target.value)
-                    )
-                  }
-                  onFocus={(e) => e.target.select()}
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+                <FormSelect
+                  ariaLabel="Golfers per team"
+                  value={golfersPerTeam}
+                  onChange={(value) => updateGolfersPerTeam(Number(value))}
+                  options={Array.from({ length: 12 }).map((_, index) => {
+                    const num = index + 1;
+                    return {
+                      value: num,
+                      label: `${num} ${num === 1 ? "Golfer" : "Golfers"}`,
+                    };
+                  })}
+                  buttonClassName="border-white/5 bg-[#1F2937] font-normal"
                 />
               </div>
 
@@ -347,17 +390,20 @@ export default function CreatePoolPage() {
                 <label className="mb-2 block text-sm font-semibold">
                   Scores Count
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={scoresToCount || ""}
-                  onChange={(e) =>
-                    setScoresToCount(
-                      e.target.value === "" ? 0 : Number(e.target.value)
-                    )
-                  }
-                  onFocus={(e) => e.target.select()}
-                  className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white"
+                <FormSelect
+                  ariaLabel="Scores count"
+                  value={scoresToCount}
+                  onChange={(value) => setScoresToCount(Number(value))}
+                  options={Array.from({ length: golfersPerTeam }).map(
+                    (_, index) => {
+                      const num = index + 1;
+                      return {
+                        value: num,
+                        label: `${num} ${num === 1 ? "Score" : "Scores"}`,
+                      };
+                    }
+                  )}
+                  buttonClassName="border-white/5 bg-[#1F2937] font-normal"
                 />
               </div>
             </div>
@@ -457,18 +503,18 @@ export default function CreatePoolPage() {
                 </label>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-white/5 bg-[#030712] p-5">
-                <div className="flex items-center justify-between gap-4">
+              <div className="mt-6 rounded-2xl border border-white/5 bg-[#030712] p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-bold">
                       {draftOrderMethod === "manual"
-                        ? "Manual Draft Order Preview"
-                        : "Random Draft Order Preview"}
+                        ? "Manual Draft Order"
+                        : "Draft Order Preview"}
                     </p>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm leading-5 text-slate-500">
                       {draftOrderMethod === "manual"
                         ? "Drag teams on desktop, or use the order controls on mobile."
-                        : "Click Randomize Draft Order again to reshuffle."}
+                        : "Randomize to reshuffle the order before the draft begins."}
                     </p>
                   </div>
 
@@ -476,14 +522,14 @@ export default function CreatePoolPage() {
                     <button
                       type="button"
                       onClick={randomizeDraftOrder}
-                      className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-[#111827]"
+                      className="w-full whitespace-nowrap rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-200 transition hover:bg-emerald-400/15 sm:w-auto"
                     >
                       Randomize Again
                     </button>
                   )}
                 </div>
 
-                <div className="mt-4 space-y-3">
+                <div className="mt-4 space-y-2 sm:space-y-3">
                   {draftOrder.map((team, index) => (
                     <div
                       key={`${team}-${index}`}
@@ -500,11 +546,6 @@ export default function CreatePoolPage() {
                       <div className="min-w-0">
                         <p className="font-bold">
                           {team?.trim() || `Team ${index + 1}`}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {draftOrderMethod === "manual"
-                            ? "Set the draft position"
-                            : "Randomized order"}
                         </p>
                       </div>
 
@@ -541,12 +582,127 @@ export default function CreatePoolPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
-              <p className="font-bold text-emerald-300">Snake Draft Format</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Every pool uses a snake draft. The order reverses each round so
-                every team gets a fair shot across the full draft.
+            <div className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
+              <h2 className="text-2xl font-bold">Draft Timing</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Choose an open-ended draft or schedule a live draft with an optional pick clock.
               </p>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <label
+                  className={`cursor-pointer rounded-2xl border p-5 ${
+                    draftType === "unscheduled"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="draftType"
+                    checked={draftType === "unscheduled"}
+                    onChange={() => setDraftType("unscheduled")}
+                    className="mr-3"
+                  />
+                  <span
+                    className={`font-bold ${
+                      draftType === "unscheduled" ? "text-emerald-300" : "text-white"
+                    }`}
+                  >
+                    Anytime Draft
+                  </span>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Draft at your own pace. Share the link with your friends. No time limit per pick.
+                  </p>
+                </label>
+
+                <label
+                  className={`cursor-pointer rounded-2xl border p-5 ${
+                    draftType === "scheduled"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="draftType"
+                    checked={draftType === "scheduled"}
+                    onChange={() => setDraftType("scheduled")}
+                    className="mr-3"
+                  />
+                  <span
+                    className={`font-bold ${
+                      draftType === "scheduled" ? "text-emerald-300" : "text-white"
+                    }`}
+                  >
+                    Schedule Draft
+                  </span>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Set a draft time and choose how long each participant has to make a pick.
+                  </p>
+                </label>
+              </div>
+
+              {draftType === "scheduled" && (
+                <>
+                  <div className="mt-5 grid gap-4 md:grid-cols-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold">
+                        Draft Date
+                      </label>
+                      <FormSelect
+                        ariaLabel="Draft date"
+                        value={scheduledDraftDate}
+                        onChange={setScheduledDraftDate}
+                        options={getDraftDateOptions()}
+                        buttonClassName="border-white/5 bg-[#030712] font-normal"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold">
+                        Draft Time
+                      </label>
+                      <FormSelect
+                        ariaLabel="Draft time"
+                        value={scheduledDraftTime}
+                        onChange={setScheduledDraftTime}
+                        options={getDraftTimeOptions()}
+                        buttonClassName="border-white/5 bg-[#030712] font-normal"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold">
+                        Time Zone
+                      </label>
+                      <FormSelect
+                        ariaLabel="Draft time zone"
+                        value={scheduledDraftTimeZone}
+                        onChange={(value) =>
+                          setScheduledDraftTimeZone(value as DraftTimeZone)
+                        }
+                        options={draftTimeZoneOptions}
+                        buttonClassName="border-white/5 bg-[#030712] font-normal"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold">
+                        Pick Clock
+                      </label>
+                      <FormSelect
+                        ariaLabel="Pick clock"
+                        value={pickClockSeconds}
+                        onChange={(value) => setPickClockSeconds(Number(value))}
+                        options={pickClockOptions}
+                        buttonClassName="border-white/5 bg-[#030712] font-normal"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {errorMessage && (

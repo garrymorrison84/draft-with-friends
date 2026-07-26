@@ -56,10 +56,6 @@ export default function OrganizerSignInPage() {
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
           </Link>
-
-          <Link href="/" className="text-sm font-medium text-emerald-300">
-            Back Home
-          </Link>
         </div>
 
         <section className="my-auto grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">

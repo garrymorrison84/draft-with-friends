@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import FormSelect from "../../components/FormSelect";
 import {
   getDraftPicks,
   getPool,
@@ -628,23 +629,21 @@ export default function ManagePoolPage() {
                     </div>
 
                     <div>
-                      <select
-                        aria-label={`Golfer for pick ${pick.pick_index + 1}`}
+                      <FormSelect
+                        ariaLabel={`Golfer for pick ${pick.pick_index + 1}`}
                         value={edit.golferName}
-                        onChange={(event) =>
+                        onChange={(value) =>
                           selectGolferForPick(
                             pick.pick_index,
-                            event.target.value
+                            value
                           )
                         }
-                        className="w-full rounded-lg border border-white/5 bg-[#030712] px-3 py-2.5 text-sm text-white outline-none sm:text-base"
-                      >
-                        {golferOptions.map((golfer) => (
-                          <option key={golfer.name} value={golfer.name}>
-                            {golfer.name}
-                          </option>
-                        ))}
-                      </select>
+                        options={golferOptions.map((golfer) => ({
+                          value: golfer.name,
+                          label: golfer.name,
+                        }))}
+                        buttonClassName="rounded-lg border-white/5 bg-[#030712] px-3 py-2.5 text-sm sm:text-base"
+                      />
                     </div>
 
                     <button

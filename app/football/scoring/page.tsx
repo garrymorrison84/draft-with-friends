@@ -150,7 +150,7 @@ export default function FootballScoringPage() {
           value: scoring.passing.passingYardsPerPoint,
           kind: "yards",
           onChange: (value) => updateSection("passing", "passingYardsPerPoint", value),
-          options: [20, 25],
+          options: [25],
           enabled: passingEnabled,
           integerOnly: true,
         },
@@ -158,7 +158,7 @@ export default function FootballScoringPage() {
           label: "Passing TD",
           value: scoring.passing.passingTd,
           onChange: (value) => updateSection("passing", "passingTd", value),
-          options: [4, 6],
+          options: [4],
           enabled: passingEnabled,
           integerOnly: true,
         },
@@ -166,7 +166,7 @@ export default function FootballScoringPage() {
           label: "Int Thrown",
           value: scoring.passing.interception,
           onChange: (value) => updateSection("passing", "interception", value),
-          options: [-1, -2],
+          options: [-2],
           enabled: passingEnabled,
           integerOnly: true,
         },
@@ -195,7 +195,7 @@ export default function FootballScoringPage() {
           label: "Rushing TD",
           value: scoring.rushing.rushingTd,
           onChange: (value) => updateSection("rushing", "rushingTd", value),
-          options: [4, 6],
+          options: [6],
           enabled: rushingEnabled,
           integerOnly: true,
         },
@@ -231,7 +231,7 @@ export default function FootballScoringPage() {
           label: "Receiving TD",
           value: scoring.receiving.receivingTd,
           onChange: (value) => updateSection("receiving", "receivingTd", value),
-          options: [4, 6],
+          options: [6],
           enabled: receivingEnabled,
           integerOnly: true,
         },
@@ -361,7 +361,7 @@ export default function FootballScoringPage() {
         label: "Fumbles Lost",
         value: scoring.passing.fumbleLost,
         onChange: (value) => updateSection("passing", "fumbleLost", value),
-        options: [-1, -2],
+        options: [-2],
         enabled: passingEnabled || rushingEnabled || receivingEnabled,
         integerOnly: true,
       },
@@ -373,7 +373,7 @@ export default function FootballScoringPage() {
 
     const nextPool = { ...pool, scoring };
     saveFootballPool(nextPool);
-    window.location.href = `/football/draft?id=${pool.id}`;
+    window.location.href = `/football/pool?id=${pool.id}`;
   }
 
   if (!pool) {
@@ -391,8 +391,8 @@ export default function FootballScoringPage() {
   }
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#030712] pb-28 text-white sm:pb-0">
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#030712] pb-24 text-white sm:pb-0">
+      <div className="mx-auto w-full max-w-5xl px-2.5 py-5 sm:px-6 sm:py-12">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <Link href="/" aria-label="Draft With Friends home">
             <BrandMark size="lg" />
@@ -402,28 +402,28 @@ export default function FootballScoringPage() {
           </Link>
         </div>
 
-        <h1 className="mt-7 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
+        <h1 className="mt-5 text-2xl font-black leading-tight sm:mt-7 sm:text-4xl md:text-5xl">
           Roster + Scoring Setup
         </h1>
-        <p className="mt-3 break-words text-base font-semibold text-slate-400 sm:text-lg">
+        <p className="mt-2 break-words text-sm font-semibold text-slate-400 sm:mt-3 sm:text-lg">
           {pool.poolName} • {pool.season}
         </p>
 
-        <div className="mt-8 grid min-w-0 gap-5 sm:mt-10 sm:gap-6">
-          <section className="min-w-0 rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
+        <div className="mt-5 grid min-w-0 gap-4 sm:mt-10 sm:gap-6">
+          <section className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-3 sm:rounded-3xl sm:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div className="min-w-0">
-                <h2 className="text-2xl font-bold">Roster Positions</h2>
-                <p className="mt-2 max-w-full text-sm text-slate-400">
+                <h2 className="text-xl font-bold sm:text-2xl">Roster Positions</h2>
+                <p className="mt-1 max-w-full text-xs text-slate-400 sm:mt-2 sm:text-sm">
                   Active roster spots that will be drafted and scored for each team.
                 </p>
               </div>
-              <div className="w-full rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300 md:w-auto">
+              <div className="w-full rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:px-4 sm:py-3 md:w-auto">
                 {rosterTotal} Active Spots
               </div>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-white/5 bg-[#030712] sm:mt-6">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/5 bg-[#030712] sm:mt-6">
               {rosterRows.map((row) => (
                 <RosterStepper
                   key={row.key}
@@ -437,24 +437,24 @@ export default function FootballScoringPage() {
             </div>
           </section>
 
-          <section className="min-w-0 rounded-3xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-6">
+          <section className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-3 sm:rounded-3xl sm:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div className="min-w-0">
-                <h2 className="text-2xl font-bold">Scoring Settings</h2>
-                <p className="mt-2 max-w-full text-sm text-slate-400">
+                <h2 className="text-xl font-bold sm:text-2xl">Scoring Settings</h2>
+                <p className="mt-1 max-w-full text-xs text-slate-400 sm:mt-2 sm:text-sm">
                   Start from familiar defaults, then adjust only the values your group cares about.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl bg-[#111827] p-1 sm:mt-6">
+            <div className="mt-4 rounded-2xl bg-[#111827] p-1 sm:mt-6">
               <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex">
                 {tabs.map((tab) => (
                   <button
                     key={tab.key}
                     type="button"
                     onClick={() => setActiveTab(tab.key)}
-                    className={`min-w-0 rounded-xl px-3 py-3 text-sm font-black transition sm:px-5 ${
+                    className={`min-w-0 rounded-xl px-2 py-2.5 text-xs font-black transition sm:px-5 sm:py-3 sm:text-sm ${
                       activeTab === tab.key
                         ? "bg-slate-100 text-slate-950"
                         : "text-slate-300 hover:bg-white/5"
@@ -466,7 +466,7 @@ export default function FootballScoringPage() {
               </div>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-2xl border border-white/5 bg-[#030712] sm:mt-6">
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/5 bg-[#030712] sm:mt-6">
               {activeTab === "misc" && (
                 <div className="grid gap-3 border-b border-white/5 p-4 sm:gap-4 sm:p-5">
                   <SwitchCard
@@ -489,7 +489,7 @@ export default function FootballScoringPage() {
             onClick={saveAndContinue}
             className="rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 hover:bg-emerald-300"
           >
-            Save Scoring & Enter Draft
+            Save Changes
           </button>
         </div>
       </div>
@@ -510,8 +510,8 @@ function SwitchCard({
 }) {
   return (
     <label
-      className={`flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-[#1F2937] ${
-        compact ? "min-w-[180px] p-3" : "p-4"
+      className={`flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-[#1F2937] ${
+        compact ? "min-w-[180px] p-3" : "p-3 sm:p-4"
       }`}
     >
       <span className="min-w-0 text-sm font-bold sm:text-base">{label}</span>
@@ -553,28 +553,28 @@ function RosterStepper({
 }) {
   return (
     <div
-      className={`flex flex-col gap-4 border-b border-white/5 p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${
+      className={`grid grid-cols-[minmax(0,1fr)_124px] items-center gap-3 border-b border-white/5 px-3 py-3 last:border-b-0 sm:flex sm:flex-row sm:justify-between sm:gap-4 sm:p-4 ${
         disabled ? "opacity-45" : ""
       }`}
     >
       <div className="min-w-0">
-        <p className="break-words text-base font-bold leading-snug sm:text-lg">{label}</p>
+        <p className="break-words text-sm font-bold leading-snug sm:text-lg">{label}</p>
       </div>
-      <div className="grid w-full shrink-0 grid-cols-[56px_1fr_56px] items-center gap-3 sm:w-auto sm:grid-cols-[56px_40px_56px] sm:gap-4">
+      <div className="grid w-full shrink-0 grid-cols-[40px_1fr_40px] items-center gap-2 sm:w-auto sm:grid-cols-[56px_40px_56px] sm:gap-4">
         <button
           type="button"
           onClick={() => onChange(value - 1)}
           disabled={disabled || value <= min}
-          className="flex h-11 w-full items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex h-9 w-full items-center justify-center rounded-xl border border-white/15 text-lg font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35 sm:h-11 sm:text-xl"
         >
           -
         </button>
-        <span className="text-center text-xl font-black">{value}</span>
+        <span className="text-center text-lg font-black sm:text-xl">{value}</span>
         <button
           type="button"
           onClick={() => onChange(value + 1)}
           disabled={disabled || value >= max}
-          className="flex h-11 w-full items-center justify-center rounded-xl border border-white/15 text-xl font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex h-9 w-full items-center justify-center rounded-xl border border-white/15 text-lg font-black text-emerald-300 disabled:cursor-not-allowed disabled:opacity-35 sm:h-11 sm:text-xl"
         >
           +
         </button>
@@ -600,28 +600,28 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
   }
 
   return (
-    <div className={`border-b border-white/5 p-4 last:border-b-0 sm:p-5 ${enabled ? "" : "opacity-45"}`}>
-      <div className="grid min-w-0 gap-4 md:grid-cols-[auto_1fr] md:items-start">
+    <div className={`border-b border-white/5 p-3 last:border-b-0 sm:p-5 ${enabled ? "" : "opacity-45"}`}>
+      <div className="grid min-w-0 grid-cols-[48px_minmax(0,1fr)] gap-3 sm:grid-cols-[auto_1fr] sm:gap-4 md:items-start">
         <button
           type="button"
           onClick={toggleRule}
           disabled={!enabled}
-          className={`relative mt-1 h-8 w-14 rounded-full transition disabled:cursor-not-allowed ${
+          className={`relative mt-0.5 h-7 w-12 rounded-full transition disabled:cursor-not-allowed sm:mt-1 sm:h-8 sm:w-14 ${
             isActive ? "bg-emerald-400" : "bg-slate-700"
           }`}
           aria-label={`${isActive ? "Disable" : "Enable"} ${rule.label}`}
         >
           <span
-            className={`absolute top-1 h-6 w-6 rounded-full bg-white transition ${
-              isActive ? "left-7" : "left-1"
+            className={`absolute top-1 h-5 w-5 rounded-full bg-white transition sm:h-6 sm:w-6 ${
+              isActive ? "left-6 sm:left-7" : "left-1"
             }`}
           />
         </button>
 
-        <div className="min-w-0 grid gap-4 lg:grid-cols-[220px_1fr] lg:items-start">
+        <div className="min-w-0 grid gap-3 sm:gap-4 lg:grid-cols-[220px_1fr] lg:items-start">
           <div className="min-w-0">
-            <h3 className="text-lg font-black">{rule.label}</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
+            <h3 className="text-base font-black sm:text-lg">{rule.label}</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-500 sm:text-sm">
               {isActive
                 ? rule.kind === "yards"
                   ? `1 point per ${rule.value} yards`
@@ -630,10 +630,10 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
             </p>
           </div>
 
-          <div className="min-w-0 flex w-full flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
+          <div className="min-w-0 flex w-full flex-wrap items-center gap-1.5 sm:gap-3 lg:justify-end">
             {rule.kind === "yards" ? (
               <>
-                <span className="text-sm font-bold text-slate-400">1 point per</span>
+                <span className="text-xs font-bold text-slate-400 sm:text-sm">1 point per</span>
                 <OptionButtons
                   value={rule.value}
                   options={rule.options}
@@ -653,7 +653,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
                     onChange={rule.onChange}
                   />
                 )}
-                <span className="text-sm font-bold text-slate-400">yards</span>
+                <span className="text-xs font-bold text-slate-400 sm:text-sm">yards</span>
               </>
             ) : (
               <>
@@ -676,7 +676,7 @@ function ScoringRuleRow({ rule }: { rule: ScoringRule }) {
                     onChange={rule.onChange}
                   />
                 )}
-                <span className="min-w-0 break-words text-sm font-bold text-slate-400">
+                <span className="min-w-0 break-words text-xs font-bold text-slate-400 sm:text-sm">
                   points per {rule.label}
                 </span>
               </>
@@ -704,14 +704,14 @@ function OptionButtons({
   onCustom: () => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-wrap gap-2">
+    <div className="flex min-w-0 flex-wrap gap-1.5 sm:gap-2">
       {options?.map((option) => (
         <button
           key={option}
           type="button"
           disabled={!enabled}
           onClick={() => onChange(option)}
-          className={`min-w-12 rounded-xl border px-3 py-2 text-base font-black transition disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-14 sm:px-4 ${
+          className={`min-w-10 rounded-xl border px-2.5 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-14 sm:px-4 sm:text-base ${
             !customMode && value === option
               ? "border-emerald-400 bg-emerald-400 text-slate-950"
               : "border-white/15 bg-[#111827] text-slate-200 hover:border-emerald-400/40"
@@ -724,7 +724,7 @@ function OptionButtons({
         type="button"
         disabled={!enabled}
         onClick={onCustom}
-        className={`rounded-xl border px-3 py-2 text-base font-black transition disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 ${
+        className={`rounded-xl border px-3 py-2 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:text-base ${
           customMode
             ? "border-emerald-400 bg-emerald-400 text-slate-950"
             : "border-white/15 bg-[#111827] text-emerald-300 hover:border-emerald-400/40"

@@ -3,6 +3,11 @@
 :root {
   --background: #030712;
   --foreground: #ededed;
+  --dwf-surface: #111827;
+  --dwf-surface-raised: #1F2937;
+  --dwf-field: #050a13;
+  --dwf-border: rgba(212, 212, 216, 0.12);
+  --dwf-green: #34d399;
 }
 
 @theme inline {
@@ -14,7 +19,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #030712;
     --foreground: #ededed;
   }
 }
@@ -47,5 +52,37 @@ body {
   a[href][class*="rounded"]:focus-visible {
     outline: 2px solid #6ee7b7;
     outline-offset: 3px;
+  }
+
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}
+
+/* College football polish */
+.football-week-pill {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.75rem;
+  line-height: 1;
+}
+
+.football-draft-complete-title span {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .football-draft-board-compact [data-draft-cell="true"] {
+    min-height: 10.5rem;
+    padding: 1.5rem;
   }
 }

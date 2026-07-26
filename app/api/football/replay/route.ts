@@ -296,6 +296,10 @@ function gameInfoForTeam(games: SportsDataGame[], team: SportsDataTeam) {
   };
 }
 
+function hasScheduledOpponent(player: FootballPlayer) {
+  return /^(vs|@)\s+\S+/.test(player.opponent);
+}
+
 function weeklyPlayerStatsEndpoint(week: number) {
   return `${REPLAY_BASE_URL}/stats/json/playergamestatsbyweek/${REPLAY_SEASON_KEY}/${week}`;
 }
@@ -436,6 +440,7 @@ function buildReplayPlayers({
   });
 
   return [...normalizedPlayers, ...defenses]
+    .filter(hasScheduledOpponent)
     .map((player, index) => ({ ...player, rank: index + 1 }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -8,6 +8,11 @@ export type PoolData = {
   scoresToCount: number;
   teamNames: string[];
   draftOrder: string[];
+  draftType?: "unscheduled" | "scheduled";
+  scheduledDraftAt?: string | null;
+  timeZone?: import("./draftTiming").DraftTimeZone;
+  pickClockSeconds?: number;
+  autoPickOnTimeout?: boolean;
 };
 
 export type DraftPick = {

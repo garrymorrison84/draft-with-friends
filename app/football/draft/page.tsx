@@ -1,8 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import FormSelect from "../../components/FormSelect";
+import {
+  formatDraftStart,
+  formatPickClock,
+  getDraftOpeningBufferStartedAt,
+  getDraftStartsIn,
+  isDraftOpen,
+  scheduledDraftOpeningBufferSeconds,
+} from "../../lib/draftTiming";
+import {
+  isDraftSoundEnabled,
+  playCountdownTickSound,
+  playDraftCompleteSound,
+  playDraftStartSound,
+  playPauseResumeWhistleSound,
+  playPickMadeSound,
+  preloadDraftSounds,
+  setDraftSoundEnabled,
+  stopCountdownTickSound,
+} from "../../lib/draftSounds";
 import {
   FootballDraftPick,
   FootballPlayer,
@@ -31,32 +51,32 @@ const positionStyles: Record<
   QB: {
     badge: "border-purple-200 bg-purple-500/45 text-purple-50 shadow-purple-500/20",
     card: "hover:border-purple-200/90",
-    board: "border-purple-300/60 bg-purple-500/20",
+    board: "border-sky-500/35 bg-[#0b3b55]/95",
   },
   RB: {
     badge: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20",
     card: "hover:border-sky-200/90",
-    board: "border-sky-300/60 bg-sky-500/20",
+    board: "border-sky-500/35 bg-[#0b3b55]/95",
   },
   WR: {
     badge: "border-yellow-200 bg-yellow-500/45 text-yellow-50 shadow-yellow-500/20",
     card: "hover:border-yellow-200/90",
-    board: "border-yellow-300/60 bg-yellow-500/20",
+    board: "border-sky-500/35 bg-[#0b3b55]/95",
   },
   TE: {
     badge: "border-red-200 bg-red-500/45 text-red-50 shadow-red-500/20",
     card: "hover:border-red-200/90",
-    board: "border-red-300/60 bg-red-500/20",
+    board: "border-sky-500/35 bg-[#0b3b55]/95",
   },
   DST: {
     badge: "border-green-200 bg-green-500/45 text-green-50 shadow-green-500/20",
     card: "hover:border-green-200/90",
-    board: "border-green-300/60 bg-green-500/20",
+    board: "border-sky-500/35 bg-[#0b3b55]/95",
   },
   K: {
     badge: "border-slate-100 bg-slate-400/45 text-white shadow-slate-400/20",
     card: "hover:border-slate-100/90",
-    board: "border-slate-200/60 bg-slate-400/20",
+    board: "border-sky-500/35 bg-[#0b3b55]/95",
   },
 };
 
@@ -69,8 +89,20 @@ function formatPoints(value: number) {
   return Number.isInteger(value) ? value.toString() : value.toFixed(1);
 }
 
+function formatClockTime(seconds: number) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainingSeconds = safeSeconds % 60;
+
+  return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function hasScheduledOpponent(player: FootballPlayer) {
+  return /^(vs|@)\s+\S+/.test(player.opponent);
+}
+
 const eligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(260px,1.15fr)_92px_92px_minmax(190px,0.9fr)_104px]";
+  "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(150px,1fr)_54px_64px_minmax(126px,0.78fr)_82px]";
 const compactEligiblePlayerGrid =
   "grid-cols-[minmax(0,1fr)_72px] xl:grid-cols-[minmax(0,1fr)_72px_88px]";
 
@@ -252,11 +284,13 @@ function PlayerDetailsModal({
   scoring,
   onClose,
   onDraft,
+  canDraft,
 }: {
   player: FootballPlayer;
   scoring: FootballPool["scoring"];
   onClose: () => void;
   onDraft: () => void;
+  canDraft: boolean;
 }) {
   const styles = positionStyles[player.position];
   const projection = getProjectedScore(player, scoring);
@@ -294,9 +328,10 @@ function PlayerDetailsModal({
               <button
                 type="button"
                 onClick={onDraft}
-                className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300"
+                disabled={!canDraft}
+                className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
               >
-                Draft
+                {canDraft ? "Draft" : "Not Open"}
               </button>
             </div>
           </div>
@@ -393,6 +428,19 @@ export default function FootballDraftPage() {
   const [detailsPlayer, setDetailsPlayer] = useState<FootballPlayer | null>(null);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
   const [playerSource, setPlayerSource] = useState("Loading replay player pool...");
+  const [now, setNow] = useState(() => new Date());
+  const [pickTimerStartedAt, setPickTimerStartedAt] = useState(() => Date.now());
+  const [draftOpeningStartedAt, setDraftOpeningStartedAt] = useState<number | null>(null);
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [isPickClockPaused, setIsPickClockPaused] = useState(false);
+  const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
+  const autoPickInFlightRef = useRef(false);
+  const autoPickedKeyRef = useRef("");
+  const wasDraftOpenRef = useRef(false);
+  const wasDraftOpeningBufferActiveRef = useRef(false);
+  const draftJustOpenedPickKeyRef = useRef("");
+  const draftCompleteSoundPlayedRef = useRef(false);
+  const tickKeyRef = useRef("");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -436,9 +484,65 @@ export default function FootballDraftPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setSoundsEnabled(isDraftSoundEnabled());
+    preloadDraftSounds();
+  }, []);
+
   const rosterSlots = getTotalRosterSlots(pool?.scoring);
   const totalPicks = (pool?.numberOfTeams || 0) * rosterSlots;
   const draftComplete = totalPicks > 0 && picks.length >= totalPicks;
+  const draftOpen = pool ? isDraftOpen(pool, now) : true;
+  const draftStartsIn = pool ? getDraftStartsIn(pool, now) : null;
+  const activePickClockSeconds = Math.max(0, Number(pool?.pickClockSeconds) || 0);
+  const draftBoardTeamCount = pool?.numberOfTeams || 0;
+  const draftBoardNameClass =
+    draftBoardTeamCount >= 10
+      ? "text-[clamp(0.7rem,0.95vw,0.88rem)] sm:text-[clamp(0.76rem,0.98vw,0.95rem)]"
+      : draftBoardTeamCount >= 7
+        ? "text-[clamp(0.76rem,1.02vw,0.95rem)] sm:text-[clamp(0.82rem,1.08vw,1.02rem)]"
+      : draftBoardTeamCount >= 5
+          ? "text-[clamp(0.82rem,1.12vw,1.02rem)] sm:text-[clamp(0.88rem,1.2vw,1.1rem)]"
+          : "text-[clamp(0.95rem,1.35vw,1.22rem)] sm:text-[clamp(1.05rem,1.45vw,1.32rem)]";
+  const draftBoardTeamClass =
+    draftBoardTeamCount >= 10
+      ? "text-[clamp(0.85rem,1.2vw,1.15rem)]"
+      : draftBoardTeamCount >= 7
+        ? "text-[clamp(0.9rem,1.35vw,1.3rem)]"
+        : "text-[clamp(0.95rem,1.8vw,1.75rem)]";
+  const draftOpeningBufferRemaining =
+    pool &&
+    pool.draftType === "scheduled" &&
+    draftOpen &&
+    !draftComplete &&
+    picks.length === 0 &&
+    draftOpeningStartedAt !== null
+      ? Math.max(
+          0,
+          scheduledDraftOpeningBufferSeconds -
+            Math.floor((now.getTime() - draftOpeningStartedAt) / 1000)
+        )
+      : 0;
+  const draftOpeningBufferActive = draftOpeningBufferRemaining > 0;
+  const pickClockRemaining =
+    draftOpen &&
+    !draftOpeningBufferActive &&
+    !draftComplete &&
+    activePickClockSeconds > 0
+      ? isPickClockPaused && pausedPickClockRemaining !== null
+        ? pausedPickClockRemaining
+        : Math.max(
+          0,
+          activePickClockSeconds -
+            Math.floor((Date.now() - pickTimerStartedAt) / 1000)
+        )
+      : null;
   const draftedIds = new Set(picks.map((pick) => pick.playerId));
   const compactDraftLayout = (pool?.numberOfTeams || 0) > 3;
   const draftRoomGridClass = compactDraftLayout
@@ -468,7 +572,19 @@ export default function FootballDraftPage() {
       }
       return activeRoster[item as keyof typeof activeRoster] > 0;
     })
-  );
+        );
+
+  useEffect(() => {
+    if (draftComplete) {
+      if (!draftCompleteSoundPlayedRef.current) {
+        draftCompleteSoundPlayedRef.current = true;
+        playDraftCompleteSound();
+      }
+      return;
+    }
+
+    draftCompleteSoundPlayedRef.current = false;
+  }, [draftComplete]);
   const draftablePositions = new Set(
     positions.filter((item) => {
       if (item === "ALL") return true;
@@ -488,36 +604,40 @@ export default function FootballDraftPage() {
 
   const filteredPlayers = players
     .filter((player) => {
-    const matchesPosition = position === "ALL" || player.position === position;
-    const matchesConference = activeConferences.includes(player.conference);
-    const matchesRoster = activePositions.has(player.position);
-    const matchesCurrentTeamRoster =
-      !pool ||
-      draftComplete ||
-      canTeamDraftPosition({
-        team: currentTeam,
-        position: player.position,
-        picks,
-        players,
-        pool,
-      });
-    const matchesSearch =
-      player.name.toLowerCase().includes(search.toLowerCase()) ||
-      player.school.toLowerCase().includes(search.toLowerCase()) ||
-      player.conference.toLowerCase().includes(search.toLowerCase());
-    return (
-      matchesPosition &&
-      matchesConference &&
-      matchesRoster &&
-      matchesCurrentTeamRoster &&
-      matchesSearch
+      const matchesPosition = position === "ALL" || player.position === position;
+      const matchesConference = activeConferences.includes(player.conference);
+      const matchesSchedule = hasScheduledOpponent(player);
+      const matchesRoster = activePositions.has(player.position);
+      const isAvailable = !draftedIds.has(player.id);
+      const matchesCurrentTeamRoster =
+        !pool ||
+        draftComplete ||
+        canTeamDraftPosition({
+          team: currentTeam,
+          position: player.position,
+          picks,
+          players,
+          pool,
+        });
+      const matchesSearch =
+        player.name.toLowerCase().includes(search.toLowerCase()) ||
+        player.school.toLowerCase().includes(search.toLowerCase()) ||
+        player.conference.toLowerCase().includes(search.toLowerCase());
+      return (
+        isAvailable &&
+        matchesPosition &&
+        matchesConference &&
+        matchesSchedule &&
+        matchesRoster &&
+        matchesCurrentTeamRoster &&
+        matchesSearch
+      );
+    })
+    .sort(
+      (a, b) =>
+        getProjectedScore(b, pool?.scoring).total -
+        getProjectedScore(a, pool?.scoring).total
     );
-  })
-  .sort(
-    (a, b) =>
-      getProjectedScore(b, pool?.scoring).total -
-      getProjectedScore(a, pool?.scoring).total
-  );
   const displayedPlayers = filteredPlayers.slice(0, 300);
 
   useEffect(() => {
@@ -526,10 +646,104 @@ export default function FootballDraftPage() {
     }
   }, [draftablePositions, position]);
 
+  useEffect(() => {
+    setPickTimerStartedAt(Date.now());
+    setIsPickClockPaused(false);
+    setPausedPickClockRemaining(null);
+    autoPickInFlightRef.current = false;
+    autoPickedKeyRef.current = "";
+    stopCountdownTickSound();
+    if (picks.length !== 0) {
+      setDraftOpeningStartedAt(null);
+    }
+  }, [picks.length]);
+
+  useEffect(() => {
+    if (draftOpen && !wasDraftOpenRef.current) {
+      const openingPickKey = pool ? `${pool.id}-${picks.length}` : "";
+      const shouldUseOpeningBuffer =
+        pool?.draftType === "scheduled" && picks.length === 0;
+
+      draftJustOpenedPickKeyRef.current = openingPickKey;
+      setDraftOpeningStartedAt(
+        shouldUseOpeningBuffer && pool
+          ? getDraftOpeningBufferStartedAt(pool.id)
+          : null
+      );
+      setPickTimerStartedAt(Date.now());
+      setIsPickClockPaused(false);
+      setPausedPickClockRemaining(null);
+      autoPickInFlightRef.current = false;
+      autoPickedKeyRef.current = "";
+      tickKeyRef.current = "";
+      playDraftStartSound();
+      if (!shouldUseOpeningBuffer) {
+        window.setTimeout(() => {
+          if (draftJustOpenedPickKeyRef.current === openingPickKey) {
+            draftJustOpenedPickKeyRef.current = "";
+          }
+        }, 0);
+      }
+    }
+    wasDraftOpenRef.current = draftOpen;
+  }, [draftOpen, picks.length, pool]);
+
+  useEffect(() => {
+    if (draftOpeningBufferActive) {
+      wasDraftOpeningBufferActiveRef.current = true;
+      return;
+    }
+
+    if (wasDraftOpeningBufferActiveRef.current) {
+      wasDraftOpeningBufferActiveRef.current = false;
+      setPickTimerStartedAt(Date.now());
+      setIsPickClockPaused(false);
+      setPausedPickClockRemaining(null);
+      tickKeyRef.current = "";
+      draftJustOpenedPickKeyRef.current = "";
+      stopCountdownTickSound();
+    }
+  }, [draftOpeningBufferActive]);
+
+  useEffect(() => {
+    if (
+      !pool ||
+      isPickClockPaused ||
+      draftOpeningBufferActive ||
+      pickClockRemaining === null ||
+      draftComplete ||
+      !draftOpen
+    ) {
+      stopCountdownTickSound();
+      return;
+    }
+
+    const pickKey = `${pool.id}-${picks.length}`;
+    if (
+      pickClockRemaining >= 1 &&
+      pickClockRemaining <= 8 &&
+      tickKeyRef.current !== pickKey
+    ) {
+      tickKeyRef.current = pickKey;
+      playCountdownTickSound();
+    } else if (pickClockRemaining > 8) {
+      stopCountdownTickSound();
+    }
+  }, [
+    draftComplete,
+    draftOpen,
+    draftOpeningBufferActive,
+    isPickClockPaused,
+    pickClockRemaining,
+    picks.length,
+    pool,
+  ]);
+
   function draftPlayer(player: FootballPlayer) {
     if (
       !pool ||
       draftedIds.has(player.id) ||
+      !draftOpen ||
       draftComplete ||
       !canTeamDraftPosition({
         team: currentTeam,
@@ -553,37 +767,113 @@ export default function FootballDraftPage() {
     setPendingPlayer(null);
   }
 
-  function confirmDraftPlayer() {
+  function savePlayerPick(player: FootballPlayer) {
     if (
       !pool ||
-      !pendingPlayer ||
-      draftedIds.has(pendingPlayer.id) ||
+      draftedIds.has(player.id) ||
+      !draftOpen ||
       draftComplete ||
       !canTeamDraftPosition({
         team: currentTeam,
-        position: pendingPlayer.position,
+        position: player.position,
         picks,
         players,
         pool,
       })
     ) {
       setPendingPlayer(null);
-      return;
+      return false;
     }
 
     const nextPicks = [
       ...picks,
-      { playerId: pendingPlayer.id, team: currentTeam, pickNumber: picks.length + 1 },
+      { playerId: player.id, team: currentTeam, pickNumber: picks.length + 1 },
     ];
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
     setPendingPlayer(null);
     setDetailsPlayer(null);
 
-    if (nextPicks.length >= totalPicks) {
+    const isFinalPick = nextPicks.length >= totalPicks;
+
+    if (isFinalPick) {
       setShowCompleted(true);
     }
+    if (isFinalPick) {
+      stopCountdownTickSound();
+    } else {
+      playPickMadeSound();
+    }
+
+    return true;
   }
+
+  function confirmDraftPlayer() {
+    if (!pendingPlayer) return;
+    savePlayerPick(pendingPlayer);
+  }
+
+  useEffect(() => {
+    if (
+      !pool ||
+      pickClockRemaining !== 0 ||
+      activePickClockSeconds <= 0 ||
+      !draftOpen ||
+      draftOpeningBufferActive ||
+      draftComplete ||
+      isPickClockPaused ||
+      autoPickInFlightRef.current
+    ) {
+      return;
+    }
+
+    stopCountdownTickSound();
+
+    const pickKey = `${pool.id}-${picks.length}`;
+    if (
+      draftJustOpenedPickKeyRef.current === pickKey ||
+      autoPickedKeyRef.current === pickKey
+    ) {
+      return;
+    }
+
+    const nextPlayer = displayedPlayers.find(
+      (player) =>
+        !draftedIds.has(player.id) &&
+        canTeamDraftPosition({
+          team: currentTeam,
+          position: player.position,
+          picks,
+          players,
+          pool,
+        })
+    );
+
+    if (!nextPlayer) return;
+
+    autoPickInFlightRef.current = true;
+    autoPickedKeyRef.current = pickKey;
+    setPendingPlayer(null);
+    const didPick = savePlayerPick(nextPlayer);
+
+    if (!didPick) {
+      autoPickInFlightRef.current = false;
+      autoPickedKeyRef.current = "";
+    }
+  }, [
+    activePickClockSeconds,
+    currentTeam,
+    displayedPlayers,
+    draftComplete,
+    draftOpen,
+    draftOpeningBufferActive,
+    draftedIds,
+    isPickClockPaused,
+    pickClockRemaining,
+    picks,
+    players,
+    pool,
+  ]);
 
   function undoPick() {
     if (!pool) return;
@@ -593,6 +883,33 @@ export default function FootballDraftPage() {
     setShowCompleted(false);
     setPendingPlayer(null);
     setDetailsPlayer(null);
+  }
+
+  function togglePickClockPause() {
+    if (pickClockRemaining === null || activePickClockSeconds <= 0) return;
+
+    if (isPickClockPaused) {
+      const remaining = pausedPickClockRemaining ?? pickClockRemaining;
+      setPickTimerStartedAt(
+        Date.now() - (activePickClockSeconds - remaining) * 1000
+      );
+      setPausedPickClockRemaining(null);
+      setIsPickClockPaused(false);
+      if (remaining <= 8) tickKeyRef.current = "";
+      playPauseResumeWhistleSound();
+      return;
+    }
+
+    setPausedPickClockRemaining(pickClockRemaining);
+    setIsPickClockPaused(true);
+    stopCountdownTickSound();
+    playPauseResumeWhistleSound();
+  }
+
+  function toggleDraftSounds() {
+    const nextSoundsEnabled = !soundsEnabled;
+    setSoundsEnabled(nextSoundsEnabled);
+    setDraftSoundEnabled(nextSoundsEnabled);
   }
 
   if (!pool) {
@@ -610,7 +927,7 @@ export default function FootballDraftPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#07111d] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
       <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -620,36 +937,58 @@ export default function FootballDraftPage() {
             <h1 className="mt-6 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
               College Football Draft Room
             </h1>
-            <p className="mt-4 text-base font-bold text-slate-300 sm:text-lg">
-              {draftComplete ? "All picks are complete." : `${currentTeam} is on the clock`}
-            </p>
+            {!draftOpen ? (
+              <p className="mt-4 text-lg font-black text-slate-300 sm:text-xl md:text-2xl">
+                Draft opens {formatDraftStart(pool)}
+                {draftStartsIn ? ` • ${draftStartsIn}` : ""}.
+              </p>
+            ) : draftComplete ? (
+              <p className="mt-4 text-lg font-black text-slate-300 sm:text-xl md:text-2xl">
+                All picks are complete.
+              </p>
+            ) : (
+              <p className="mt-4 text-2xl font-black leading-tight text-white sm:text-3xl md:text-4xl">
+                <span className="text-emerald-300">{currentTeam}</span>{" "}
+                is on the clock
+              </p>
+            )}
             <p className="mt-2 text-sm font-bold text-slate-500">
-              {pool.season} • Pick {Math.min(picks.length + 1, totalPicks)} of {totalPicks}
+              {pool.season} • Pick {Math.min(picks.length + 1, totalPicks)} of {totalPicks} •{" "}
+              {formatPickClock(pool.pickClockSeconds)}
             </p>
           </div>
 
           <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
-            <button
-              type="button"
-              onClick={undoPick}
-              disabled={picks.length === 0}
-            className="rounded-2xl border border-slate-700 px-6 py-4 text-base font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 sm:px-8 sm:text-lg"
+            <Link
+              href={`/football/pool?id=${pool.id}&view=lobby`}
+              className="rounded-2xl border border-slate-700 px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#111827] sm:px-8 sm:text-lg"
             >
-              Undo Pick
-            </button>
-            {draftComplete && (
-              <Link
-                href={`/football/leaderboard?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-6 py-4 text-center text-base font-black text-slate-950 shadow-lg shadow-emerald-400/30 hover:bg-emerald-300 sm:px-8 sm:text-lg"
-              >
-                Live Leaderboard
-              </Link>
-            )}
+              Return to Lobby
+            </Link>
           </div>
         </div>
 
+        {draftOpen && !draftComplete && pool.draftType === "scheduled" && (
+          <div className="fixed bottom-5 right-4 z-50 flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-2xl border border-emerald-400/30 bg-[#06261f]/95 px-3.5 py-3 text-sm font-black shadow-2xl shadow-black/50 backdrop-blur sm:right-6 sm:gap-3 sm:px-4 sm:py-3.5 sm:text-base">
+            <span className="min-w-0 max-w-[190px] truncate text-emerald-300 sm:max-w-[260px]">
+              {isPickClockPaused
+                ? "Draft paused"
+                : draftOpeningBufferActive
+                  ? "Draft is live"
+                  : `${currentTeam} is up`}
+            </span>
+            <span className="shrink-0 text-white">
+              {draftOpeningBufferActive
+                ? formatClockTime(draftOpeningBufferRemaining)
+                : pickClockRemaining !== null
+                  ? formatClockTime(pickClockRemaining)
+                  : formatPickClock(pool.pickClockSeconds)}
+            </span>
+          </div>
+        )}
+
         <div className={`mt-8 grid gap-5 sm:mt-10 sm:gap-4 ${draftRoomGridClass}`}>
-          <section className={`order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#101a29] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden ${
+          <section className={`order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden ${
             compactDraftLayout ? "sm:p-4" : "sm:p-6"
           }`}>
             <h2 className={compactDraftLayout ? "text-2xl font-black" : "text-3xl font-black"}>Eligible Players</h2>
@@ -668,26 +1007,26 @@ export default function FootballDraftPage() {
               }`}
             />
 
-            <select
+            <FormSelect
+              ariaLabel="Filter players by position"
               value={position}
-              onChange={(event) => setPosition(event.target.value)}
-              className={`mt-4 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 text-white focus:border-emerald-300/60 ${
-                compactDraftLayout ? "py-3" : "py-4"
-              }`}
-            >
-              {positions.filter((item) => draftablePositions.has(item)).map((item) => (
-                <option key={item} value={item}>
-                  {item === "ALL" ? "All Positions" : item}
-                </option>
-              ))}
-            </select>
+              onChange={setPosition}
+              options={positions
+                .filter((item) => draftablePositions.has(item))
+                .map((item) => ({
+                  value: item,
+                  label: item === "ALL" ? "All Positions" : item,
+                }))}
+              className="mt-4"
+              buttonClassName={compactDraftLayout ? "py-3" : "py-4"}
+            />
 
             <div className={`${compactDraftLayout ? "mt-4" : "mt-6"} overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]`}>
               <div className={`max-h-[620px] overflow-y-auto lg:max-h-none ${
                 compactDraftLayout ? "lg:h-[calc(100vh-330px)]" : "lg:h-[calc(100vh-380px)]"
               }`}>
-                <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className={`grid ${playerGridClass} items-center gap-x-4 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
+                <div className="sticky top-0 z-10 w-full border-b border-slate-600/35 bg-[#172235] px-4 py-3">
+                  <div className={`grid ${playerGridClass} items-center gap-x-3 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
                     <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Avg PPG</div>
                     <div className="text-right text-emerald-300 md:text-center">Proj Pts</div>
@@ -705,7 +1044,7 @@ export default function FootballDraftPage() {
                 return (
                   <div
                     key={player.id}
-                    className={`grid ${playerGridClass} items-center gap-x-4 border-b border-slate-700/45 px-4 text-center text-sm font-black text-slate-300 last:border-b-0 ${
+                    className={`grid ${playerGridClass} items-center gap-x-3 border-b border-slate-700/45 px-4 text-center text-sm font-black text-slate-300 last:border-b-0 ${
                       drafted
                         ? "bg-[#050a13] opacity-45"
                         : selected
@@ -741,8 +1080,8 @@ export default function FootballDraftPage() {
                     <button
                       type="button"
                       onClick={() => draftPlayer(player)}
-                      disabled={drafted || draftComplete}
-                      className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
+                      disabled={drafted || !draftOpen || draftComplete}
+                      className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-xl bg-emerald-400 px-3 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
                     </button>
@@ -768,39 +1107,88 @@ export default function FootballDraftPage() {
               )}
           </section>
 
-          <section className="order-1 flex min-w-0 flex-col rounded-3xl border border-slate-600/35 bg-[#101a29] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="order-1 flex min-w-0 flex-col rounded-2xl border border-slate-600/35 bg-[#111827] p-2.5 shadow-xl shadow-black/40 sm:rounded-3xl sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-3xl font-black">Draft Board</h2>
-                <p className="mt-2 text-slate-400">
+                <h2 className="text-2xl font-black sm:text-3xl">Draft Board</h2>
+                <p className="mt-1 text-sm text-slate-400 sm:mt-2 sm:text-base">
                   Snake draft order reverses each round.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 <button
                   type="button"
                   onClick={undoPick}
                   disabled={picks.length === 0}
-                  className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40 lg:hidden"
+                  className="min-h-10 flex-1 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 sm:py-3"
                 >
                   Undo Pick
                 </button>
-                <span className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-300">
+                {draftOpen &&
+                  !draftOpeningBufferActive &&
+                  !draftComplete &&
+                  activePickClockSeconds > 0 && (
+                  <button
+                    type="button"
+                    onClick={togglePickClockPause}
+                    className="min-h-10 flex-1 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:flex-none sm:px-4 sm:py-3"
+                  >
+                    {isPickClockPaused ? "Resume" : "Pause"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleDraftSounds}
+                  aria-label={soundsEnabled ? "Turn draft sounds off" : "Turn draft sounds on"}
+                  title={soundsEnabled ? "Sound on" : "Sound off"}
+                  className={`min-h-10 flex-1 rounded-xl border px-3 py-2 text-sm font-black transition sm:flex-none sm:px-4 sm:py-3 ${
+                    soundsEnabled
+                      ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                      : "border-slate-700 text-slate-400 hover:border-emerald-400/40 hover:bg-[#0b1220]"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.4"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                      {soundsEnabled ? (
+                        <>
+                          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                          <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+                        </>
+                      ) : (
+                        <>
+                          <path d="m16 9 5 5" />
+                          <path d="m21 9-5 5" />
+                        </>
+                      )}
+                    </svg>
+                    {soundsEnabled ? "On" : "Off"}
+                  </span>
+                </button>
+                <span className="flex min-h-10 flex-1 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:flex-none sm:px-4 sm:py-3">
                   Snake Draft
                 </span>
               </div>
             </div>
 
-            <div className="mt-6 min-h-[620px] flex-1 overflow-auto rounded-3xl border border-slate-600/35 sm:mt-8 lg:min-h-0">
-              <div style={{ minWidth: `${pool.numberOfTeams * 190}px` }}>
+            <div className="mt-4 min-h-[520px] flex-1 overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
+              <div style={{ minWidth: `${pool.numberOfTeams * 142}px` }}>
                 <div
-                  className="sticky top-0 z-20 grid bg-gradient-to-r from-[#12324a] via-[#0f5c59] to-[#28622f] shadow-lg shadow-black/30"
-                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(190px, 1fr))` }}
+                  className="sticky top-0 z-20 grid bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
+                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(142px, 1fr))` }}
                 >
                   {pool.draftOrder.map((team) => (
-                    <div key={team} className="border-r border-emerald-300/20 p-4 text-center last:border-r-0 sm:p-6">
-                      <p className="text-xs font-black uppercase tracking-widest text-emerald-100/85">Team</p>
-                      <p className="mt-2 truncate text-xl font-black text-white sm:text-2xl">{team}</p>
+                    <div key={team} className="border-r border-emerald-300/20 px-3 py-3 text-center last:border-r-0 sm:p-6">
+                      <p className={`truncate font-black text-white ${draftBoardTeamClass}`}>{team}</p>
                     </div>
                   ))}
                 </div>
@@ -809,7 +1197,7 @@ export default function FootballDraftPage() {
                   <div
                     key={roundIndex}
                     className="grid"
-                    style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(190px, 1fr))` }}
+                    style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(142px, 1fr))` }}
                   >
                     {pool.draftOrder.map((team, teamIndex) => {
                       const isSnakeRound = roundIndex % 2 === 1;
@@ -823,55 +1211,60 @@ export default function FootballDraftPage() {
                       const styles = player ? positionStyles[player.position] : null;
                       const isCurrentPick =
                         !draftComplete && displayedPickIndex === picks.length;
+                      const pickLabel = `${roundIndex + 1}.${actualTeamIndex + 1}`;
 
                       return (
                         <div
                           key={`${roundIndex}-${team}`}
-                          className={`relative min-h-[132px] border-r border-t p-4 last:border-r-0 sm:min-h-40 sm:p-5 ${
+                          className={`relative min-h-[108px] overflow-hidden border-r border-t p-3 last:border-r-0 sm:min-h-40 sm:p-5 ${
                             player && styles
                               ? styles.board
                               : isCurrentPick
-                                ? "border-emerald-400/20 bg-emerald-400/15"
-                                : "border-slate-700/45 bg-[#050a13]"
+                                ? "border-emerald-300/60 bg-[#0b2f2c]/95 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.14)]"
+                                : "border-slate-700/70 bg-[#050a13]/95"
                           }`}
                         >
                           <div
-                            className={`absolute right-3 top-3 rounded-full px-3 py-1 text-xs font-black ${
+                            className={`${player ? "mb-5 sm:mb-6" : "mb-3"} inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${
                               player
-                                ? "bg-blue-500/25 text-blue-100"
+                                ? "bg-blue-500/35 text-blue-50 shadow-sm shadow-blue-950/40"
                                 : isCurrentPick
-                                  ? "bg-emerald-400 text-slate-950"
-                                  : "bg-[#1F2937] text-slate-500"
+                                  ? "bg-emerald-400 text-slate-950 shadow-sm shadow-emerald-950/30"
+                                : "bg-[#1F2937] text-slate-500"
                             }`}
                           >
-                            {roundIndex + 1}.{actualTeamIndex + 1}
+                            {pickLabel}
                           </div>
 
                           {player && styles ? (
                             <>
-                              <p className="pr-12 text-sm font-black text-slate-300">
-                                Drafted
-                              </p>
-                              <p className="mt-3 pr-12 text-lg font-black leading-tight text-white sm:text-xl">
+                              <p
+                                className={`relative z-10 min-w-0 max-w-full overflow-hidden break-words font-black leading-tight text-white [overflow-wrap:anywhere] ${draftBoardNameClass}`}
+                                style={{
+                                  display: "-webkit-box",
+                                  WebkitBoxOrient: "vertical",
+                                  WebkitLineClamp: 2,
+                                }}
+                              >
                                 {player.name}
                               </p>
-                              <div className="mt-3 flex flex-wrap items-center gap-2 pr-2">
-                                <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                              <div className="relative z-10 mt-2 flex flex-wrap items-center gap-1.5 pr-1 sm:mt-3 sm:gap-2 sm:pr-2">
+                                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${styles.badge}`}>
                                   {player.position}
                                 </span>
-                                <span className="text-sm font-bold text-slate-400">{player.school}</span>
+                                <span className="truncate text-xs font-bold text-slate-400 sm:text-sm">{player.school}</span>
                               </div>
                             </>
                           ) : (
                             <>
                               <p
-                                className={`pr-12 text-sm font-black ${
+                                className={`relative z-10 text-sm font-black ${
                                   isCurrentPick ? "text-emerald-300" : "text-slate-500"
                                 }`}
                               >
                                 {isCurrentPick ? "On the clock" : "Open"}
                               </p>
-                              <p className="mt-3 pr-12 text-sm font-bold text-slate-600">
+                              <p className="relative z-10 mt-2 text-xs font-bold text-slate-600 sm:mt-3 sm:text-sm">
                                 Awaiting selection
                               </p>
                             </>
@@ -893,12 +1286,13 @@ export default function FootballDraftPage() {
           scoring={pool.scoring}
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
+          canDraft={draftOpen && !draftComplete && !draftedIds.has(detailsPlayer.id)}
         />
       )}
 
       {pendingPlayer && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/70 px-4 pb-6 backdrop-blur-sm md:items-center md:pb-0">
-          <div className="w-full max-w-md rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/70 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100dvh-3rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
             <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
               Confirm Pick
             </p>
@@ -940,8 +1334,8 @@ export default function FootballDraftPage() {
       )}
 
       {showCompleted && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6">
-          <div className="w-full max-w-lg rounded-3xl border border-emerald-400/30 bg-[#111827] p-6 text-center shadow-2xl shadow-black/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
+          <div className="max-h-[calc(100dvh-3rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-emerald-400/30 bg-[#111827] p-6 text-center shadow-2xl shadow-black/60">
             <h2 className="text-4xl font-black">
               <span className="block">Congratulations!</span>
               <span className="block">Draft Complete</span>

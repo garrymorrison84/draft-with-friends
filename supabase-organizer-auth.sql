@@ -100,4 +100,6 @@ create index if not exists events_is_active_idx on public.events(is_active);
 alter table public.golfers
   add column if not exists odds numeric,
   add column if not exists odds_sort numeric,
-  add column if not exists vegas_odds text;
+  add column if not exists vegas_odds text,
+  add column if not exists position text,
+  add column if not exists status text;

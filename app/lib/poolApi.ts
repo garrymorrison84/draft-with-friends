@@ -13,6 +13,11 @@ export type SupabasePool = {
   owner_id?: string | null;
   draft_locked?: boolean | null;
   archived?: boolean | null;
+  draft_type?: "unscheduled" | "scheduled" | null;
+  scheduled_draft_at?: string | null;
+  time_zone?: import("./draftTiming").DraftTimeZone | null;
+  pick_clock_seconds?: number | null;
+  auto_pick_on_timeout?: boolean | null;
 };
 
 export type DraftPickRow = {

@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import {
+  formatPickClock,
+  getDraftStartsIn,
+  getScheduledDraftDate,
+  normalizeDraftTiming,
+} from "../../lib/draftTiming";
+import {
   type FootballDraftPick,
   type FootballPool,
   defaultScoring,
@@ -76,6 +82,8 @@ export default function FootballPoolPage() {
         rosterSlots: 0,
         draftComplete: false,
         currentTeam: "Team 1",
+        draftTiming: normalizeDraftTiming(),
+        draftStartsIn: null,
       };
     }
 
@@ -85,6 +93,8 @@ export default function FootballPoolPage() {
     const draftComplete = totalPicks > 0 && pickCount >= totalPicks;
     const draftPercent = totalPicks > 0 ? Math.round((pickCount / totalPicks) * 100) : 0;
     const currentTeam = getCurrentTeam(pool, pickCount, draftComplete);
+    const draftTiming = normalizeDraftTiming(pool);
+    const draftStartsIn = getDraftStartsIn(pool);
 
     return {
       totalPicks,
@@ -92,6 +102,8 @@ export default function FootballPoolPage() {
       rosterSlots,
       draftComplete,
       currentTeam,
+      draftTiming,
+      draftStartsIn,
     };
   }, [picks.length, pool]);
 
@@ -154,25 +166,35 @@ export default function FootballPoolPage() {
                 {picks.length > 0 ? "Continue Draft" : "Enter Draft"}
               </Link>
             )}
-            <Link
-              href={`/football/leaderboard?id=${pool.id}`}
-              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 transition hover:bg-emerald-400/15"
-            >
-              View Leaderboard
-            </Link>
+            {lobbyStats.draftComplete && (
+              <Link
+                href={`/football/leaderboard?id=${pool.id}`}
+                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+              >
+                View Leaderboard
+              </Link>
+            )}
           </div>
         </div>
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
-          <div className="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-center">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
-              <StatBlock label="Week" value={pool.season.replace("College Football ", "")} />
-              <StatBlock label="Roster Spots" value={String(lobbyStats.rosterSlots)} />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">
+            <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
+            <StatBlock label="Week" value={pool.season.replace("College Football ", "")} />
+            <StatBlock label="Roster Spots" value={String(lobbyStats.rosterSlots)} />
+            <StatBlock
+              label="Draft Time"
+              value={
+                lobbyStats.draftTiming.draftType === "scheduled"
+                  ? formatLobbyDraftStart(pool)
+                  : "Anytime"
+              }
+            />
+            <StatBlock label="Pick Clock" value={formatPickClock(pool.pickClockSeconds)} />
+          </div>
 
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-emerald-300">Invite Link</p>
                   <p className="mt-1 truncate text-sm text-slate-200">
@@ -203,7 +225,6 @@ export default function FootballPoolPage() {
                       ? "Try Again"
                       : "Copy & Share Link"}
                 </button>
-              </div>
             </div>
           </div>
         </section>
@@ -214,9 +235,6 @@ export default function FootballPoolPage() {
               <h2 className="text-2xl font-black">Draft Progress</h2>
               <p className="mt-2 text-sm font-bold text-slate-400">
                 {picks.length} / {lobbyStats.totalPicks} picks complete
-              </p>
-              <p className="mt-1 text-sm font-bold text-emerald-300">
-                Current: {lobbyStats.currentTeam}
               </p>
             </div>
             <div className="text-4xl font-black text-emerald-300">
@@ -230,24 +248,60 @@ export default function FootballPoolPage() {
               style={{ width: `${Math.min(100, lobbyStats.draftPercent)}%` }}
             />
           </div>
-        </section>
 
-        <section className="mt-10 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40 sm:p-8">
-            <h2 className="text-2xl font-black">Commissioner Tools</h2>
-            <p className="mt-2 text-sm font-semibold text-slate-500">
-              Manage the pool after launch without changing the golf experience.
-            </p>
-            <div className="mt-6 grid gap-3">
-              <ToolLink href={`/football/scoring?id=${pool.id}`} label="Edit Roster + Scoring" />
-              <ToolLink href={`/football/draft?id=${pool.id}`} label="Adjust Draft Board" />
-              <ToolLink href={`/football/leaderboard?id=${pool.id}`} label="Live Tracking Leaderboard" />
+          <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-black text-emerald-300">
+                  {lobbyStats.draftComplete
+                    ? "Draft Complete"
+                    : `${lobbyStats.currentTeam} is on the clock`}
+                </p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+                  {lobbyStats.draftComplete
+                    ? "Teams are locked. View the leaderboard to track standings."
+                    : lobbyStats.draftStartsIn
+                      ? `Draft room opens in ${lobbyStats.draftStartsIn}.`
+                    : "Share the lobby link, finish the draft, and follow every score live."}
+                </p>
+              </div>
+
             </div>
           </div>
+        </section>
 
+        {lobbyStats.draftComplete && (
+          <section id="commissioner-tools" className="mt-10">
+            <div className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40 sm:p-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black">Commissioner Tools</h2>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">
+                    Manage the pool after launch without changing the draft experience.
+                  </p>
+                </div>
+                <Link
+                  href={`/football/leaderboard?id=${pool.id}`}
+                  className="rounded-2xl bg-emerald-400 px-6 py-3 text-center text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+                >
+                  View Leaderboard
+                </Link>
+              </div>
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                <ToolLink href={`/football/scoring?id=${pool.id}`} label="Edit Roster + Scoring" />
+                <ToolLink href={`/football/commissioner?id=${pool.id}`} label="Team Names + Draft Picks" />
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="mt-10">
           <div className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40 sm:p-8">
             <h2 className="text-2xl font-black">Draft Order</h2>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <p className="mt-2 text-sm font-semibold text-slate-500">
+              Teams draft in this order. The order reverses each round.
+            </p>
+            <div className="mt-6 space-y-3">
               {pool.draftOrder.map((team, index) => (
                 <div
                   key={`${team}-${index}`}
@@ -269,18 +323,38 @@ export default function FootballPoolPage() {
 
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-5">
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-4 text-4xl font-black">{value}</p>
+    <div className="flex min-h-[104px] min-w-0 flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#1F2937] p-4 text-center">
+      <p className="text-base font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p
+        title={value}
+        className="mt-2 max-w-full whitespace-nowrap text-2xl font-black leading-tight text-white"
+      >
+        {value}
+      </p>
     </div>
   );
+}
+
+function formatLobbyDraftStart(pool: FootballPool) {
+  const scheduledDate = getScheduledDraftDate(pool);
+  if (!scheduledDate) return "Anytime";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: normalizeDraftTiming(pool).timeZone,
+  }).format(scheduledDate);
 }
 
 function ToolLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-5 py-4 text-center font-black text-emerald-300 transition hover:bg-emerald-400/15"
+      className="rounded-2xl bg-emerald-400 px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
     >
       {label}
     </Link>

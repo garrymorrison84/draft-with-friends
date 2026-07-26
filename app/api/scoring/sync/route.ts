@@ -12,6 +12,9 @@ type SupabaseGolfer = {
 type PreparedPlayer = {
   supabaseGolfer: SupabaseGolfer;
   sportsDataName: string;
+  position: string | null;
+  status: string | null;
+  penaltyStatus: boolean;
   sportsdata_total_score: number | null;
   tournament_score: number | null;
   round_1: number | null;
@@ -93,6 +96,116 @@ function roundScoreToPar(round: any): number | null {
   }
 
   return null;
+}
+
+function asText(value: any): string | null {
+  if (typeof value !== "string") return null;
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function hasPenaltyStatus(position: string | null, status: string | null) {
+  const statusText = `${position ?? ""} ${status ?? ""}`.toUpperCase();
+
+  return /\b(MC|CUT|MISSED CUT|WD|W\/D|WITHDRAWN|WITHDREW|DQ|DISQUALIFIED|MDF)\b/.test(
+    statusText
+  );
+}
+
+function latestStartedPostCutRound(
+  players: PreparedPlayer[],
+): 3 | 4 | null {
+  const activePlayers = players.filter((player) => !player.penaltyStatus);
+
+  if (activePlayers.some((player) => typeof player.round_4 === "number")) {
+    return 4;
+  }
+
+  if (activePlayers.some((player) => typeof player.round_3 === "number")) {
+    return 3;
+  }
+
+  return null;
+}
+
+function applyMissedCutPenaltyScores(players: PreparedPlayer[]) {
+  const latestStartedRound = latestStartedPostCutRound(players);
+
+  return players.map((player) => {
+    if (!player.penaltyStatus) return player;
+
+    const rounds = {
+      round_1: player.round_1,
+      round_2: player.round_2,
+      round_3: latestStartedRound !== null && latestStartedRound >= 3 ? 8 : null,
+      round_4: latestStartedRound !== null && latestStartedRound >= 4 ? 8 : null,
+    };
+
+    const completedRounds = Object.values(rounds).filter(
+      (score): score is number => typeof score === "number"
+    );
+
+    return {
+      ...player,
+      ...rounds,
+      tournament_score:
+        completedRounds.length > 0
+          ? completedRounds.reduce((sum, score) => sum + score, 0)
+          : null,
+    };
+  });
+}
+
+function worstRoundScore(
+  players: PreparedPlayer[],
+  roundKey: "round_1" | "round_2" | "round_3" | "round_4"
+) {
+  const realScores = players
+    .filter((player) => !player.penaltyStatus)
+    .map((player) => player[roundKey])
+    .filter((score): score is number => typeof score === "number");
+
+  return realScores.length > 0 ? Math.max(...realScores) : null;
+}
+
+function applyFluidPenaltyScores(players: PreparedPlayer[]) {
+  const worstScores = {
+    round_1: worstRoundScore(players, "round_1"),
+    round_2: worstRoundScore(players, "round_2"),
+    round_3: worstRoundScore(players, "round_3"),
+    round_4: worstRoundScore(players, "round_4"),
+  };
+
+  return players.map((player) => {
+    if (!player.penaltyStatus) return player;
+
+    const rounds = {
+      round_1: player.round_1,
+      round_2: player.round_2,
+      round_3: player.round_3,
+      round_4: player.round_4,
+    };
+
+    for (const roundKey of Object.keys(rounds) as Array<keyof typeof rounds>) {
+      if (rounds[roundKey] === null && worstScores[roundKey] !== null) {
+        rounds[roundKey] = worstScores[roundKey];
+      }
+    }
+
+    const completedRounds = Object.values(rounds).filter(
+      (score): score is number => typeof score === "number"
+    );
+
+    return {
+      ...player,
+      ...rounds,
+      tournament_score:
+        completedRounds.length > 0
+          ? completedRounds.reduce((sum, score) => sum + score, 0)
+          : null,
+    };
+  });
 }
 
 export async function GET() {
@@ -211,6 +324,21 @@ export async function GET() {
       (round1 ?? 0) + (round2 ?? 0) + (round3 ?? 0) + (round4 ?? 0);
 
     const sportsDataTotal = asNumber(player.TotalScore);
+    const position =
+      typeof player.Rank === "number" && Number.isFinite(player.Rank)
+        ? String(player.Rank)
+        : asText(player.Position);
+    let status = asText(player.Status ?? player.TournamentStatus);
+
+    if (player.IsWithdrawn === true) {
+      status = "WD";
+    } else if (player.MadeCutDidNotFinish === true) {
+      status = "MDF";
+    } else if (Number(player.MadeCut) === 0 && round2 !== null) {
+      status = "MC";
+    }
+
+    const penaltyStatus = hasPenaltyStatus(position, status);
 
     const hasAnyScore =
       sportsDataTotal !== null ||
@@ -222,6 +350,9 @@ export async function GET() {
     preparedPlayers.push({
       supabaseGolfer: matchedGolfer,
       sportsDataName,
+      position,
+      status,
+      penaltyStatus,
       sportsdata_total_score: sportsDataTotal,
       tournament_score: hasAnyScore ? sportsDataTotal ?? calculatedTotal : null,
       round_1: round1,
@@ -231,12 +362,20 @@ export async function GET() {
     });
   }
 
+  const adjustedPlayers = applyMissedCutPenaltyScores(preparedPlayers);
+
   const updates = [];
   const errors: any[] = [];
   const skippedPlayers: any[] = [];
   const cleanedPenaltyRows: any[] = [];
+  let scoreOnlyFallbackCount = 0;
+  const penaltyPlayerIds = new Set(
+    adjustedPlayers
+      .filter((player) => player.penaltyStatus)
+      .map((player) => player.supabaseGolfer.id)
+  );
 
-  for (const player of preparedPlayers) {
+  for (const player of adjustedPlayers) {
     if (player.tournament_score === null) {
       skippedPlayers.push({
         name: player.supabaseGolfer.name,
@@ -250,16 +389,53 @@ export async function GET() {
       continue;
     }
 
-    const { error } = await supabaseAdmin
+    const updatePayload = {
+      tournament_score: player.tournament_score,
+      round_1: player.round_1,
+      round_2: player.round_2,
+      round_3: player.round_3,
+      round_4: player.round_4,
+      position: player.position,
+      status: player.status,
+    };
+
+    let { error } = await supabaseAdmin
       .from("golfers")
-      .update({
-        tournament_score: player.tournament_score,
-        round_1: player.round_1,
-        round_2: player.round_2,
-        round_3: player.round_3,
-        round_4: player.round_4,
-      })
+      .update(updatePayload)
       .eq("id", player.supabaseGolfer.id);
+
+    if (error?.code === "42703" || /position|status/i.test(error?.message || "")) {
+      scoreOnlyFallbackCount += 1;
+
+      const statusFallbackUpdate = await supabaseAdmin
+        .from("golfers")
+        .update({
+          tournament_score: player.tournament_score,
+          round_1: player.round_1,
+          round_2: player.round_2,
+          round_3: player.round_3,
+          round_4: player.round_4,
+          status: player.status,
+        })
+        .eq("id", player.supabaseGolfer.id);
+
+      error = statusFallbackUpdate.error;
+
+      if (error?.code === "42703" || /status/i.test(error?.message || "")) {
+        const scoreOnlyFallbackUpdate = await supabaseAdmin
+          .from("golfers")
+          .update({
+            tournament_score: player.tournament_score,
+            round_1: player.round_1,
+            round_2: player.round_2,
+            round_3: player.round_3,
+            round_4: player.round_4,
+          })
+          .eq("id", player.supabaseGolfer.id);
+
+        error = scoreOnlyFallbackUpdate.error;
+      }
+    }
 
     if (error) {
       errors.push({
@@ -287,6 +463,8 @@ export async function GET() {
   }
 
   for (const row of penaltyRows || []) {
+    if (penaltyPlayerIds.has(row.id)) continue;
+
     const round1 = typeof row.round_1 === "number" ? row.round_1 : 0;
     const round2 = typeof row.round_2 === "number" ? row.round_2 : 0;
     const round3 = row.round_3 === 8 ? null : row.round_3;
@@ -321,7 +499,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: errors.length === 0,
-    scoringVersion: "active-event-normalized-name-sync-v8-hide-future-round-placeholders",
+    scoringVersion: "active-event-missed-cut-current-round-plus-eight-v10",
     tournament: data.Tournament?.Name,
     appEventName: activeEvent.name,
     tournamentId,
@@ -329,6 +507,11 @@ export async function GET() {
     sportsDataPlayerCount: players.length,
     appGolferCount: dbGolfers.length,
     updatedCount: updates.length,
+    scoreOnlyFallbackCount,
+    schemaWarning:
+      scoreOnlyFallbackCount > 0
+        ? "Supabase golfers table is missing at least one tournament display column. Scores and status were written with a compatibility fallback, but adding position keeps tournament ranks durable."
+        : null,
     cleanedPenaltyCount: cleanedPenaltyRows.length,
     cleanedPenaltyRows: cleanedPenaltyRows.slice(0, 30),
     skippedCount: skippedPlayers.length,
@@ -337,7 +520,29 @@ export async function GET() {
     unmatchedSportsDataPlayers: unmatchedSportsDataPlayers.slice(0, 30),
     errorCount: errors.length,
     errors: errors.slice(0, 20),
-    watchedPlayers: preparedPlayers
+    penaltyStatusCount: adjustedPlayers.filter((player) => player.penaltyStatus)
+      .length,
+    penaltyStatusPlayers: adjustedPlayers
+      .filter((player) => player.penaltyStatus)
+      .slice(0, 30)
+      .map((player) => ({
+        name: player.supabaseGolfer.name,
+        sportsdata_name: player.sportsDataName,
+        position: player.position,
+        status: player.status,
+        tournament_score: player.tournament_score,
+        round_1: player.round_1,
+        round_2: player.round_2,
+        round_3: player.round_3,
+        round_4: player.round_4,
+      })),
+    scoreStatuses: adjustedPlayers.map((player) => ({
+      name: player.supabaseGolfer.name,
+      position: player.position,
+      status: player.status,
+      penalty_status: player.penaltyStatus,
+    })),
+    watchedPlayers: adjustedPlayers
       .filter((player) =>
         [
           "J.T. Poston",
@@ -356,6 +561,9 @@ export async function GET() {
       .map((player) => ({
         name: player.supabaseGolfer.name,
         sportsdata_name: player.sportsDataName,
+        position: player.position,
+        status: player.status,
+        penalty_status: player.penaltyStatus,
         sportsdata_total_score: player.sportsdata_total_score,
         tournament_score: player.tournament_score,
         round_1: player.round_1,

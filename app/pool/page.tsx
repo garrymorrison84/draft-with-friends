@@ -8,6 +8,13 @@ import {
   loadDraftPicks as loadLocalDraftPicks,
 } from "../lib/poolStorage";
 import BrandMark from "../components/BrandMark";
+import {
+  formatPickClock,
+  getDraftStartsIn,
+  getScheduledDraftDate,
+  normalizeDraftTiming,
+  type DraftTiming,
+} from "../lib/draftTiming";
 
 type Pool = {
   id: string;
@@ -19,7 +26,7 @@ type Pool = {
   scoresToCount: number;
   teamNames: string[];
   draftOrder: string[];
-};
+} & DraftTiming;
 
 export default function PoolPage() {
   const [pool, setPool] = useState<Pool | null>(null);
@@ -41,7 +48,8 @@ export default function PoolPage() {
       }
 
       const savedPool = await getPool(poolId);
-      const localPool = savedPool ? null : loadLocalPool(poolId);
+      const localTiming = loadLocalPool(poolId);
+      const localPool = savedPool ? null : localTiming;
 
       if (!savedPool && !localPool) {
         setIsLoading(false);
@@ -59,6 +67,14 @@ export default function PoolPage() {
             scoresToCount: savedPool.scores_to_count,
             teamNames: savedPool.team_names,
             draftOrder: savedPool.draft_order,
+            draftType: savedPool.draft_type || localTiming?.draftType,
+            scheduledDraftAt:
+              savedPool.scheduled_draft_at || localTiming?.scheduledDraftAt,
+            timeZone: savedPool.time_zone || localTiming?.timeZone,
+            pickClockSeconds:
+              savedPool.pick_clock_seconds ?? localTiming?.pickClockSeconds,
+            autoPickOnTimeout:
+              savedPool.auto_pick_on_timeout ?? localTiming?.autoPickOnTimeout,
           }
         : {
             id: localPool!.id,
@@ -70,6 +86,11 @@ export default function PoolPage() {
             scoresToCount: localPool!.scoresToCount,
             teamNames: localPool!.teamNames,
             draftOrder: localPool!.draftOrder,
+            draftType: localPool!.draftType,
+            scheduledDraftAt: localPool!.scheduledDraftAt,
+            timeZone: localPool!.timeZone,
+            pickClockSeconds: localPool!.pickClockSeconds,
+            autoPickOnTimeout: localPool!.autoPickOnTimeout,
           };
 
       setPool(formattedPool);
@@ -142,6 +163,8 @@ export default function PoolPage() {
       : `${window.location.origin}/pool?id=${pool.id}`;
   const draftPercent = Math.round((pickCount / totalPicks) * 100);
   const draftComplete = pickCount === totalPicks;
+  const draftTiming = normalizeDraftTiming(pool);
+  const draftStartsIn = getDraftStartsIn(pool);
 
   const currentPickIndex = pickCount;
   const currentRound = Math.floor(currentPickIndex / pool.numberOfTeams) + 1;
@@ -186,7 +209,7 @@ export default function PoolPage() {
               </a>
             )}
 
-            {pickCount > 0 && (
+            {draftComplete && (
               <a
                 href={`/leaderboard?id=${pool.id}`}
                 className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
@@ -198,16 +221,20 @@ export default function PoolPage() {
           </div>
         </div>
 
-        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
-          <div className="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-center">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
-              <StatBlock label="Golfers Per Team" value={String(pool.golfersPerTeam)} />
-              <StatBlock label="Scores Count" value={String(pool.scoresToCount)} />
-            </div>
+        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.8fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">
+            <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
+            <StatBlock label="Golfers Per Team" value={String(pool.golfersPerTeam)} />
+            <StatBlock label="Scores Count" value={String(pool.scoresToCount)} />
+            <StatBlock
+              label="Draft Time"
+              value={draftTiming.draftType === "scheduled" ? formatLobbyDraftStart(pool) : "Anytime"}
+            />
+            <StatBlock label="Pick Clock" value={formatPickClock(pool.pickClockSeconds)} />
+          </div>
 
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-emerald-300">
                     Invite Link
@@ -241,7 +268,6 @@ export default function PoolPage() {
                       ? "Try Again"
                       : "Copy & Share Link"}
                 </button>
-              </div>
             </div>
           </div>
         </section>
@@ -279,7 +305,9 @@ export default function PoolPage() {
                 <p className="mt-2 text-sm leading-6 text-slate-300">
   {draftComplete
     ? "Teams are locked. View the leaderboard to track standings."
-    : `Round ${currentRound} • Pick ${pickInRound} of ${pool.numberOfTeams} this round • Overall pick ${currentPickIndex + 1} of ${totalPicks}`}
+    : draftStartsIn
+      ? `Draft room opens in ${draftStartsIn}.`
+      : `Round ${currentRound} • Pick ${pickInRound} of ${pool.numberOfTeams} this round • Overall pick ${currentPickIndex + 1} of ${totalPicks}`}
 </p>
               </div>
 
@@ -325,9 +353,29 @@ export default function PoolPage() {
 
 function StatBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className="mt-2 text-4xl font-black">{value}</p>
+    <div className="flex min-h-[104px] min-w-0 flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#1F2937] p-4 text-center">
+      <p className="text-base font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p
+        title={value}
+        className="mt-2 max-w-full whitespace-nowrap text-2xl font-black leading-tight text-white"
+      >
+        {value}
+      </p>
     </div>
   );
+}
+
+function formatLobbyDraftStart(pool: Pool) {
+  const scheduledDate = getScheduledDraftDate(pool);
+  if (!scheduledDate) return "Anytime";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: normalizeDraftTiming(pool).timeZone,
+  }).format(scheduledDate);
 }

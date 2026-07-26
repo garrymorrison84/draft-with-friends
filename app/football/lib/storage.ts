@@ -64,6 +64,11 @@ export type FootballPool = {
   draftOrder: string[];
   playerPool?: FootballPlayerPool;
   scoring?: FootballScoring;
+  draftType?: "unscheduled" | "scheduled";
+  scheduledDraftAt?: string | null;
+  timeZone?: import("../../lib/draftTiming").DraftTimeZone;
+  pickClockSeconds?: number;
+  autoPickOnTimeout?: boolean;
   createdAt: string;
 };
 

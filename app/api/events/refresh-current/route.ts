@@ -82,15 +82,17 @@ function asInteger(value: unknown) {
   return number === null ? null : Math.round(number);
 }
 
+function asAmericanOdds(value: unknown) {
+  const odds = asNumber(value);
+
+  if (odds === null) return null;
+  if (odds > 0 && odds <= 1000) return Math.round(odds * 100);
+
+  return Math.round(odds);
+}
+
 function getPlayerOdds(player: any) {
-  return (
-    asNumber(player.OddsToWin) ??
-    asNumber(player.Odds) ??
-    asNumber(player.BettingOdds) ??
-    asNumber(player.DraftKingsOdds) ??
-    asNumber(player.FanDuelOdds) ??
-    asNumber(player.VegasOdds)
-  );
+  return player.OddsToWin;
 }
 
 async function importField(
@@ -119,7 +121,7 @@ async function importField(
   const golfersToUpsert = players
     .filter((player: any) => player.Name)
     .map((player: any) => {
-      const odds = asInteger(getPlayerOdds(player));
+      const odds = asAmericanOdds(getPlayerOdds(player));
 
       return {
         event_id: eventId,

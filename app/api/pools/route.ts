@@ -38,26 +38,52 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { data, error } = await client
+  const basePool = {
+    id,
+    pool_name: String(body.pool_name || "Untitled Golf Pool").trim(),
+    golf_event: String(body.golf_event || "Golf Event").trim(),
+    event_id: body.event_id ? String(body.event_id) : null,
+    number_of_teams: Number(body.number_of_teams) || teamNames.length,
+    golfers_per_team: Number(body.golfers_per_team) || 1,
+    scores_to_count: Number(body.scores_to_count) || 1,
+    team_names: teamNames,
+    draft_order: draftOrder,
+    owner_id: body.owner_id ? String(body.owner_id) : null,
+    draft_locked: Boolean(body.draft_locked),
+    archived: Boolean(body.archived),
+  };
+  const poolWithTiming = {
+    ...basePool,
+    draft_type: body.draft_type === "scheduled" ? "scheduled" : "unscheduled",
+    scheduled_draft_at: body.scheduled_draft_at
+      ? String(body.scheduled_draft_at)
+      : null,
+    time_zone: body.time_zone ? String(body.time_zone) : "America/New_York",
+    pick_clock_seconds: Math.max(0, Number(body.pick_clock_seconds) || 0),
+    auto_pick_on_timeout: Boolean(body.auto_pick_on_timeout),
+  };
+
+  let { data, error } = await client
     .from("pools")
-    .insert([
-      {
-        id,
-        pool_name: String(body.pool_name || "Untitled Golf Pool").trim(),
-        golf_event: String(body.golf_event || "Golf Event").trim(),
-        event_id: body.event_id ? String(body.event_id) : null,
-        number_of_teams: Number(body.number_of_teams) || teamNames.length,
-        golfers_per_team: Number(body.golfers_per_team) || 1,
-        scores_to_count: Number(body.scores_to_count) || 1,
-        team_names: teamNames,
-        draft_order: draftOrder,
-        owner_id: body.owner_id ? String(body.owner_id) : null,
-        draft_locked: Boolean(body.draft_locked),
-        archived: Boolean(body.archived),
-      },
-    ])
+    .insert([poolWithTiming])
     .select()
     .single();
+
+  if (
+    error &&
+    /draft_type|scheduled_draft_at|time_zone|pick_clock_seconds|auto_pick_on_timeout/i.test(
+      error.message || ""
+    )
+  ) {
+    const fallbackResult = await client
+      .from("pools")
+      .insert([basePool])
+      .select()
+      .single();
+
+    data = fallbackResult.data;
+    error = fallbackResult.error;
+  }
 
   if (error) {
     return NextResponse.json(
