@@ -224,17 +224,17 @@ export default function CreateWinsPoolPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <SelectField
-              label="Number of Participants"
+              label="Number of Pool Members"
               value={numberOfTeams}
               onChange={(value) => updateNumberOfTeams(Number(value))}
               options={[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => ({
                 value: num,
-                label: `${num} Participants`,
+                label: `${num} Pool Members`,
               }))}
             />
 
             <SelectField
-              label="Picks Per Participant"
+              label="Picks Per Member"
               value={picksPerTeam}
               onChange={(value) => setPicksPerTeam(Number(value))}
               options={[3, 4, 5, 6, 7, 8, 9, 10].map((num) => ({
@@ -244,12 +244,12 @@ export default function CreateWinsPoolPage() {
             />
           </div>
 
-          <Panel title="Participant Names" body="These names become the draft columns and leaderboard rows.">
+          <Panel title="Pool Member Names" body="These names become the draft columns and leaderboard rows.">
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {teamNames.map((team, index) => (
                 <TextField
                   key={index}
-                  label={`Participant ${index + 1}`}
+                  label={`Member ${index + 1}`}
                   value={team}
                   onChange={(value) => updateTeamName(index, value)}
                   inputClassName="bg-[#030712]"
@@ -407,7 +407,7 @@ export default function CreateWinsPoolPage() {
               <ChoiceButton
                 active={draftType === "scheduled"}
                 title="Schedule Draft"
-                body="Set a draft time and choose how long each participant has to make a pick."
+                body="Set a draft time and choose how long each member has to make a pick."
                 onClick={() => setDraftType("scheduled")}
               />
             </div>

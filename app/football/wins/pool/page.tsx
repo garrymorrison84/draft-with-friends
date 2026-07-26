@@ -91,8 +91,8 @@ export default function WinsPoolLobbyPage() {
           <BrandMark size="lg" />
         </Link>
 
-        <div className="mt-8">
-          <div>
+        <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <div className="min-w-0">
             <p className="text-lg font-black text-emerald-300">
               College Football Wins Pool
             </p>
@@ -103,11 +103,20 @@ export default function WinsPoolLobbyPage() {
               Season Wins Snake Draft
             </p>
           </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={`/football/wins/draft?id=${pool.id}`}
+              className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+            >
+              {draftButtonLabel}
+            </Link>
+          </div>
         </div>
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">
-            <StatCard label="Participants" value={pool.numberOfTeams.toString()} />
+            <StatCard label="Members" value={pool.numberOfTeams.toString()} />
             <StatCard label="Picks Each" value={pool.picksPerTeam.toString()} />
             <StatCard label="Eligible Teams" value={teams.length.toString()} />
             <StatCard
@@ -136,22 +145,16 @@ export default function WinsPoolLobbyPage() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <Link
-              href={`/football/wins/draft?id=${pool.id}`}
-              className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
-            >
-              {draftButtonLabel}
-            </Link>
-            {picks.length > 0 && (
+          {picks.length > 0 && (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Link
                 href={`/football/wins/leaderboard?id=${pool.id}`}
                 className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 transition hover:scale-105 hover:bg-emerald-400/15"
               >
                 View Leaderboard
               </Link>
-            )}
-          </div>
+            </div>
+          )}
         </section>
 
         <section className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
