@@ -94,14 +94,22 @@ export default function FootballHomePage() {
                 Next step
               </p>
               <p className="mt-2 text-lg font-black text-white sm:text-xl">
-                Build Your College Football Pool
+                Choose Your College Football Format
               </p>
-              <Link
-                href="/football/create"
-                className="mt-5 inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-300 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 md:min-h-20 md:px-10 md:py-5 md:text-xl"
-              >
-                Create My CFB Pool
-              </Link>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <Link
+                  href="/football/create"
+                  className="inline-flex min-h-16 items-center justify-center rounded-2xl bg-emerald-300 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 md:min-h-20 md:px-8 md:py-5 md:text-xl"
+                >
+                  Fantasy Player Pool
+                </Link>
+                <Link
+                  href="/football/wins/create"
+                  className="inline-flex min-h-16 items-center justify-center rounded-2xl border border-emerald-300/40 bg-[#030712] px-6 py-4 text-center text-lg font-black text-emerald-200 transition hover:bg-emerald-300 hover:text-slate-950 md:min-h-20 md:px-8 md:py-5 md:text-xl"
+                >
+                  Team Wins Pool
+                </Link>
+              </div>
             </div>
           </div>
 
