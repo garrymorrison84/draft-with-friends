@@ -101,7 +101,15 @@ function TeamDetailsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
+      <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close team details"
+          className="absolute right-4 top-4 z-20 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[#030712] text-xl font-black text-slate-300 transition hover:border-emerald-300/50 hover:text-white"
+        >
+          X
+        </button>
         <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
