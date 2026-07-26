@@ -82,6 +82,7 @@ type UndraftedGolfer = {
 };
 
 const FALLBACK_EVENT_ID = "GENESIS_SCOTTISH_OPEN_2026";
+const RECAP_FEATURE_ENABLED = false;
 
 function normalizeName(name: string) {
   return name
@@ -762,7 +763,9 @@ export default function LeaderboardPage() {
         ].filter((award): award is GolfRecapAward => award !== null)
       : [];
   const shouldShowRecap =
-    recapAwards.length > 0 && (!recapDismissed || recapManuallyOpened);
+    RECAP_FEATURE_ENABLED &&
+    recapAwards.length > 0 &&
+    (!recapDismissed || recapManuallyOpened);
 
   function closeRecap() {
     if (!pool) return;
@@ -821,7 +824,7 @@ export default function LeaderboardPage() {
               {pool.poolName} Lobby
             </a>
 
-            {recapAwards.length > 0 && (
+            {RECAP_FEATURE_ENABLED && recapAwards.length > 0 && (
               <button
                 type="button"
                 onClick={() => setRecapManuallyOpened(true)}

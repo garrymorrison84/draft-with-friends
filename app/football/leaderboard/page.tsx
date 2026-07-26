@@ -44,6 +44,8 @@ type DraftedFootballPlayer = {
   projected: number;
 };
 
+const RECAP_FEATURE_ENABLED = false;
+
 const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   QB: "bg-purple-500/45 border-purple-200 text-purple-50 shadow-purple-500/20",
   RB: "bg-sky-500/45 border-sky-200 text-sky-50 shadow-sky-500/20",
@@ -743,7 +745,9 @@ export default function FootballLeaderboardPage() {
     [pool]
   );
   const shouldShowRecap =
-    recap.awards.length > 0 && (!recapDismissed || recapManuallyOpened);
+    RECAP_FEATURE_ENABLED &&
+    recap.awards.length > 0 &&
+    (!recapDismissed || recapManuallyOpened);
 
   function closeRecap() {
     if (!pool) return;
@@ -798,7 +802,7 @@ export default function FootballLeaderboardPage() {
               {pool.poolName} Lobby
             </Link>
 
-            {recap.awards.length > 0 && (
+            {RECAP_FEATURE_ENABLED && recap.awards.length > 0 && (
               <button
                 type="button"
                 onClick={() => setRecapManuallyOpened(true)}
