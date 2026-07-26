@@ -40,9 +40,18 @@ type GolferScoreRow = {
   status?: string | null;
 };
 
+type GolferStatusRow = {
+  name: string;
+  position?: string | null;
+  status?: string | null;
+  penalty_status?: boolean;
+};
+
 type TeamGolfer = {
   name: string;
+  teamName: string;
   rank: number;
+  pickIndex: number;
   position: string;
   missedCut: boolean;
   round1: number | null;
@@ -58,6 +67,18 @@ type TeamResult = {
   teamName: string;
   total: number;
   golfers: TeamGolfer[];
+};
+
+type GolfRecapAward = {
+  title: string;
+  headline: string;
+  detail: string;
+};
+
+type UndraftedGolfer = {
+  name: string;
+  total: number;
+  position: string;
 };
 
 const FALLBACK_EVENT_ID = "GENESIS_SCOTTISH_OPEN_2026";
@@ -84,7 +105,6 @@ function formatRoundScore(score: number | null | undefined) {
 }
 
 function formatGolferTotal(golfer: TeamGolfer) {
-  if (golfer.missedCut) return "MC";
   if (!golfer.hasScore) return "-";
   return formatScore(golfer.total);
 }
@@ -109,7 +129,9 @@ function isMissedCutScore(scoreData?: GolferScoreRow) {
     .toUpperCase()
     .trim();
 
-  return /\b(MC|CUT|MISSED CUT)\b/.test(statusText);
+  return /\b(MC|CUT|MISSED CUT|WD|W\/D|WITHDRAWN|WITHDREW|DQ|DISQUALIFIED|MDF)\b/.test(
+    statusText
+  );
 }
 
 function normalizeFutureRoundScore(
@@ -119,7 +141,7 @@ function normalizeFutureRoundScore(
   if (score === null || score === undefined) return null;
 
   // SportsData can leave +8 placeholders for players who have not teed off.
-  // Do not treat those placeholders as actual scoring or missed-cut proof.
+  // For MC golfers, +8 is the intentional penalty for started rounds.
   if (score === 8 && !isMissedCutScore(scoreData)) return null;
 
   return score;
@@ -133,13 +155,9 @@ function normalizeGolferScore(
   const missedCut = isMissedCutScore(scoreData);
   const round1 = scoreData?.round_1 ?? null;
   const round2 = scoreData?.round_2 ?? null;
-  const round3 = missedCut
-    ? null
-    : normalizeFutureRoundScore(scoreData?.round_3, scoreData);
+  const round3 = normalizeFutureRoundScore(scoreData?.round_3, scoreData);
   const round4 =
-    showRound4 && !missedCut
-      ? normalizeFutureRoundScore(scoreData?.round_4, scoreData)
-      : null;
+    showRound4 ? normalizeFutureRoundScore(scoreData?.round_4, scoreData) : null;
   const completedRounds = [
     round1,
     round2,
@@ -211,10 +229,38 @@ function getRankMap(scores: GolferScoreRow[], showRound4: boolean) {
   return rankMap;
 }
 
+function getOrdinal(value: number) {
+  const suffix =
+    value % 100 >= 11 && value % 100 <= 13
+      ? "th"
+      : value % 10 === 1
+        ? "st"
+        : value % 10 === 2
+          ? "nd"
+          : value % 10 === 3
+            ? "rd"
+            : "th";
+
+  return `${value}${suffix}`;
+}
+
+function RecapAwardCard({ award }: { award: GolfRecapAward }) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
+      <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+        {award.title}
+      </p>
+      <h3 className="mt-2 text-xl font-black text-white">{award.headline}</h3>
+      <p className="mt-2 text-sm font-bold leading-6 text-slate-400">{award.detail}</p>
+    </div>
+  );
+}
+
 export default function LeaderboardPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [draftPicks, setDraftPicks] = useState<DraftPickRow[]>([]);
   const [golferScores, setGolferScores] = useState<GolferScoreRow[]>([]);
+  const [golferStatuses, setGolferStatuses] = useState<GolferStatusRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -329,9 +375,14 @@ export default function LeaderboardPage() {
     setIsSyncing(true);
 
     try {
-      await fetch(`/api/scoring/sync?ts=${Date.now()}`, {
+      const response = await fetch(`/api/scoring/sync?ts=${Date.now()}`, {
         cache: "no-store",
       });
+      const data = await response.json();
+
+      if (Array.isArray(data?.scoreStatuses)) {
+        setGolferStatuses(data.scoreStatuses);
+      }
 
       await loadLeaderboard();
     } catch (error) {
@@ -361,15 +412,59 @@ export default function LeaderboardPage() {
   }
 
   const scoreMap: Record<string, GolferScoreRow> = {};
+  const statusMap: Record<string, GolferStatusRow> = {};
 
   golferScores.forEach((score) => {
     scoreMap[normalizeName(score.name)] = score;
   });
 
-  const hasRealRound4Scores = golferScores.some(
-    (score) => typeof normalizeFutureRoundScore(score.round_4, score) === "number"
-  );
-  const rankMap = getRankMap(golferScores, hasRealRound4Scores);
+  golferStatuses.forEach((status) => {
+    statusMap[normalizeName(status.name)] = status;
+  });
+
+  function getMergedScoreData(golferName: string) {
+    const key = normalizeName(golferName);
+    const scoreData = scoreMap[key];
+    const statusData = statusMap[key];
+
+    if (!scoreData) return undefined;
+    if (!statusData) return scoreData;
+
+    return {
+      ...scoreData,
+      position: statusData.position ?? scoreData.position,
+      status: statusData.status ?? scoreData.status,
+    };
+  }
+
+  const hasRealRound4Scores = golferScores.some((score) => {
+      const statusData = statusMap[normalizeName(score.name)];
+      const mergedScore = statusData
+        ? {
+            ...score,
+            position: statusData.position ?? score.position,
+            status: statusData.status ?? score.status,
+        }
+        : score;
+
+      return (
+        !isMissedCutScore(mergedScore) &&
+        typeof normalizeFutureRoundScore(mergedScore.round_4, mergedScore) ===
+          "number"
+      );
+    });
+  const scoresWithStatuses = golferScores.map((score) => {
+    const statusData = statusMap[normalizeName(score.name)];
+
+    return statusData
+      ? {
+          ...score,
+          position: statusData.position ?? score.position,
+          status: statusData.status ?? score.status,
+        }
+      : score;
+  });
+  const rankMap = getRankMap(scoresWithStatuses, hasRealRound4Scores);
 
   const teamsWithGolfers: TeamResult[] = pool.teamNames.map((teamName) => {
     const teamPicks = draftPicks
@@ -377,14 +472,16 @@ export default function LeaderboardPage() {
       .sort((a, b) => a.pick_index - b.pick_index);
 
     const rawGolfers = teamPicks.map((pick) => {
-      const scoreData = scoreMap[normalizeName(pick.golfer_name)];
+      const scoreData = getMergedScoreData(pick.golfer_name);
       const normalizedScore = normalizeGolferScore(scoreData, {
         showRound4: hasRealRound4Scores,
       });
 
       return {
         name: pick.golfer_name,
+        teamName,
         rank: pick.golfer_rank,
+        pickIndex: pick.pick_index,
         position: normalizedScore.missedCut
           ? "MC"
           : scoreData
@@ -402,14 +499,13 @@ export default function LeaderboardPage() {
     });
 
     const sortedForScoring = [...rawGolfers].sort((a, b) => {
-      if (a.missedCut !== b.missedCut) return a.missedCut ? 1 : -1;
       if (a.hasScore !== b.hasScore) return a.hasScore ? -1 : 1;
       return a.total - b.total;
     });
 
     const scoringNames = new Set(
       sortedForScoring
-        .filter((golfer) => golfer.hasScore && !golfer.missedCut)
+        .filter((golfer) => golfer.hasScore)
         .slice(0, pool.scoresToCount)
         .map((golfer) => normalizeName(golfer.name))
     );
@@ -421,7 +517,6 @@ export default function LeaderboardPage() {
       }))
       .sort((a, b) => {
         if (a.counts !== b.counts) return a.counts ? -1 : 1;
-        if (a.missedCut !== b.missedCut) return a.missedCut ? 1 : -1;
         if (a.hasScore !== b.hasScore) return a.hasScore ? -1 : 1;
         return a.total - b.total;
       });
@@ -438,6 +533,87 @@ export default function LeaderboardPage() {
   });
 
   const rankedTeams = [...teamsWithGolfers].sort((a, b) => a.total - b.total);
+  const totalPicks = pool.numberOfTeams * pool.golfersPerTeam;
+  const draftComplete = totalPicks > 0 && draftPicks.length >= totalPicks;
+  const draftedNameKeys = new Set(draftPicks.map((pick) => normalizeName(pick.golfer_name)));
+  const allDraftedGolfers = teamsWithGolfers.flatMap((team) => team.golfers);
+  const scoredDraftedGolfers = allDraftedGolfers.filter((golfer) => golfer.hasScore);
+  const mvpGolfer = [...scoredDraftedGolfers].sort((a, b) => a.total - b.total)[0];
+  const lvpGolfer = [...scoredDraftedGolfers].sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    return a.pickIndex - b.pickIndex;
+  })[0];
+  const midRoundStart = Math.floor(totalPicks / 3);
+  const midRoundEnd = Math.ceil((totalPicks * 2) / 3);
+  const midRoundValue =
+    [...scoredDraftedGolfers]
+      .filter(
+        (golfer) =>
+          golfer.pickIndex >= midRoundStart && golfer.pickIndex < midRoundEnd
+      )
+      .sort((a, b) => a.total - b.total)[0] ||
+    [...scoredDraftedGolfers]
+      .filter((golfer) => golfer.pickIndex >= Math.floor(totalPicks / 2))
+      .sort((a, b) => a.total - b.total)[0];
+  const undraftedGolfers: UndraftedGolfer[] = scoresWithStatuses
+    .filter((score) => !draftedNameKeys.has(normalizeName(score.name)))
+    .map((score) => {
+      const normalized = normalizeGolferScore(score, {
+        showRound4: hasRealRound4Scores,
+      });
+
+      return {
+        name: score.name,
+        total: normalized.total,
+        hasScore: normalized.hasScore,
+        missedCut: normalized.missedCut,
+        position: normalized.missedCut
+          ? "MC"
+          : rankMap[normalizeName(score.name)] || "-",
+      };
+    })
+    .filter((golfer) => golfer.hasScore && !golfer.missedCut)
+    .sort((a, b) => a.total - b.total)
+    .slice(0, Math.max(3, pool.scoresToCount));
+  const recapAwards: GolfRecapAward[] =
+    draftComplete && scoredDraftedGolfers.length > 0
+      ? [
+          rankedTeams[0]
+            ? {
+                title: "Champion",
+                headline: rankedTeams[0].teamName,
+                detail: `Won the pool at ${formatScore(rankedTeams[0].total)}.`,
+              }
+            : null,
+          mvpGolfer
+            ? {
+                title: "MVP",
+                headline: mvpGolfer.name,
+                detail: `${mvpGolfer.teamName} landed the best drafted score at ${formatScore(
+                  mvpGolfer.total
+                )}.`,
+              }
+            : null,
+          lvpGolfer
+            ? {
+                title: "LVP",
+                headline: lvpGolfer.name,
+                detail: `${lvpGolfer.teamName}'s ${getOrdinal(
+                  lvpGolfer.pickIndex + 1
+                )} pick finished at ${formatScore(lvpGolfer.total)}.`,
+              }
+            : null,
+          midRoundValue
+            ? {
+                title: "Best Mid-Round Value",
+                headline: midRoundValue.name,
+                detail: `${midRoundValue.teamName} found ${formatScore(
+                  midRoundValue.total
+                )} with the ${getOrdinal(midRoundValue.pickIndex + 1)} pick.`,
+              }
+            : null,
+        ].filter((award): award is GolfRecapAward => award !== null)
+      : [];
 
   return (
     <main className="min-h-screen bg-[#030712] px-3 py-5 text-white sm:px-6 lg:px-10">
@@ -480,6 +656,58 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
+        {recapAwards.length > 0 && (
+          <section className="mb-6 rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+                  Pool Recap
+                </p>
+                <h2 className="mt-2 text-2xl font-black sm:text-3xl">
+                  Final awards
+                </h2>
+              </div>
+              <p className="text-sm font-bold text-slate-400">
+                Built from the draft board and live leaderboard.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {recapAwards.map((award) => (
+                <RecapAwardCard key={award.title} award={award} />
+              ))}
+            </div>
+
+            {undraftedGolfers.length > 0 && (
+              <div className="mt-5 rounded-2xl border border-white/5 bg-[#030712] p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Best Undrafted Team
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {undraftedGolfers.map((golfer) => (
+                    <div
+                      key={golfer.name}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-white">
+                          {golfer.name}
+                        </p>
+                        <p className="text-xs font-bold text-slate-500">
+                          {golfer.position}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-black text-emerald-300">
+                        {formatScore(golfer.total)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
           <aside className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
             <h2 className="mb-3 text-lg font-black uppercase tracking-wide text-slate-400">
@@ -515,7 +743,7 @@ export default function LeaderboardPage() {
                 key={team.teamName}
                 className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 sm:p-5 shadow-xl shadow-black/40"
               >
-                <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-700/60 pb-4">
+                <div className="sticky top-0 z-20 -mx-4 mb-4 flex items-start justify-between gap-4 border-b border-slate-700/60 bg-[#111827]/95 px-4 pb-4 pt-3 backdrop-blur md:static md:mx-0 md:bg-transparent md:px-0 md:pt-0 md:backdrop-blur-none">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="text-xl font-black text-slate-400 sm:text-2xl">
                       {teamIndex + 1}

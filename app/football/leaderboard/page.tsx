@@ -30,6 +30,20 @@ type TeamRosterEntry = {
   slotLabel: FootballPlayer["position"] | "FLEX";
 };
 
+type FootballRecapAward = {
+  title: string;
+  headline: string;
+  detail: string;
+};
+
+type DraftedFootballPlayer = {
+  player: FootballPlayer;
+  team: string;
+  pickNumber: number;
+  points: number;
+  projected: number;
+};
+
 const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   QB: "bg-purple-500/45 border-purple-200 text-purple-50 shadow-purple-500/20",
   RB: "bg-sky-500/45 border-sky-200 text-sky-50 shadow-sky-500/20",
@@ -257,7 +271,7 @@ function PositionBadge({ entry }: { entry: TeamRosterEntry }) {
 
   return (
     <span
-      className={`rounded-xl border px-3 py-2 text-center text-sm font-black ${positionBadgeClasses[player.position]}`}
+      className={`inline-flex min-w-10 items-center justify-center rounded-lg border px-2 py-1 text-center text-[11px] font-black sm:min-w-14 sm:rounded-xl sm:px-3 sm:py-2 sm:text-sm ${positionBadgeClasses[player.position]}`}
     >
       {slotLabel}
     </span>
@@ -275,31 +289,33 @@ function TeamStatTable({
   columns: TeamScoringColumn[];
   groups?: { group: string; span: number }[];
   scoring: FootballScoring;
-  title: string;
+  title?: string;
 }) {
   if (entries.length === 0 || columns.length === 0) return null;
 
   return (
     <div className="mt-5">
-      <h4 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-500">
-        {title}
-      </h4>
+      {title && (
+        <h4 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-500">
+          {title}
+        </h4>
+      )}
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-        <table className="w-full min-w-[760px] table-fixed text-right text-sm font-black">
-          <thead className="text-xs uppercase tracking-wide text-slate-500">
+        <table className="w-full min-w-[560px] table-fixed text-right text-xs font-black sm:min-w-[760px] sm:text-sm">
+          <thead className="text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">
             {groups && groups.length > 0 && (
               <tr className="border-b border-white/10 bg-[#111827]">
-                <th rowSpan={2} className="w-[300px] px-4 py-3 text-left">
+                <th rowSpan={2} className="w-[188px] px-2 py-2 text-left sm:w-[300px] sm:px-4 sm:py-3">
                   Player
                 </th>
-                <th rowSpan={2} className="w-[76px] px-4 py-3 text-center align-middle text-emerald-300">
+                <th rowSpan={2} className="w-[50px] px-2 py-2 text-center align-middle text-emerald-300 sm:w-[76px] sm:px-4 sm:py-3">
                   Pts
                 </th>
                 {groups.map((group) => (
                   <th
                     key={group.group}
                     colSpan={group.span}
-                    className="border-l border-white/10 px-4 py-3 text-center"
+                    className="border-l border-white/10 px-2 py-2 text-center sm:px-4 sm:py-3"
                   >
                     {group.group}
                   </th>
@@ -309,8 +325,8 @@ function TeamStatTable({
             <tr className="border-b border-white/10 bg-[#111827]">
               {!groups && (
                 <>
-                  <th className="w-[300px] px-4 py-3 text-left">Player</th>
-                  <th className="w-[76px] px-4 py-3 text-center text-emerald-300">
+                  <th className="w-[188px] px-2 py-2 text-left sm:w-[300px] sm:px-4 sm:py-3">Player</th>
+                  <th className="w-[50px] px-2 py-2 text-center text-emerald-300 sm:w-[76px] sm:px-4 sm:py-3">
                     Pts
                   </th>
                 </>
@@ -318,7 +334,7 @@ function TeamStatTable({
               {columns.map((column, index) => (
                 <th
                   key={`${title}-${column.group}-${column.label}`}
-                  className={`px-3 py-3 text-center ${
+                  className={`px-1.5 py-2 text-center sm:px-3 sm:py-3 ${
                     groups && isGroupStart(columns, index) ? "border-l border-white/10" : ""
                   }`}
                 >
@@ -335,26 +351,26 @@ function TeamStatTable({
 
               return (
                 <tr key={player.id} className="border-b border-white/5 last:border-b-0">
-                  <td className="px-4 py-4 text-left">
-                    <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3">
+                  <td className="px-2 py-3 text-left sm:px-4 sm:py-4">
+                    <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-3">
                       <PositionBadge entry={entry} />
                       <div className="min-w-0">
-                        <p className="truncate whitespace-nowrap text-base font-black text-white">
+                        <p className="truncate whitespace-nowrap text-sm font-black text-white sm:text-base">
                           {formatCompactName(player.name)}
                         </p>
-                        <p className="truncate whitespace-nowrap text-xs font-bold text-slate-500">
+                        <p className="truncate whitespace-nowrap text-[10px] font-bold text-slate-500 sm:text-xs">
                           {player.school} • {player.opponent}
                         </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-center align-middle text-emerald-300">
+                  <td className="px-2 py-3 text-center align-middle text-emerald-300 sm:px-4 sm:py-4">
                     {points.toFixed(1)}
                   </td>
                   {columns.map((column, index) => (
                     <td
                       key={`${player.id}-${title}-${column.group}-${column.label}`}
-                      className={`px-3 py-4 text-center align-middle text-slate-300 ${
+                      className={`px-1.5 py-3 text-center align-middle text-slate-300 sm:px-3 sm:py-4 ${
                         groups && isGroupStart(columns, index) ? "border-l border-white/10" : ""
                       }`}
                     >
@@ -394,6 +410,33 @@ const formatPlayerName = (name: string) => {
 
   return `${firstName.charAt(0)}. ${lastName}${suffix ? ` ${suffix}` : ""}`;
 };
+
+function getOrdinal(value: number) {
+  const suffix =
+    value % 100 >= 11 && value % 100 <= 13
+      ? "th"
+      : value % 10 === 1
+        ? "st"
+        : value % 10 === 2
+          ? "nd"
+          : value % 10 === 3
+            ? "rd"
+            : "th";
+
+  return `${value}${suffix}`;
+}
+
+function RecapAwardCard({ award }: { award: FootballRecapAward }) {
+  return (
+    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
+      <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+        {award.title}
+      </p>
+      <h3 className="mt-2 text-xl font-black text-white">{award.headline}</h3>
+      <p className="mt-2 text-sm font-bold leading-6 text-slate-400">{award.detail}</p>
+    </div>
+  );
+}
 
 export default function FootballLeaderboardPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
@@ -473,15 +516,117 @@ export default function FootballLeaderboardPage() {
       .sort((a, b) => b.displayScore - a.displayScore);
   }, [picks, players, pool]);
 
-  const hasLiveScores = useMemo(
-    () =>
-      picks.some((pick) => {
+  const recap = useMemo(() => {
+    if (!pool) {
+      return {
+        awards: [] as FootballRecapAward[],
+        undraftedPlayers: [] as DraftedFootballPlayer[],
+      };
+    }
+
+    const scoring = pool.scoring ?? defaultScoring;
+    const hasLiveScores = picks.some((pick) => {
+      const player = players.find((item) => item.id === pick.playerId);
+      return player ? hasStatLine(player.liveStats) : false;
+    });
+    const draftedIds = new Set(picks.map((pick) => pick.playerId));
+    const draftedPlayers: DraftedFootballPlayer[] = picks
+      .map((pick) => {
         const player = players.find((item) => item.id === pick.playerId);
-        return player ? hasStatLine(player.liveStats) : false;
-      }),
-    [picks, players]
-  );
-  const scoringModeLabel = hasLiveScores ? "Live" : "Projected";
+        if (!player) return null;
+
+        const points = hasLiveScores
+          ? scoringTotal(player, scoring)
+          : projectedTotal(player, scoring);
+
+        return {
+          player,
+          team: pick.team,
+          pickNumber: pick.pickNumber,
+          points,
+          projected: projectedTotal(player, scoring),
+        };
+      })
+      .filter((entry): entry is DraftedFootballPlayer => entry !== null);
+    const totalRosterSpots = Object.values(scoring.roster).reduce(
+      (sum, count) => sum + count,
+      0
+    );
+    const totalPicks = pool.numberOfTeams * totalRosterSpots;
+    const draftComplete = totalPicks > 0 && picks.length >= totalPicks;
+
+    if (!draftComplete || draftedPlayers.length === 0 || standings.length === 0) {
+      return { awards: [], undraftedPlayers: [] };
+    }
+
+    const mvp = [...draftedPlayers].sort((a, b) => b.points - a.points)[0];
+    const lvp = [...draftedPlayers].sort((a, b) => {
+      const aDelta = a.points - a.projected;
+      const bDelta = b.points - b.projected;
+      if (aDelta !== bDelta) return aDelta - bDelta;
+      return a.pickNumber - b.pickNumber;
+    })[0];
+    const value =
+      [...draftedPlayers]
+        .filter((entry) => entry.pickNumber > Math.floor(totalPicks / 3))
+        .sort((a, b) => {
+          const aDelta = a.points - a.projected;
+          const bDelta = b.points - b.projected;
+          if (aDelta !== bDelta) return bDelta - aDelta;
+          return b.points - a.points;
+        })[0] ||
+      [...draftedPlayers].sort((a, b) => b.points - b.projected - (a.points - a.projected))[0];
+    const undraftedPlayers = players
+      .filter((player) => !draftedIds.has(player.id))
+      .map((player) => ({
+        player,
+        team: "Undrafted",
+        pickNumber: 0,
+        points: hasLiveScores ? scoringTotal(player, scoring) : projectedTotal(player, scoring),
+        projected: projectedTotal(player, scoring),
+      }))
+      .sort((a, b) => b.points - a.points)
+      .slice(0, Math.max(5, totalRosterSpots));
+    const awards: FootballRecapAward[] = [
+      standings[0]
+        ? {
+            title: "Champion",
+            headline: standings[0].team,
+            detail: `Won the pool with ${standings[0].displayScore.toFixed(1)} points.`,
+          }
+        : null,
+      mvp
+        ? {
+            title: "MVP",
+            headline: mvp.player.name,
+            detail: `${mvp.team} got ${mvp.points.toFixed(1)} points from the ${getOrdinal(
+              mvp.pickNumber
+            )} pick.`,
+          }
+        : null,
+      lvp
+        ? {
+            title: "LVP",
+            headline: lvp.player.name,
+            detail: `${lvp.team}'s ${getOrdinal(lvp.pickNumber)} pick finished ${
+              (lvp.points - lvp.projected).toFixed(1)
+            } versus projection.`,
+          }
+        : null,
+      value
+        ? {
+            title: "Best Value",
+            headline: value.player.name,
+            detail: `${value.team} found ${(value.points - value.projected).toFixed(
+              1
+            )} extra points with the ${getOrdinal(value.pickNumber)} pick.`,
+          }
+        : null,
+    ].filter((award): award is FootballRecapAward => award !== null);
+
+    return { awards, undraftedPlayers };
+  }, [picks, players, pool, standings]);
+
   const offenseColumns = useMemo(
     () => (pool ? buildOffenseColumns(pool.scoring ?? defaultScoring) : []),
     [pool]
@@ -526,30 +671,85 @@ export default function FootballLeaderboardPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={`/football/pool?id=${pool.id}`}
+              className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-3 text-center text-base font-black text-emerald-300 transition hover:bg-emerald-400/15"
+            >
+              {pool.poolName} Lobby
+            </Link>
           </div>
         </div>
 
-        <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
-            <h2 className="text-2xl font-black uppercase tracking-wide text-slate-300">
+        {recap.awards.length > 0 && (
+          <section className="mt-8 rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:mt-10 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+                  Pool Recap
+                </p>
+                <h2 className="mt-2 text-2xl font-black sm:text-3xl">
+                  Final awards
+                </h2>
+              </div>
+              <p className="text-sm font-bold text-slate-400">
+                Built from draft slot, scoring, and projection value.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {recap.awards.map((award) => (
+                <RecapAwardCard key={award.title} award={award} />
+              ))}
+            </div>
+
+            {recap.undraftedPlayers.length > 0 && (
+              <div className="mt-5 rounded-2xl border border-white/5 bg-[#030712] p-4">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Best Undrafted Team
+                </p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {recap.undraftedPlayers.map((entry) => (
+                    <div
+                      key={entry.player.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-white">
+                          {formatPlayerName(entry.player.name)}
+                        </p>
+                        <p className="text-xs font-bold text-slate-500">
+                          {entry.player.position} • {entry.player.school}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-black text-emerald-300">
+                        {entry.points.toFixed(1)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        <div className="mt-8 grid gap-5 sm:mt-10 lg:grid-cols-[320px_1fr]">
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
+            <h2 className="text-lg font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
-            <p className="mt-2 text-sm font-semibold text-slate-500">
-              {`${scoringModeLabel} totals use this pool's scoring settings against the newest available stat line.`}
-            </p>
-            <div className="mt-6 max-w-3xl space-y-3">
+            <div className="mt-5 space-y-1">
               {standings.map((team, index) => (
                 <div
                   key={team.team}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/5 bg-[#1F2937] p-4 sm:p-5"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-3"
                 >
                   <div className="min-w-0 flex items-center gap-3 sm:gap-4">
-                    <span className="shrink-0 text-xl font-black text-slate-400 sm:text-2xl">
+                    <span className="shrink-0 text-lg font-black text-slate-400">
                       {index + 1}
                     </span>
-                    <span className="truncate text-xl font-black sm:text-2xl">{team.team}</span>
+                    <span className="truncate text-lg font-black sm:text-xl">{team.team}</span>
                   </div>
-                  <span className="shrink-0 text-2xl font-black text-emerald-300 sm:text-3xl">
+                  <span className="shrink-0 text-lg font-black text-emerald-300 sm:text-xl">
                     {team.displayScore.toFixed(1)}
                   </span>
                 </div>
@@ -557,57 +757,47 @@ export default function FootballLeaderboardPage() {
             </div>
           </section>
 
-          <section className="min-w-0 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-black">Team Player Scoring</h2>
-              <p className="text-sm font-semibold text-slate-500">
-                Columns match the roster and scoring categories selected for this pool.
-              </p>
-            </div>
-
-            <div className="mt-6 space-y-6">
-              {standings.map((team) => (
-                <div
-                  key={team.team}
-                  className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-4 sm:p-5"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-2xl font-black uppercase tracking-wide">{team.team}</h3>
-                    <span className="text-2xl font-black text-emerald-300">
-                      {team.displayScore.toFixed(1)}
-                    </span>
-                  </div>
-
-                  {team.players.length === 0 ? (
-                    <p className="mt-5 text-slate-500">No players drafted yet.</p>
-                  ) : (
-                    <>
-                      <TeamStatTable
-                        title="Position Players"
-                        entries={team.players.filter(
-                          (entry) => entry.player.position !== "K" && entry.player.position !== "DST"
-                        )}
-                        columns={offenseColumns}
-                        groups={offenseGroups}
-                        scoring={pool.scoring ?? defaultScoring}
-                      />
-                      <TeamStatTable
-                        title="Defense / Special Teams"
-                        entries={team.players.filter((entry) => entry.player.position === "DST")}
-                        columns={defenseColumns}
-                        scoring={pool.scoring ?? defaultScoring}
-                      />
-                      <TeamStatTable
-                        title="Kickers"
-                        entries={team.players.filter((entry) => entry.player.position === "K")}
-                        columns={kickingColumns}
-                        scoring={pool.scoring ?? defaultScoring}
-                      />
-                    </>
-                  )}
+          <section className="min-w-0 space-y-5 sm:space-y-6">
+            {standings.map((team) => (
+              <div
+                key={team.team}
+                className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-4 shadow-xl shadow-black/40 sm:p-5"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-2xl font-black uppercase tracking-wide">{team.team}</h3>
+                  <span className="text-2xl font-black text-emerald-300">
+                    {team.displayScore.toFixed(1)}
+                  </span>
                 </div>
-              ))}
-            </div>
+
+                {team.players.length === 0 ? (
+                  <p className="mt-5 text-slate-500">No players drafted yet.</p>
+                ) : (
+                  <>
+                    <TeamStatTable
+                      entries={team.players.filter(
+                        (entry) => entry.player.position !== "K" && entry.player.position !== "DST"
+                      )}
+                      columns={offenseColumns}
+                      groups={offenseGroups}
+                      scoring={pool.scoring ?? defaultScoring}
+                    />
+                    <TeamStatTable
+                      title="Defense / Special Teams"
+                      entries={team.players.filter((entry) => entry.player.position === "DST")}
+                      columns={defenseColumns}
+                      scoring={pool.scoring ?? defaultScoring}
+                    />
+                    <TeamStatTable
+                      title="Kickers"
+                      entries={team.players.filter((entry) => entry.player.position === "K")}
+                      columns={kickingColumns}
+                      scoring={pool.scoring ?? defaultScoring}
+                    />
+                  </>
+                )}
+              </div>
+            ))}
           </section>
         </div>
       </div>
