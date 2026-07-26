@@ -33,6 +33,59 @@ function scheduleOpponentLabel(game: WinsTeam["schedule"][number]) {
   return game.opponent;
 }
 
+const conferenceStyles: Record<
+  string,
+  { badge: string; board: string; card: string; name: string }
+> = {
+  ACC: {
+    badge: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20",
+    board: "border-sky-500/35 bg-sky-500/20",
+    card: "border-sky-300/45 bg-sky-500/12 hover:bg-sky-500/18",
+    name: "hover:text-sky-200",
+  },
+  "Big Ten": {
+    badge: "border-cyan-200 bg-cyan-500/45 text-cyan-50 shadow-cyan-500/20",
+    board: "border-cyan-500/35 bg-cyan-500/20",
+    card: "border-cyan-300/45 bg-cyan-500/12 hover:bg-cyan-500/18",
+    name: "hover:text-cyan-200",
+  },
+  "Big 12": {
+    badge: "border-violet-200 bg-violet-500/45 text-violet-50 shadow-violet-500/20",
+    board: "border-violet-500/35 bg-violet-500/20",
+    card: "border-violet-300/45 bg-violet-500/12 hover:bg-violet-500/18",
+    name: "hover:text-violet-200",
+  },
+  "Pac-12": {
+    badge: "border-amber-200 bg-amber-500/45 text-amber-50 shadow-amber-500/20",
+    board: "border-amber-500/35 bg-amber-500/20",
+    card: "border-amber-300/45 bg-amber-500/12 hover:bg-amber-500/18",
+    name: "hover:text-amber-200",
+  },
+  SEC: {
+    badge: "border-rose-200 bg-rose-500/45 text-rose-50 shadow-rose-500/20",
+    board: "border-rose-500/35 bg-rose-500/20",
+    card: "border-rose-300/45 bg-rose-500/12 hover:bg-rose-500/18",
+    name: "hover:text-rose-200",
+  },
+  Independents: {
+    badge: "border-emerald-200 bg-emerald-500/45 text-emerald-50 shadow-emerald-500/20",
+    board: "border-emerald-500/35 bg-emerald-500/20",
+    card: "border-emerald-300/45 bg-emerald-500/12 hover:bg-emerald-500/18",
+    name: "hover:text-emerald-200",
+  },
+};
+
+const defaultConferenceStyle = {
+  badge: "border-slate-100 bg-slate-400/45 text-white shadow-slate-400/20",
+  board: "border-slate-500/35 bg-slate-500/15",
+  card: "border-slate-600/45 bg-[#050a13] hover:bg-slate-500/10",
+  name: "hover:text-slate-200",
+};
+
+function getConferenceStyle(conference: string) {
+  return conferenceStyles[conference] ?? defaultConferenceStyle;
+}
+
 function TeamDetailsModal({
   team,
   onClose,
@@ -339,19 +392,22 @@ export default function WinsDraftPage() {
                   className="grid bg-[#030712]"
                   style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
                 >
-                  {boardSlots.map(({ index, team }) => (
-                    <div
-                      key={index}
-                      className={`relative min-h-[108px] overflow-hidden border-b border-r p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
-                        team
-                          ? "border-sky-500/35 bg-[#0b3b55]/95"
-                          : "border-slate-700/70 bg-[#050a13]/95"
-                      }`}
-                    >
+                  {boardSlots.map(({ index, team }) => {
+                    const styles = team ? getConferenceStyle(team.conference) : null;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`relative min-h-[108px] overflow-hidden border-b border-r p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
+                          team
+                            ? styles?.board
+                            : "border-slate-700/70 bg-[#050a13]/95"
+                        }`}
+                      >
                       <span
                         className={`absolute right-3 top-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:right-5 sm:top-5 sm:px-3 sm:text-xs ${
                           team
-                            ? "bg-blue-500/35 text-blue-50 shadow-sm shadow-blue-950/40"
+                            ? styles?.badge
                             : "bg-[#1F2937] text-slate-400"
                         }`}
                       >
@@ -384,8 +440,9 @@ export default function WinsDraftPage() {
                           </p>
                         </>
                       )}
-                    </div>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -439,17 +496,20 @@ export default function WinsDraftPage() {
                   </div>
                 </div>
 
-                {filteredTeams.map((team) => (
-                  <div
-                    key={team.id}
-                    className="grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 border-b border-slate-700/45 bg-[#050a13] px-4 py-4 text-sm font-black last:border-b-0 hover:bg-emerald-400/5"
-                  >
+                {filteredTeams.map((team) => {
+                  const styles = getConferenceStyle(team.conference);
+
+                  return (
+                    <div
+                      key={team.id}
+                      className={`grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 border-b px-4 py-4 text-sm font-black last:border-b-0 ${styles.card}`}
+                    >
                     <button
                       type="button"
                       onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
-                      <p className="truncate text-base font-black text-white transition hover:text-emerald-300">
+                      <p className={`truncate text-base font-black text-white transition ${styles.name}`}>
                         {team.name}
                       </p>
                       <p className="truncate text-xs font-bold text-slate-500">
@@ -469,8 +529,9 @@ export default function WinsDraftPage() {
                     >
                       Draft
                     </button>
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
 
                 {filteredTeams.length === 0 && (
                   <div className="px-4 py-8 text-sm font-bold text-slate-500">
