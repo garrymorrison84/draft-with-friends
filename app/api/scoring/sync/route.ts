@@ -501,6 +501,7 @@ export async function GET() {
     success: errors.length === 0,
     scoringVersion: "active-event-missed-cut-current-round-plus-eight-v10",
     tournament: data.Tournament?.Name,
+    tournamentIsOver: data.Tournament?.IsOver === true,
     appEventName: activeEvent.name,
     tournamentId,
     eventId,

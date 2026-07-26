@@ -362,6 +362,7 @@ export default function LeaderboardPage() {
   const [golferStatuses, setGolferStatuses] = useState<GolferStatusRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [tournamentIsOver, setTournamentIsOver] = useState(false);
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
 
@@ -488,6 +489,8 @@ export default function LeaderboardPage() {
       if (Array.isArray(data?.scoreStatuses)) {
         setGolferStatuses(data.scoreStatuses);
       }
+
+      setTournamentIsOver(data?.tournamentIsOver === true);
 
       await loadLeaderboard();
     } catch (error) {
@@ -648,6 +651,7 @@ export default function LeaderboardPage() {
     );
   const tournamentComplete =
     draftComplete &&
+    tournamentIsOver &&
     scoredFieldForCompletion.length > 0 &&
     scoredFieldForCompletion.every((score) => typeof score.round4 === "number");
   const draftedNameKeys = new Set(draftPicks.map((pick) => normalizeName(pick.golfer_name)));
