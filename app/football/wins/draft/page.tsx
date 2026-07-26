@@ -514,7 +514,7 @@ export default function WinsDraftPage() {
                   return (
                     <div
                       key={team.id}
-                      className={`grid grid-cols-[minmax(0,1fr)_96px_70px] items-center gap-x-3 border-b px-4 py-4 text-sm font-black last:border-b-0 ${styles.card}`}
+                      className="grid grid-cols-[minmax(0,1fr)_96px_70px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
                     >
                     <button
                       type="button"
@@ -526,7 +526,7 @@ export default function WinsDraftPage() {
                           {team.conference}
                         </span>
                         <div className="min-w-0">
-                          <p className={`truncate text-base font-black text-white transition ${styles.name}`}>
+                          <p className="truncate text-base font-black text-white">
                             {team.name}
                           </p>
                           <p className="truncate text-xs font-bold text-slate-500">
