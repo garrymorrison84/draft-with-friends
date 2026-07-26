@@ -22,59 +22,6 @@ import {
   type WinsTeam,
 } from "../lib/storage";
 
-const conferenceStyles: Record<
-  string,
-  { card: string; badge: string; board: string; text: string }
-> = {
-  SEC: {
-    card: "border-rose-300/45 bg-rose-950/35 hover:border-rose-200/80",
-    badge: "bg-rose-400 text-rose-950",
-    board: "border-rose-300/35 bg-rose-950/35",
-    text: "text-rose-200",
-  },
-  "Big Ten": {
-    card: "border-sky-300/45 bg-sky-950/35 hover:border-sky-200/80",
-    badge: "bg-sky-300 text-sky-950",
-    board: "border-sky-300/35 bg-sky-950/35",
-    text: "text-sky-200",
-  },
-  "Big 12": {
-    card: "border-amber-300/45 bg-amber-950/30 hover:border-amber-200/80",
-    badge: "bg-amber-300 text-amber-950",
-    board: "border-amber-300/35 bg-amber-950/30",
-    text: "text-amber-200",
-  },
-  ACC: {
-    card: "border-violet-300/45 bg-violet-950/35 hover:border-violet-200/80",
-    badge: "bg-violet-300 text-violet-950",
-    board: "border-violet-300/35 bg-violet-950/35",
-    text: "text-violet-200",
-  },
-  "Pac-12": {
-    card: "border-orange-300/45 bg-orange-950/30 hover:border-orange-200/80",
-    badge: "bg-orange-300 text-orange-950",
-    board: "border-orange-300/35 bg-orange-950/30",
-    text: "text-orange-200",
-  },
-  Independents: {
-    card: "border-emerald-300/45 bg-emerald-950/30 hover:border-emerald-200/80",
-    badge: "bg-emerald-300 text-emerald-950",
-    board: "border-emerald-300/35 bg-emerald-950/30",
-    text: "text-emerald-200",
-  },
-};
-
-const fallbackConferenceStyle = {
-  card: "border-white/5 bg-[#1F2937] hover:border-emerald-400/30",
-  badge: "bg-emerald-400 text-slate-950",
-  board: "border-slate-700/60 bg-[#030712]",
-  text: "text-emerald-200",
-};
-
-function conferenceStyle(conference: string) {
-  return conferenceStyles[conference] ?? fallbackConferenceStyle;
-}
-
 function pickLabel(pickIndex: number, teamCount: number) {
   const round = Math.floor(pickIndex / teamCount) + 1;
   const pickInRound = (pickIndex % teamCount) + 1;
@@ -250,168 +197,211 @@ export default function WinsDraftPage() {
           </section>
         )}
 
-        <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_390px]">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
+        <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-4 lg:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] xl:grid-cols-[minmax(380px,460px)_minmax(0,1fr)]">
+          <section className="order-1 flex min-w-0 flex-col rounded-2xl border border-slate-600/35 bg-[#111827] p-2.5 shadow-xl shadow-black/40 sm:rounded-3xl sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-3xl font-black">Draft Board</h2>
-                <p className="mt-2 text-sm font-bold text-slate-400">
-                  Snake draft college teams. Highest combined season wins takes it.
+                <h2 className="text-2xl font-black sm:text-3xl">Draft Board</h2>
+                <p className="mt-1 text-sm text-slate-400 sm:mt-2 sm:text-base">
+                  Snake draft order reverses each round.
                 </p>
               </div>
-              <p className="text-3xl font-black text-emerald-300">
+              <p className="text-2xl font-black text-emerald-300 sm:text-3xl">
                 {picks.length}/{totalPicks}
               </p>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-700/70">
-              <div
-                className="grid bg-emerald-700/80"
-                style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
-              >
-                {pool.draftOrder.map((manager) => (
-                  <div
-                    key={manager}
-                    className="border-r border-white/10 px-4 py-4 text-center last:border-r-0"
-                  >
-                    <p className="truncate text-sm font-black uppercase tracking-widest text-emerald-100">
-                      {manager}
-                    </p>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-4 min-h-[520px] flex-1 overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
+              <div style={{ minWidth: `${pool.numberOfTeams * 150}px` }}>
+                <div
+                  className="sticky top-0 z-20 grid overflow-hidden bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
+                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
+                >
+                  {pool.draftOrder.map((manager) => (
+                    <div
+                      key={manager}
+                      className="min-w-0 border-r border-emerald-400/20 px-3 py-3 text-center last:border-r-0 sm:p-6"
+                    >
+                      <p className="truncate text-sm font-black uppercase tracking-widest text-white sm:text-base">
+                        {manager}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-              <div
-                className="grid bg-[#030712]"
-                style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
-              >
-                {boardSlots.map(({ index, team }) => (
-                  <div
-                    key={index}
-                    className={`relative min-h-36 border-b border-r p-4 last:border-r-0 ${
-                      team ? conferenceStyle(team.conference).board : "border-slate-700/60 bg-[#030712]"
-                    }`}
-                  >
-                    <span className="absolute right-3 top-3 rounded-full bg-blue-700 px-3 py-1 text-xs font-black">
-                      {pickLabel(index, pool.numberOfTeams)}
-                    </span>
-                    {team ? (
-                      <div className="pt-8">
-                        <p className="text-xl font-black">{team.name}</p>
-                        <p className={`mt-2 text-sm font-bold ${conferenceStyle(team.conference).text}`}>
-                          {team.conference} | {team.wins}-{team.losses}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="pt-8 text-sm font-bold text-slate-600">
-                        Awaiting selection
-                      </div>
-                    )}
-                  </div>
-                ))}
+                <div
+                  className="grid bg-[#030712]"
+                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
+                >
+                  {boardSlots.map(({ index, team }) => (
+                    <div
+                      key={index}
+                      className={`relative min-h-[108px] overflow-hidden border-b border-r p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
+                        team
+                          ? "border-sky-500/35 bg-[#0b3b55]/95"
+                          : "border-slate-700/70 bg-[#050a13]/95"
+                      }`}
+                    >
+                      <span
+                        className={`absolute right-3 top-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:right-5 sm:top-5 sm:px-3 sm:text-xs ${
+                          team
+                            ? "bg-blue-500/35 text-blue-50 shadow-sm shadow-blue-950/40"
+                            : "bg-[#1F2937] text-slate-400"
+                        }`}
+                      >
+                        {pickLabel(index, pool.numberOfTeams)}
+                      </span>
+
+                      {team ? (
+                        <div className="relative z-10 min-w-0">
+                          <p
+                            className="min-w-0 max-w-full overflow-hidden break-words text-xl font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-2xl"
+                            style={{
+                              display: "-webkit-box",
+                              WebkitBoxOrient: "vertical",
+                              WebkitLineClamp: 2,
+                            }}
+                          >
+                            {team.name}
+                          </p>
+                          <p className="mt-2 truncate text-xs font-bold text-slate-500 sm:text-sm">
+                            {team.conference} • {team.wins}-{team.losses}
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <p className="relative z-10 text-sm font-black text-slate-500">
+                            Open
+                          </p>
+                          <p className="relative z-10 mt-2 text-xs font-bold text-slate-600 sm:mt-3 sm:text-sm">
+                            Awaiting selection
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </section>
 
-          <aside className="space-y-5">
-            <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-5">
-              <h2 className="text-2xl font-black">Eligible Teams</h2>
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search teams..."
-                className="mt-4 w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 font-bold text-white outline-none placeholder:text-slate-600"
-              />
+          <aside className="order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden">
+            <h2 className="text-2xl font-black">Eligible Teams</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Filter by conference, search teams, then draft from the list.
+            </p>
+            <p className="mt-2 text-xs font-bold text-slate-500">
+              {pool.conferences.join(", ")} • {filteredTeams.length.toLocaleString()} available teams
+            </p>
 
-              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                {["ALL", ...availableConferences].map((conference) => {
-                  const active = conferenceFilter === conference;
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search teams..."
+              className="mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60"
+            />
 
-                  return (
-                    <button
-                      key={conference}
-                      type="button"
-                      onClick={() => setConferenceFilter(conference)}
-                      className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition ${
-                        active
-                          ? "border-emerald-300 bg-emerald-300 text-slate-950"
-                          : "border-white/10 bg-[#030712] text-slate-300 hover:border-emerald-300/40"
-                      }`}
-                    >
-                      {conference === "ALL" ? "All" : conference}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              {["ALL", ...availableConferences].map((conference) => {
+                const active = conferenceFilter === conference;
 
-              <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
-                {filteredTeams.map((team) => (
+                return (
                   <button
-                    key={team.id}
+                    key={conference}
                     type="button"
-                    onClick={() => setSelectedTeam(team)}
-                    className={`w-full rounded-2xl border p-4 text-left transition ${
-                      selectedTeam?.id === team.id
-                        ? "border-emerald-300 bg-emerald-300/10"
-                        : conferenceStyle(team.conference).card
+                    onClick={() => setConferenceFilter(conference)}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition ${
+                      active
+                        ? "border-emerald-300 bg-emerald-300 text-slate-950"
+                        : "border-slate-700 bg-[#050a13] text-slate-300 hover:border-emerald-300/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-lg font-black">{team.name}</p>
-                        <p className="text-sm font-bold text-slate-500">
-                          {team.conference} | {team.wins}-{team.losses}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-3 py-1 text-sm font-black ${
-                          conferenceStyle(team.conference).badge
-                        }`}
-                      >
-                        {formatWinTotal(team.winTotal)}
-                      </span>
-                    </div>
+                    {conference === "ALL" ? "All" : conference}
                   </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
+              <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-360px)] lg:max-h-none">
+                <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
+                  <div className="grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                    <div>Team</div>
+                    <div className="text-center">Wins</div>
+                    <div className="text-right">Action</div>
+                  </div>
+                </div>
+
+                {filteredTeams.map((team) => (
+                  <div
+                    key={team.id}
+                    className={`grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 border-b border-slate-700/45 px-4 py-4 text-sm font-black last:border-b-0 ${
+                      selectedTeam?.id === team.id
+                        ? "bg-emerald-400/10"
+                        : "bg-[#050a13] hover:bg-emerald-400/5"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTeam(team)}
+                      className="min-w-0 text-left"
+                    >
+                      <p className="truncate text-base font-black text-white transition hover:text-emerald-300">
+                        {team.name}
+                      </p>
+                      <p className="truncate text-xs font-bold text-slate-500">
+                        {team.conference} • {team.wins}-{team.losses}
+                      </p>
+                    </button>
+
+                    <div className="text-center text-sm font-black text-slate-300">
+                      {formatWinTotal(team.winTotal)}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => draftTeam(team)}
+                      disabled={!draftOpen || draftComplete || draftedIds.has(team.id)}
+                      className="rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                    >
+                      Draft
+                    </button>
+                  </div>
                 ))}
+
                 {filteredTeams.length === 0 && (
-                  <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4 text-sm font-bold text-slate-500">
+                  <div className="px-4 py-8 text-sm font-bold text-slate-500">
                     No available teams match that filter.
                   </div>
                 )}
               </div>
-            </section>
+            </div>
 
             {selectedTeam && (
-              <section
-                className={`rounded-3xl border p-4 shadow-xl shadow-black/40 sm:p-5 ${
-                  conferenceStyle(selectedTeam.conference).board
-                }`}
-              >
+              <div className="mt-5 rounded-2xl border border-slate-600/35 bg-[#050a13] p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p
-                      className={`text-sm font-black uppercase tracking-widest ${
-                        conferenceStyle(selectedTeam.conference).text
-                      }`}
-                    >
-                      Team Card
+                  <div className="min-w-0">
+                    <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+                      Schedule
                     </p>
-                    <h2 className="mt-2 text-3xl font-black">{selectedTeam.name}</h2>
-                    <p className="mt-1 text-sm font-bold text-slate-400">
-                      {selectedTeam.conference} | Win Total {formatWinTotal(selectedTeam.winTotal)}
+                    <h3 className="mt-2 truncate text-2xl font-black text-white">
+                      {selectedTeam.name}
+                    </h3>
+                    <p className="mt-1 text-sm font-bold text-slate-500">
+                      {selectedTeam.conference} • Win Total {formatWinTotal(selectedTeam.winTotal)}
                     </p>
                   </div>
-                  <span className="rounded-full bg-[#030712] px-3 py-1 text-sm font-black text-slate-300">
+                  <span className="shrink-0 rounded-full bg-[#172235] px-3 py-1 text-sm font-black text-slate-300">
                     {selectedTeam.wins}-{selectedTeam.losses}
                   </span>
                 </div>
 
-                <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
-                  {selectedTeam.schedule.map((game) => (
+                <div className="mt-4 max-h-48 space-y-2 overflow-y-auto">
+                  {selectedTeam.schedule.slice(0, 6).map((game) => (
                     <div
                       key={`${game.week}-${game.opponent}`}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-[#030712] px-3 py-2"
+                      className="flex items-center justify-between rounded-xl border border-slate-700/45 bg-[#030712] px-3 py-2"
                     >
                       <div>
                         <p className="text-sm font-black">{game.week}</p>
@@ -433,16 +423,7 @@ export default function WinsDraftPage() {
                     </div>
                   ))}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => draftTeam(selectedTeam)}
-                  disabled={!draftOpen || draftComplete || draftedIds.has(selectedTeam.id)}
-                  className="mt-5 w-full rounded-xl bg-emerald-400 px-5 py-4 text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {draftOpen ? `Draft ${selectedTeam.name}` : "Draft Not Open Yet"}
-                </button>
-              </section>
+              </div>
             )}
           </aside>
         </div>
