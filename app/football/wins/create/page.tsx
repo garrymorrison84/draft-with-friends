@@ -258,42 +258,93 @@ export default function CreateWinsPoolPage() {
             </div>
           </Panel>
 
-          <Panel title="Draft Order" body="Randomize the order or set it manually before the snake draft.">
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <ChoiceButton
-                active={draftOrderMethod === "random"}
-                title="Randomize Draft Order"
-                body="Let Draft With Friends assign the opening order."
-                onClick={() => {
-                  setDraftOrderMethod("random");
-                  randomizeDraftOrder();
-                }}
-              />
-              <ChoiceButton
-                active={draftOrderMethod === "manual"}
-                title="Manually Set Draft Order"
-                body="Use drag on desktop, or buttons on mobile."
-                onClick={() => setDraftOrderMethod("manual")}
-              />
+          <Panel title="Draft Order" body="Choose random order or manually set the first round.">
+            <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 md:grid-cols-2">
+              <label
+                className={`cursor-pointer rounded-2xl border p-4 sm:p-5 ${
+                  draftOrderMethod === "random"
+                    ? "border-emerald-400/40 bg-emerald-400/10"
+                    : "border-white/5 bg-[#111827]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="draftOrder"
+                  checked={draftOrderMethod === "random"}
+                  onChange={() => {
+                    setDraftOrderMethod("random");
+                    randomizeDraftOrder();
+                  }}
+                  className="mr-3"
+                />
+                <span
+                  className={`font-bold ${
+                    draftOrderMethod === "random"
+                      ? "text-emerald-300"
+                      : "text-white"
+                  }`}
+                >
+                  Randomize Draft Order
+                </span>
+                <p className="mt-1 text-xs leading-5 text-slate-400 sm:mt-2 sm:text-sm sm:leading-6">
+                  Draft With Friends randomly assigns the order before the draft starts.
+                </p>
+              </label>
+
+              <label
+                className={`cursor-pointer rounded-2xl border p-4 sm:p-5 ${
+                  draftOrderMethod === "manual"
+                    ? "border-emerald-400/40 bg-emerald-400/10"
+                    : "border-white/5 bg-[#111827]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="draftOrder"
+                  checked={draftOrderMethod === "manual"}
+                  onChange={() => setDraftOrderMethod("manual")}
+                  className="mr-3"
+                />
+                <span
+                  className={`font-bold ${
+                    draftOrderMethod === "manual"
+                      ? "text-emerald-300"
+                      : "text-white"
+                  }`}
+                >
+                  Manually Set Draft Order
+                </span>
+                <p className="mt-1 text-xs leading-5 text-slate-400 sm:mt-2 sm:text-sm sm:leading-6">
+                  The pool organizer chooses the exact pick order before the draft begins.
+                </p>
+              </label>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-white/5 bg-[#030712] p-3 sm:p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="font-black">
-                  {draftOrderMethod === "manual" ? "Manual Draft Order" : "Draft Order Preview"}
-                </p>
+            <div className="mt-4 rounded-2xl border border-white/5 bg-[#030712] p-3 sm:mt-6 sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-bold">
+                    {draftOrderMethod === "manual" ? "Manual Draft Order" : "Draft Order Preview"}
+                  </p>
+                  <p className="mt-1 text-sm leading-5 text-slate-500">
+                    {draftOrderMethod === "manual"
+                      ? "Drag teams on desktop, or use the order controls on mobile."
+                      : "Randomize to reshuffle the order before the draft begins."}
+                  </p>
+                </div>
+
                 {draftOrderMethod === "random" && (
                   <button
                     type="button"
                     onClick={randomizeDraftOrder}
-                    className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-black text-emerald-200"
+                    className="w-full whitespace-nowrap rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm font-bold text-emerald-200 transition hover:bg-emerald-400/15 sm:w-auto"
                   >
                     Randomize Again
                   </button>
                 )}
               </div>
 
-              <div className="mt-4 space-y-2">
+              <div className="mt-3 space-y-2 sm:mt-4 sm:space-y-3">
                 {draftOrder.map((team, index) => (
                   <div
                     key={`${team}-${index}`}
@@ -301,21 +352,24 @@ export default function CreateWinsPoolPage() {
                     onDragStart={() => setDraggedIndex(index)}
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={() => handleDrop(index)}
-                    className={`flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] p-3 ${
+                    className={`flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] p-3 sm:p-4 ${
                       draftOrderMethod === "manual" ? "cursor-grab active:cursor-grabbing" : ""
                     }`}
                   >
-                    <p className="min-w-0 truncate font-black">
-                      {team?.trim() || `Team ${index + 1}`}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="font-bold">
+                        {team?.trim() || `Team ${index + 1}`}
+                      </p>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       {draftOrderMethod === "manual" && (
-                        <>
+                        <div className="flex gap-2 md:hidden">
                           <button
                             type="button"
                             onClick={() => moveDraftTeam(index, -1)}
                             disabled={index === 0}
-                            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:opacity-35"
+                            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-35"
                           >
                             Up
                           </button>
@@ -323,13 +377,13 @@ export default function CreateWinsPoolPage() {
                             type="button"
                             onClick={() => moveDraftTeam(index, 1)}
                             disabled={index === draftOrder.length - 1}
-                            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:opacity-35"
+                            className="rounded-lg border border-white/15 px-3 py-2 text-xs font-bold text-slate-200 disabled:cursor-not-allowed disabled:opacity-35"
                           >
                             Down
                           </button>
-                        </>
+                        </div>
                       )}
-                      <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400 text-lg font-black text-slate-950">
                         {index + 1}
                       </span>
                     </div>

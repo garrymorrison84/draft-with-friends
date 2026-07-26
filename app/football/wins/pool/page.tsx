@@ -67,6 +67,15 @@ export default function WinsPoolLobbyPage() {
     typeof window === "undefined"
       ? ""
       : `${window.location.origin}/football/wins/pool?id=${pool.id}`;
+  const inviteDisplay = `draftwithfriends.com/football/wins/pool?id=${pool.id}`;
+  const draftButtonLabel =
+    picks.length >= totalPicks
+      ? "View Draft"
+      : picks.length > 0
+        ? "Continue Draft"
+        : draftOpen
+          ? "Enter Draft"
+          : "View Draft Room";
 
   async function copyInviteLink() {
     if (!inviteLink) return;
@@ -82,7 +91,7 @@ export default function WinsPoolLobbyPage() {
           <BrandMark size="lg" />
         </Link>
 
-        <div className="mt-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mt-8">
           <div>
             <p className="text-lg font-black text-emerald-300">
               College Football Wins Pool
@@ -90,32 +99,14 @@ export default function WinsPoolLobbyPage() {
             <h1 className="mt-2 text-4xl font-black leading-tight sm:text-6xl">
               {pool.poolName}
             </h1>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              href={`/football/wins/draft?id=${pool.id}`}
-              className="rounded-2xl bg-emerald-400 px-7 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 hover:bg-emerald-300"
-            >
-              {picks.length >= totalPicks
-                ? "View Draft"
-                : draftOpen
-                  ? "Start Draft"
-                  : "View Draft Room"}
-            </Link>
-            {picks.length > 0 && (
-              <Link
-                href={`/football/wins/leaderboard?id=${pool.id}`}
-                className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-7 py-4 text-center text-lg font-black text-emerald-300 hover:bg-emerald-400/15"
-              >
-                View Leaderboard
-              </Link>
-            )}
+            <p className="mt-3 text-base font-bold text-slate-400">
+              Season Wins Snake Draft
+            </p>
           </div>
         </div>
 
-        <section className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr_1.1fr_2fr]">
+        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">
             <StatCard label="Participants" value={pool.numberOfTeams.toString()} />
             <StatCard label="Picks Each" value={pool.picksPerTeam.toString()} />
             <StatCard label="Eligible Teams" value={teams.length.toString()} />
@@ -125,17 +116,41 @@ export default function WinsPoolLobbyPage() {
               compact
             />
             <StatCard label="Pick Clock" value={formatPickClock(pool.pickClockSeconds)} compact />
-            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-              <p className="text-sm font-black text-emerald-300">Invite Link</p>
-              <p className="mt-2 truncate text-sm font-bold text-slate-300">{inviteLink}</p>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-emerald-300">Invite Link</p>
+                <p className="mt-1 truncate text-sm text-slate-200">
+                  {inviteDisplay}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={copyInviteLink}
-                className="mt-4 rounded-xl bg-white px-5 py-3 font-black text-slate-950"
+                className="min-w-[112px] rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-slate-200"
               >
-                {copied ? "Copied" : "Copy Link"}
+                {copied ? "Copied" : "Copy & Share Link"}
               </button>
             </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <Link
+              href={`/football/wins/draft?id=${pool.id}`}
+              className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+            >
+              {draftButtonLabel}
+            </Link>
+            {picks.length > 0 && (
+              <Link
+                href={`/football/wins/leaderboard?id=${pool.id}`}
+                className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-4 text-center text-lg font-black text-emerald-300 transition hover:scale-105 hover:bg-emerald-400/15"
+              >
+                View Leaderboard
+              </Link>
+            )}
           </div>
         </section>
 
@@ -209,9 +224,16 @@ function StatCard({
   compact?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
-      <p className="text-sm font-bold text-slate-400">{label}</p>
-      <p className={`mt-3 font-black ${compact ? "text-2xl" : "text-5xl"}`}>
+    <div className="flex min-h-[104px] min-w-0 flex-col items-center justify-center rounded-2xl border border-white/5 bg-[#1F2937] p-4 text-center">
+      <p className="text-base font-black uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <p
+        title={value}
+        className={`mt-2 max-w-full font-black leading-tight text-white ${
+          compact ? "text-2xl" : "text-4xl"
+        }`}
+      >
         {value}
       </p>
     </div>
