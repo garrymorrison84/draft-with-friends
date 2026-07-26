@@ -10,10 +10,64 @@ import {
   loadWinsPool,
   saveWinsDraftPicks,
   snakeManagerForPick,
+  winsConferenceOptions,
   type WinsDraftPick,
   type WinsPool,
   type WinsTeam,
 } from "../lib/storage";
+
+const conferenceStyles: Record<
+  string,
+  { card: string; badge: string; board: string; text: string }
+> = {
+  SEC: {
+    card: "border-rose-300/45 bg-rose-950/35 hover:border-rose-200/80",
+    badge: "bg-rose-400 text-rose-950",
+    board: "border-rose-300/35 bg-rose-950/35",
+    text: "text-rose-200",
+  },
+  "Big Ten": {
+    card: "border-sky-300/45 bg-sky-950/35 hover:border-sky-200/80",
+    badge: "bg-sky-300 text-sky-950",
+    board: "border-sky-300/35 bg-sky-950/35",
+    text: "text-sky-200",
+  },
+  "Big 12": {
+    card: "border-amber-300/45 bg-amber-950/30 hover:border-amber-200/80",
+    badge: "bg-amber-300 text-amber-950",
+    board: "border-amber-300/35 bg-amber-950/30",
+    text: "text-amber-200",
+  },
+  ACC: {
+    card: "border-violet-300/45 bg-violet-950/35 hover:border-violet-200/80",
+    badge: "bg-violet-300 text-violet-950",
+    board: "border-violet-300/35 bg-violet-950/35",
+    text: "text-violet-200",
+  },
+  "Pac-12": {
+    card: "border-orange-300/45 bg-orange-950/30 hover:border-orange-200/80",
+    badge: "bg-orange-300 text-orange-950",
+    board: "border-orange-300/35 bg-orange-950/30",
+    text: "text-orange-200",
+  },
+  Independents: {
+    card: "border-emerald-300/45 bg-emerald-950/30 hover:border-emerald-200/80",
+    badge: "bg-emerald-300 text-emerald-950",
+    board: "border-emerald-300/35 bg-emerald-950/30",
+    text: "text-emerald-200",
+  },
+};
+
+const fallbackConferenceStyle = {
+  card: "border-white/5 bg-[#1F2937] hover:border-emerald-400/30",
+  badge: "bg-emerald-400 text-slate-950",
+  board: "border-slate-700/60 bg-[#030712]",
+  text: "text-emerald-200",
+};
+
+function conferenceStyle(conference: string) {
+  return conferenceStyles[conference] ?? fallbackConferenceStyle;
+}
 
 function pickLabel(pickIndex: number, teamCount: number) {
   const round = Math.floor(pickIndex / teamCount) + 1;
@@ -26,6 +80,7 @@ export default function WinsDraftPage() {
   const [picks, setPicks] = useState<WinsDraftPick[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<WinsTeam | null>(null);
   const [query, setQuery] = useState("");
+  const [conferenceFilter, setConferenceFilter] = useState("ALL");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -57,8 +112,15 @@ export default function WinsDraftPage() {
   const currentManager = draftComplete
     ? null
     : snakeManagerForPick(pool, picks.length);
+  const availableConferences = winsConferenceOptions.filter((conference) =>
+    pool.conferences.includes(conference)
+  );
   const filteredTeams = teams
     .filter((team) => !draftedIds.has(team.id))
+    .filter(
+      (team) =>
+        conferenceFilter === "ALL" || team.conference === conferenceFilter
+    )
     .filter((team) => {
       const text = `${team.name} ${team.conference}`.toLowerCase();
       return text.includes(query.toLowerCase());
@@ -195,7 +257,9 @@ export default function WinsDraftPage() {
                 {boardSlots.map(({ index, team }) => (
                   <div
                     key={index}
-                    className="relative min-h-36 border-b border-r border-slate-700/60 p-4 last:border-r-0"
+                    className={`relative min-h-36 border-b border-r p-4 last:border-r-0 ${
+                      team ? conferenceStyle(team.conference).board : "border-slate-700/60 bg-[#030712]"
+                    }`}
                   >
                     <span className="absolute right-3 top-3 rounded-full bg-blue-700 px-3 py-1 text-xs font-black">
                       {pickLabel(index, pool.numberOfTeams)}
@@ -203,8 +267,8 @@ export default function WinsDraftPage() {
                     {team ? (
                       <div className="pt-8">
                         <p className="text-xl font-black">{team.name}</p>
-                        <p className="mt-2 text-sm font-bold text-slate-400">
-                          {team.conference} • {team.wins}-{team.losses}
+                        <p className={`mt-2 text-sm font-bold ${conferenceStyle(team.conference).text}`}>
+                          {team.conference} | {team.wins}-{team.losses}
                         </p>
                       </div>
                     ) : (
@@ -228,6 +292,28 @@ export default function WinsDraftPage() {
                 placeholder="Search teams..."
                 className="mt-4 w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-3 font-bold text-white outline-none placeholder:text-slate-600"
               />
+
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                {["ALL", ...availableConferences].map((conference) => {
+                  const active = conferenceFilter === conference;
+
+                  return (
+                    <button
+                      key={conference}
+                      type="button"
+                      onClick={() => setConferenceFilter(conference)}
+                      className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition ${
+                        active
+                          ? "border-emerald-300 bg-emerald-300 text-slate-950"
+                          : "border-white/10 bg-[#030712] text-slate-300 hover:border-emerald-300/40"
+                      }`}
+                    >
+                      {conference === "ALL" ? "All" : conference}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
                 {filteredTeams.map((team) => (
                   <button
@@ -236,36 +322,53 @@ export default function WinsDraftPage() {
                     onClick={() => setSelectedTeam(team)}
                     className={`w-full rounded-2xl border p-4 text-left transition ${
                       selectedTeam?.id === team.id
-                        ? "border-emerald-400/50 bg-emerald-400/10"
-                        : "border-white/5 bg-[#1F2937] hover:border-emerald-400/30"
+                        ? "border-emerald-300 bg-emerald-300/10"
+                        : conferenceStyle(team.conference).card
                     }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-lg font-black">{team.name}</p>
                         <p className="text-sm font-bold text-slate-500">
-                          {team.conference} • {team.wins}-{team.losses}
+                          {team.conference} | {team.wins}-{team.losses}
                         </p>
                       </div>
-                      <span className="shrink-0 rounded-full bg-emerald-400 px-3 py-1 text-sm font-black text-slate-950">
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-sm font-black ${
+                          conferenceStyle(team.conference).badge
+                        }`}
+                      >
                         {formatWinTotal(team.winTotal)}
                       </span>
                     </div>
                   </button>
                 ))}
+                {filteredTeams.length === 0 && (
+                  <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4 text-sm font-bold text-slate-500">
+                    No available teams match that filter.
+                  </div>
+                )}
               </div>
             </section>
 
             {selectedTeam && (
-              <section className="rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-5">
+              <section
+                className={`rounded-3xl border p-4 shadow-xl shadow-black/40 sm:p-5 ${
+                  conferenceStyle(selectedTeam.conference).board
+                }`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-black uppercase tracking-widest text-emerald-300">
+                    <p
+                      className={`text-sm font-black uppercase tracking-widest ${
+                        conferenceStyle(selectedTeam.conference).text
+                      }`}
+                    >
                       Team Card
                     </p>
                     <h2 className="mt-2 text-3xl font-black">{selectedTeam.name}</h2>
                     <p className="mt-1 text-sm font-bold text-slate-400">
-                      {selectedTeam.conference} • Win Total {formatWinTotal(selectedTeam.winTotal)}
+                      {selectedTeam.conference} | Win Total {formatWinTotal(selectedTeam.winTotal)}
                     </p>
                   </div>
                   <span className="rounded-full bg-[#030712] px-3 py-1 text-sm font-black text-slate-300">
