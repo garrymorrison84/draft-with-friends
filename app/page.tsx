@@ -338,9 +338,7 @@ export default function Home() {
           </div>
 
           <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
-            Create private weekend contests with the people you actually know.
-            Snake draft in minutes, skip the waiver wire and season-long grind,
-            and crown a champion before Sunday is over.
+            Create your own custom pool. Share the link with your crew.
           </p>
 
           <div className="mt-8 lg:mt-10">
