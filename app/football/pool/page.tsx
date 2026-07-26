@@ -147,7 +147,7 @@ export default function FootballPoolPage() {
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="min-w-0">
             <p className="text-sm font-black text-emerald-300">
-              College Football Snake Draft
+              College Fantasy Football Snake Draft
             </p>
             <h1 className="mt-2 break-words text-4xl font-black md:text-5xl">
               {pool.poolName}

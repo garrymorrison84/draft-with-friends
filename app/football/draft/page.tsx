@@ -935,7 +935,7 @@ export default function FootballDraftPage() {
               <BrandMark size="md" />
             </Link>
             <h1 className="mt-6 text-3xl font-black leading-tight sm:text-4xl md:text-5xl">
-              College Football Draft Room
+              College Fantasy Football Draft Room
             </h1>
             {!draftOpen ? (
               <p className="mt-4 text-lg font-black text-slate-300 sm:text-xl md:text-2xl">

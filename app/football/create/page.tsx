@@ -140,7 +140,7 @@ export default function CreateFootballPoolPage() {
 
     saveFootballPool({
       id,
-      poolName: poolName.trim() || "College Football Draft",
+      poolName: poolName.trim() || "College Fantasy Football Draft",
       season: week.trim() || "Week 1",
       numberOfTeams,
       teamNames: teams,
@@ -170,10 +170,10 @@ export default function CreateFootballPoolPage() {
         </div>
 
         <h1 className="mt-5 text-2xl font-black leading-tight sm:mt-7 sm:text-4xl md:text-5xl">
-          Create a College Football Pool
+          Create a College Fantasy Football Pool
         </h1>
         <p className="mt-2 text-sm text-slate-400 sm:mt-3 sm:text-lg">
-          Set up the weekly pool, team names, and draft order before choosing scoring.
+          Set up the weekly fantasy pool, team names, and draft order before choosing scoring.
         </p>
 
         <div className="mt-5 rounded-2xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40 sm:mt-10 sm:rounded-3xl sm:p-8">
