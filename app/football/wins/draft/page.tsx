@@ -97,6 +97,8 @@ function TeamDetailsModal({
   onDraft: () => void;
   canDraft: boolean;
 }) {
+  const styles = getConferenceStyle(team.conference);
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
       <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
@@ -106,18 +108,23 @@ function TeamDetailsModal({
               <p className="text-sm font-black uppercase tracking-widest text-emerald-300">
                 Team Details
               </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                  {team.conference}
+                </span>
+                <span className="text-sm font-black uppercase tracking-widest text-slate-400">
+                  {team.wins}-{team.losses}
+                </span>
+              </div>
               <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
                 {team.name}
               </h2>
-              <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
-                {team.conference} • {team.wins}-{team.losses}
-              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
               <div className="rounded-2xl bg-[#030712] p-4">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-500">
-                  Win Total
+                  Projected Win Total
                 </p>
                 <p className="mt-1 text-2xl font-black text-emerald-300">
                   {formatWinTotal(team.winTotal)}
@@ -426,9 +433,14 @@ export default function WinsDraftPage() {
                           >
                             {team.name}
                           </p>
-                          <p className="mt-2 truncate text-xs font-bold text-slate-500 sm:text-sm">
-                            {team.conference} • {team.wins}-{team.losses}
-                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${styles?.badge}`}>
+                              {team.conference}
+                            </span>
+                            <span className="text-xs font-bold text-slate-500 sm:text-sm">
+                              {team.wins}-{team.losses}
+                            </span>
+                          </div>
                         </div>
                       ) : (
                         <>
@@ -489,9 +501,9 @@ export default function WinsDraftPage() {
             <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
               <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-360px)] lg:max-h-none">
                 <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className="grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                  <div className="grid grid-cols-[minmax(0,1fr)_96px_70px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
                     <div>Team</div>
-                    <div className="text-center">Wins</div>
+                    <div className="text-center leading-4">Projected Win Total</div>
                     <div className="text-right">Action</div>
                   </div>
                 </div>
@@ -502,19 +514,26 @@ export default function WinsDraftPage() {
                   return (
                     <div
                       key={team.id}
-                      className={`grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 border-b px-4 py-4 text-sm font-black last:border-b-0 ${styles.card}`}
+                      className={`grid grid-cols-[minmax(0,1fr)_96px_70px] items-center gap-x-3 border-b px-4 py-4 text-sm font-black last:border-b-0 ${styles.card}`}
                     >
                     <button
                       type="button"
                       onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
-                      <p className={`truncate text-base font-black text-white transition ${styles.name}`}>
-                        {team.name}
-                      </p>
-                      <p className="truncate text-xs font-bold text-slate-500">
-                        {team.conference} • {team.wins}-{team.losses}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                          {team.conference}
+                        </span>
+                        <div className="min-w-0">
+                          <p className={`truncate text-base font-black text-white transition ${styles.name}`}>
+                            {team.name}
+                          </p>
+                          <p className="truncate text-xs font-bold text-slate-500">
+                            {team.wins}-{team.losses}
+                          </p>
+                        </div>
+                      </div>
                     </button>
 
                     <div className="text-center text-sm font-black text-slate-300">
@@ -573,7 +592,7 @@ export default function WinsDraftPage() {
                 {pendingTeam.conference}
               </span>
               <span className="text-sm font-bold text-slate-400">
-                Win Total {formatWinTotal(pendingTeam.winTotal)}
+                Projected Win Total {formatWinTotal(pendingTeam.winTotal)}
               </span>
             </div>
 
