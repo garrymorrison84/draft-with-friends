@@ -360,14 +360,14 @@ export default function Home() {
                 href="/football"
                 className="flex min-h-20 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-5 text-center text-lg font-black text-emerald-300 transition hover:bg-emerald-400/15 md:text-xl"
               >
-                Create College Fantasy Pool
+                College Fantasy Football
               </a>
 
               <a
                 href="/football/wins/create"
                 className="flex min-h-20 items-center justify-center rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-8 py-5 text-center text-lg font-black text-emerald-300 transition hover:bg-emerald-400/15 md:text-xl"
               >
-                Create College Wins Pool
+                College Football Wins Pool
               </a>
             </div>
           </div>
