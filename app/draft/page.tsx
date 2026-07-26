@@ -1285,7 +1285,7 @@ export default function DraftPage() {
                       return (
                         <div
                           key={`${roundIndex}-${team}`}
-                          className={`relative min-h-[108px] overflow-hidden border-r border-t p-3 last:border-r-0 sm:min-h-40 sm:p-5 ${
+                          className={`relative min-h-[108px] overflow-hidden border-r border-t p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
                             pick
                               ? "border-sky-500/35 bg-[#0b3b55]/95"
                               : isCurrentPick
@@ -1294,7 +1294,7 @@ export default function DraftPage() {
                           }`}
                         >
                           <div
-                            className={`${pick ? "mb-5 sm:mb-6" : "mb-3"} inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${
+                            className={`absolute right-3 top-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:right-5 sm:top-5 sm:px-3 sm:text-xs ${
                               pick
                                 ? "bg-blue-500/35 text-blue-50 shadow-sm shadow-blue-950/40"
                                 : isCurrentPick
