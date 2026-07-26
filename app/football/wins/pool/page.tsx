@@ -11,7 +11,6 @@ import {
 } from "../../../lib/draftTiming";
 import {
   eligibleWinsTeams,
-  formatWinTotal,
   loadWinsDraftPicks,
   loadWinsPool,
   type WinsDraftPick,
@@ -60,6 +59,10 @@ export default function WinsPoolLobbyPage() {
   const teams = eligibleWinsTeams(pool);
   const draftOpen = isDraftOpen(pool, now);
   const draftStartsIn = getDraftStartsIn(pool, now);
+  const conferenceCounts = pool.conferences.map((conference) => ({
+    conference,
+    count: teams.filter((team) => team.conference === conference).length,
+  }));
   const inviteLink =
     typeof window === "undefined"
       ? ""
@@ -166,23 +169,29 @@ export default function WinsPoolLobbyPage() {
             </div>
           )}
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-            {teams.slice(0, 8).map((team) => (
-              <div
-                key={team.id}
-                className="rounded-2xl border border-white/5 bg-[#1F2937] p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-black">{team.name}</p>
-                    <p className="text-sm font-bold text-slate-500">{team.conference}</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-400 px-3 py-1 text-sm font-black text-slate-950">
-                    {formatWinTotal(team.winTotal)}
-                  </span>
-                </div>
+          <div className="mt-6 rounded-2xl border border-white/5 bg-[#1F2937] p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="text-xl font-black">Eligible Conferences</h3>
+                <p className="mt-1 text-sm font-bold text-slate-400">
+                  These conferences feed the draft board.
+                </p>
               </div>
-            ))}
+              <p className="text-sm font-black text-emerald-300">
+                {teams.length} total teams
+              </p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {conferenceCounts.map(({ conference, count }) => (
+                <span
+                  key={conference}
+                  className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-200"
+                >
+                  {conference} - {count}
+                </span>
+              ))}
+            </div>
           </div>
         </section>
       </div>
