@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../../components/BrandMark";
 import {
   formatDraftStart,
   formatPickClock,
+  getDraftOpeningBufferStartedAt,
   getDraftStartsIn,
   isDraftOpen,
+  scheduledDraftOpeningBufferSeconds,
 } from "../../../lib/draftTiming";
 import {
   eligibleWinsTeams,
@@ -28,10 +30,26 @@ function pickLabel(pickIndex: number, teamCount: number) {
   return `${round}.${pickInRound}`;
 }
 
+function formatClockTime(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
 function scheduleOpponentLabel(game: WinsTeam["schedule"][number]) {
   if (game.location === "Away") return `@ ${game.opponent}`;
   return game.opponent;
 }
+
+const managerHeaderStyles = [
+  "bg-[#123b3f]",
+  "bg-[#103744]",
+  "bg-[#123240]",
+  "bg-[#0f3540]",
+  "bg-[#123842]",
+  "bg-[#10323a]",
+];
 
 const conferenceStyles: Record<
   string,
@@ -207,6 +225,9 @@ export default function WinsDraftPage() {
   const [query, setQuery] = useState("");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [now, setNow] = useState(() => new Date());
+  const [draftOpeningStartedAt, setDraftOpeningStartedAt] =
+    useState<number | null>(null);
+  const wasDraftOpenRef = useRef(false);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -224,6 +245,27 @@ export default function WinsDraftPage() {
     const interval = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (picks.length > 0) {
+      setDraftOpeningStartedAt(null);
+    }
+  }, [picks.length]);
+
+  useEffect(() => {
+    if (!pool) return;
+
+    const currentlyOpen = isDraftOpen(pool, now);
+    if (currentlyOpen && !wasDraftOpenRef.current) {
+      wasDraftOpenRef.current = true;
+      if (pool.draftType === "scheduled" && picks.length === 0) {
+        setDraftOpeningStartedAt(getDraftOpeningBufferStartedAt(pool.id));
+      }
+    } else if (!currentlyOpen && wasDraftOpenRef.current) {
+      wasDraftOpenRef.current = false;
+      setDraftOpeningStartedAt(null);
+    }
+  }, [now, picks.length, pool]);
 
   const teams = useMemo(() => (pool ? eligibleWinsTeams(pool) : []), [pool]);
 
@@ -244,6 +286,33 @@ export default function WinsDraftPage() {
   const currentManager = draftComplete
     ? null
     : snakeManagerForPick(pool, picks.length);
+  const activePickClockSeconds = Math.max(
+    0,
+    Number(pool.pickClockSeconds) || 0
+  );
+  const draftOpeningBufferRemaining =
+    draftOpen &&
+    !draftComplete &&
+    picks.length === 0 &&
+    draftOpeningStartedAt !== null
+      ? Math.max(
+          0,
+          scheduledDraftOpeningBufferSeconds -
+            Math.floor((now.getTime() - draftOpeningStartedAt) / 1000)
+        )
+      : 0;
+  const draftOpeningBufferActive = draftOpeningBufferRemaining > 0;
+  const pickClockRemaining =
+    draftOpen &&
+    !draftComplete &&
+    !draftOpeningBufferActive &&
+    activePickClockSeconds > 0
+      ? Math.max(
+          0,
+          activePickClockSeconds -
+            (Math.floor(now.getTime() / 1000) % activePickClockSeconds)
+        )
+      : null;
   const availableConferences = winsConferenceOptions.filter((conference) =>
     pool.conferences.includes(conference)
   );
@@ -371,6 +440,33 @@ export default function WinsDraftPage() {
           </section>
         )}
 
+        {draftOpen &&
+          !draftComplete &&
+          pool.draftType === "scheduled" &&
+          activePickClockSeconds > 0 && (
+            <section className="sticky top-3 z-40 mt-8 rounded-2xl border border-emerald-400/30 bg-[#07110f]/95 p-4 shadow-2xl shadow-emerald-950/35 backdrop-blur">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+                    {draftOpeningBufferActive ? "Draft Opening" : "Pick Clock"}
+                  </p>
+                  <p className="mt-1 text-lg font-black text-white">
+                    {draftOpeningBufferActive
+                      ? "Draft opens in a moment"
+                      : `${currentManager} is on the clock`}
+                  </p>
+                </div>
+                <div className="text-4xl font-black tabular-nums text-emerald-300">
+                  {draftOpeningBufferActive
+                    ? formatClockTime(draftOpeningBufferRemaining)
+                    : pickClockRemaining !== null
+                      ? formatClockTime(pickClockRemaining)
+                      : formatPickClock(pool.pickClockSeconds)}
+                </div>
+              </div>
+            </section>
+          )}
+
         <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-4 lg:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] xl:grid-cols-[minmax(380px,460px)_minmax(0,1fr)]">
           <section className="order-1 flex min-w-0 flex-col rounded-2xl border border-slate-600/35 bg-[#111827] p-2.5 shadow-xl shadow-black/40 sm:rounded-3xl sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -391,16 +487,30 @@ export default function WinsDraftPage() {
                   className="sticky top-0 z-20 grid overflow-hidden bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
                   style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
                 >
-                  {pool.draftOrder.map((manager) => (
+                  {pool.draftOrder.map((manager, index) => {
+                    const isCurrentManager =
+                      draftOpen &&
+                      !draftComplete &&
+                      currentManager === manager &&
+                      picks.length % pool.numberOfTeams === index;
+
+                    return (
                     <div
                       key={manager}
-                      className="min-w-0 border-r border-emerald-400/20 px-3 py-3 text-center last:border-r-0 sm:p-6"
+                      className={`min-w-0 border-r border-emerald-400/20 px-3 py-3 text-center shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)] last:border-r-0 sm:p-6 ${
+                        managerHeaderStyles[index % managerHeaderStyles.length]
+                      } ${
+                        isCurrentManager
+                          ? "ring-1 ring-inset ring-emerald-300/40"
+                          : ""
+                      }`}
                     >
                       <p className="truncate text-sm font-black uppercase tracking-widest text-white sm:text-base">
                         {manager}
                       </p>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div
@@ -409,6 +519,8 @@ export default function WinsDraftPage() {
                 >
                   {boardSlots.map(({ index, team }) => {
                     const styles = team ? getConferenceStyle(team.conference) : null;
+                    const isCurrentPick =
+                      index === picks.length && draftOpen && !draftComplete;
 
                     return (
                       <div
@@ -416,7 +528,9 @@ export default function WinsDraftPage() {
                         className={`relative min-h-[108px] overflow-hidden border-b border-r p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
                           team
                             ? styles?.board
-                            : "border-slate-700/70 bg-[#050a13]/95"
+                            : isCurrentPick
+                              ? "border-emerald-300/35 bg-emerald-400/12 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)]"
+                              : "border-slate-700/70 bg-[#050a13]/95"
                         }`}
                       >
                       <span
@@ -452,10 +566,18 @@ export default function WinsDraftPage() {
                         </div>
                       ) : (
                         <>
-                          <p className="relative z-10 text-sm font-black text-slate-500">
-                            Open
-                          </p>
-                          <p className="relative z-10 mt-2 text-xs font-bold text-slate-600 sm:mt-3 sm:text-sm">
+                          {isCurrentPick && (
+                            <p className="relative z-10 text-sm font-black text-emerald-300">
+                              On the clock
+                            </p>
+                          )}
+                          <p
+                            className={`relative z-10 text-xs font-bold sm:text-sm ${
+                              isCurrentPick
+                                ? "mt-2 text-slate-500 sm:mt-3"
+                                : "mt-6 text-slate-700 sm:mt-8"
+                            }`}
+                          >
                             Awaiting selection
                           </p>
                         </>
