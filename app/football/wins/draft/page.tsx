@@ -28,6 +28,11 @@ function pickLabel(pickIndex: number, teamCount: number) {
   return `${round}.${pickInRound}`;
 }
 
+function scheduleOpponentLabel(game: WinsTeam["schedule"][number]) {
+  if (game.location === "Away") return `@ ${game.opponent}`;
+  return game.opponent;
+}
+
 function TeamDetailsModal({
   team,
   onClose,
@@ -103,7 +108,7 @@ function TeamDetailsModal({
                 <div className="text-slate-500">{game.week}</div>
                 <div className="min-w-0">
                   <p className="truncate text-white">
-                    {game.location} {game.opponent}
+                    {scheduleOpponentLabel(game)}
                   </p>
                 </div>
                 <div
