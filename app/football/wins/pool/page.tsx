@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import BrandMark from "../../../components/BrandMark";
 import {
+  formatDraftStart,
+  formatPickClock,
+  getDraftStartsIn,
+  isDraftOpen,
+} from "../../../lib/draftTiming";
+import {
   eligibleWinsTeams,
   formatWinTotal,
   loadWinsDraftPicks,
@@ -16,6 +22,7 @@ export default function WinsPoolLobbyPage() {
   const [pool, setPool] = useState<WinsPool | null>(null);
   const [picks, setPicks] = useState<WinsDraftPick[]>([]);
   const [copied, setCopied] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -26,6 +33,11 @@ export default function WinsPoolLobbyPage() {
 
     setPool(savedPool);
     setPicks(loadWinsDraftPicks(savedPool.id));
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(interval);
   }, []);
 
   if (!pool) {
@@ -46,6 +58,8 @@ export default function WinsPoolLobbyPage() {
   const totalPicks = pool.numberOfTeams * pool.picksPerTeam;
   const progress = totalPicks > 0 ? Math.round((picks.length / totalPicks) * 100) : 0;
   const teams = eligibleWinsTeams(pool);
+  const draftOpen = isDraftOpen(pool, now);
+  const draftStartsIn = getDraftStartsIn(pool, now);
   const inviteLink =
     typeof window === "undefined"
       ? ""
@@ -80,7 +94,11 @@ export default function WinsPoolLobbyPage() {
               href={`/football/wins/draft?id=${pool.id}`}
               className="rounded-2xl bg-emerald-400 px-7 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 hover:bg-emerald-300"
             >
-              {picks.length >= totalPicks ? "View Draft" : "Start Draft"}
+              {picks.length >= totalPicks
+                ? "View Draft"
+                : draftOpen
+                  ? "Start Draft"
+                  : "View Draft Room"}
             </Link>
             {picks.length > 0 && (
               <Link
@@ -94,10 +112,16 @@ export default function WinsPoolLobbyPage() {
         </div>
 
         <section className="mt-8 rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_2fr]">
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.2fr_1.1fr_2fr]">
             <StatCard label="Participants" value={pool.numberOfTeams.toString()} />
             <StatCard label="Picks Each" value={pool.picksPerTeam.toString()} />
             <StatCard label="Eligible Teams" value={teams.length.toString()} />
+            <StatCard
+              label="Draft Time"
+              value={pool.draftType === "scheduled" ? formatDraftStart(pool) : "Anytime"}
+              compact
+            />
+            <StatCard label="Pick Clock" value={formatPickClock(pool.pickClockSeconds)} compact />
             <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
               <p className="text-sm font-black text-emerald-300">Invite Link</p>
               <p className="mt-2 truncate text-sm font-bold text-slate-300">{inviteLink}</p>
@@ -129,6 +153,19 @@ export default function WinsPoolLobbyPage() {
             />
           </div>
 
+          {!draftOpen && (
+            <div className="mt-6 rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-4">
+              <p className="font-black text-emerald-300">
+                Draft opens {formatDraftStart(pool)}
+              </p>
+              {draftStartsIn && (
+                <p className="mt-1 text-sm font-bold text-slate-300">
+                  Starts in {draftStartsIn}.
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             {teams.slice(0, 8).map((team) => (
               <div
@@ -153,11 +190,21 @@ export default function WinsPoolLobbyPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  compact?: boolean;
+}) {
   return (
     <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
       <p className="text-sm font-bold text-slate-400">{label}</p>
-      <p className="mt-3 text-5xl font-black">{value}</p>
+      <p className={`mt-3 font-black ${compact ? "text-2xl" : "text-5xl"}`}>
+        {value}
+      </p>
     </div>
   );
 }

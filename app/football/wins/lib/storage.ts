@@ -1,5 +1,7 @@
 "use client";
 
+import type { DraftTiming } from "../../../lib/draftTiming";
+
 export type WinsPoolMode = "power" | "custom";
 
 export type WinsTeam = {
@@ -18,7 +20,7 @@ export type WinsTeam = {
   }[];
 };
 
-export type WinsPool = {
+export type WinsPool = DraftTiming & {
   id: string;
   poolName: string;
   season: string;

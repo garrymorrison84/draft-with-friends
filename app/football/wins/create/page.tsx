@@ -6,6 +6,17 @@ import { useState } from "react";
 import BrandMark from "../../../components/BrandMark";
 import FormSelect from "../../../components/FormSelect";
 import {
+  buildScheduledDraftAt,
+  defaultDraftTimeZone,
+  draftTimeZoneOptions,
+  getDraftDateOptions,
+  getDraftTimeOptions,
+  getLocalDateValue,
+  pickClockOptions,
+  untimedDraftTiming,
+  type DraftTimeZone,
+} from "../../../lib/draftTiming";
+import {
   createWinsPoolId,
   defaultWinsConferences,
   saveWinsPool,
@@ -20,6 +31,12 @@ export default function CreateWinsPoolPage() {
   const [teamNames, setTeamNames] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrder, setDraftOrder] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrderMethod, setDraftOrderMethod] = useState("random");
+  const [draftType, setDraftType] = useState<"unscheduled" | "scheduled">("unscheduled");
+  const [scheduledDraftDate, setScheduledDraftDate] = useState(() => getLocalDateValue());
+  const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
+  const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
+    useState<DraftTimeZone>(defaultDraftTimeZone);
+  const [pickClockSeconds, setPickClockSeconds] = useState(0);
   const [poolMode, setPoolMode] = useState<WinsPoolMode>("power");
   const [selectedConferences, setSelectedConferences] = useState(defaultWinsConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -96,6 +113,11 @@ export default function CreateWinsPoolPage() {
     const id = createWinsPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
+    const scheduledStart = buildScheduledDraftAt(
+      scheduledDraftDate,
+      scheduledDraftTime,
+      scheduledDraftTimeZone
+    );
 
     saveWinsPool({
       id,
@@ -107,6 +129,14 @@ export default function CreateWinsPoolPage() {
       draftOrder: order.map((team, index) => team?.trim() || teams[index]),
       poolMode,
       conferences: selectedConferences,
+      draftType,
+      scheduledDraftAt:
+        draftType === "scheduled" ? scheduledStart : untimedDraftTiming.scheduledDraftAt,
+      timeZone:
+        draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
+      pickClockSeconds:
+        draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
+      autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
       createdAt: new Date().toISOString(),
     });
 
@@ -309,6 +339,62 @@ export default function CreateWinsPoolPage() {
             </div>
           </Panel>
 
+          <Panel
+            title="Draft Timing"
+            body="Choose an open-ended draft or schedule a live draft with an optional pick clock."
+          >
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <ChoiceButton
+                active={draftType === "unscheduled"}
+                title="Anytime Draft"
+                body="Draft at your own pace. Share the link with your friends. No time limit per pick."
+                onClick={() => setDraftType("unscheduled")}
+              />
+              <ChoiceButton
+                active={draftType === "scheduled"}
+                title="Schedule Draft"
+                body="Set a draft time and choose how long each participant has to make a pick."
+                onClick={() => setDraftType("scheduled")}
+              />
+            </div>
+
+            {draftType === "scheduled" && (
+              <>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <SelectField
+                    label="Draft Date"
+                    value={scheduledDraftDate}
+                    onChange={setScheduledDraftDate}
+                    options={getDraftDateOptions()}
+                  />
+
+                  <SelectField
+                    label="Draft Time"
+                    value={scheduledDraftTime}
+                    onChange={setScheduledDraftTime}
+                    options={getDraftTimeOptions()}
+                  />
+
+                  <SelectField
+                    label="Time Zone"
+                    value={scheduledDraftTimeZone}
+                    onChange={(value) => setScheduledDraftTimeZone(value as DraftTimeZone)}
+                    options={draftTimeZoneOptions}
+                  />
+                </div>
+
+                <div className="mt-4 max-w-md">
+                  <SelectField
+                    label="Pick Clock"
+                    value={pickClockSeconds}
+                    onChange={(value) => setPickClockSeconds(Number(value))}
+                    options={pickClockOptions}
+                  />
+                </div>
+              </>
+            )}
+          </Panel>
+
           <button
             type="button"
             onClick={createPool}
@@ -329,9 +415,9 @@ function SelectField({
   options,
 }: {
   label: string;
-  value: number;
+  value: string | number;
   onChange: (value: string) => void;
-  options: { value: number; label: string }[];
+  options: { value: string | number; label: string }[];
 }) {
   return (
     <div>

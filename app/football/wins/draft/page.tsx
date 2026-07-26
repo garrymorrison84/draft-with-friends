@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../../components/BrandMark";
 import {
+  formatDraftStart,
+  formatPickClock,
+  getDraftStartsIn,
+  isDraftOpen,
+} from "../../../lib/draftTiming";
+import {
   eligibleWinsTeams,
   formatWinTotal,
   loadWinsDraftPicks,
@@ -81,6 +87,7 @@ export default function WinsDraftPage() {
   const [selectedTeam, setSelectedTeam] = useState<WinsTeam | null>(null);
   const [query, setQuery] = useState("");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -93,6 +100,11 @@ export default function WinsDraftPage() {
     setPool(savedPool);
     setPicks(savedPicks);
     setSelectedTeam(eligibleWinsTeams(savedPool).find((team) => !savedPicks.some((pick) => pick.teamId === team.id)) ?? null);
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(interval);
   }, []);
 
   const teams = useMemo(() => (pool ? eligibleWinsTeams(pool) : []), [pool]);
@@ -109,6 +121,8 @@ export default function WinsDraftPage() {
   const totalPicks = pool.numberOfTeams * pool.picksPerTeam;
   const draftedIds = new Set(picks.map((pick) => pick.teamId));
   const draftComplete = picks.length >= totalPicks;
+  const draftOpen = isDraftOpen(pool, now);
+  const draftStartsIn = getDraftStartsIn(pool, now);
   const currentManager = draftComplete
     ? null
     : snakeManagerForPick(pool, picks.length);
@@ -135,7 +149,7 @@ export default function WinsDraftPage() {
 
   function draftTeam(team: WinsTeam) {
     if (!pool) return;
-    if (draftComplete || !currentManager) return;
+    if (!draftOpen || draftComplete || !currentManager) return;
 
     const nextPicks = [
       ...picks,
@@ -194,9 +208,16 @@ export default function WinsDraftPage() {
               {pool.poolName}
             </h1>
             <p className="mt-3 text-lg font-bold text-slate-400">
-              {draftComplete
-                ? "Draft complete"
-                : `${currentManager} is on the clock`}
+              {!draftOpen
+                ? `Draft opens ${formatDraftStart(pool)}${draftStartsIn ? ` | ${draftStartsIn}` : ""}`
+                : draftComplete
+                  ? "Draft complete"
+                  : `${currentManager} is on the clock`}
+            </p>
+            <p className="mt-2 text-sm font-bold text-slate-500">
+              {pool.draftType === "scheduled"
+                ? formatPickClock(pool.pickClockSeconds)
+                : "Anytime draft"}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -218,6 +239,16 @@ export default function WinsDraftPage() {
             )}
           </div>
         </section>
+
+        {!draftOpen && (
+          <section className="mt-8 rounded-3xl border border-emerald-400/25 bg-emerald-400/10 p-5 shadow-xl shadow-black/40 sm:p-6">
+            <h2 className="text-2xl font-black text-emerald-300">Draft Scheduled</h2>
+            <p className="mt-2 text-sm font-bold leading-6 text-slate-300 sm:text-base">
+              This draft opens {formatDraftStart(pool)}
+              {draftStartsIn ? `, in ${draftStartsIn}` : ""}. Participants can review the board now, but picks are locked until then.
+            </p>
+          </section>
+        )}
 
         <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_390px]">
           <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
@@ -406,10 +437,10 @@ export default function WinsDraftPage() {
                 <button
                   type="button"
                   onClick={() => draftTeam(selectedTeam)}
-                  disabled={draftComplete || draftedIds.has(selectedTeam.id)}
+                  disabled={!draftOpen || draftComplete || draftedIds.has(selectedTeam.id)}
                   className="mt-5 w-full rounded-xl bg-emerald-400 px-5 py-4 text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Draft {selectedTeam.name}
+                  {draftOpen ? `Draft ${selectedTeam.name}` : "Draft Not Open Yet"}
                 </button>
               </section>
             )}
