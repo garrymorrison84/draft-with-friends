@@ -438,10 +438,104 @@ function RecapAwardCard({ award }: { award: FootballRecapAward }) {
   );
 }
 
+function FootballRecapModal({
+  awards,
+  undraftedPlayers,
+  poolName,
+  onClose,
+}: {
+  awards: FootballRecapAward[];
+  undraftedPlayers: DraftedFootballPlayer[];
+  poolName: string;
+  onClose: () => void;
+}) {
+  const undraftedTotal = undraftedPlayers.reduce(
+    (sum, entry) => sum + entry.points,
+    0
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-6 backdrop-blur-sm sm:px-6">
+      <section className="relative w-full max-w-5xl rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-2xl shadow-black sm:p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close pool recap"
+          className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[#030712] text-2xl font-black text-slate-300 transition hover:border-emerald-300/50 hover:text-white"
+        >
+          X
+        </button>
+
+        <div className="pr-12">
+          <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+            Pool Recap
+          </p>
+          <h2 className="mt-2 text-3xl font-black text-white sm:text-5xl">
+            {poolName} Awards
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-6 text-slate-400 sm:text-base">
+            The draft is settled. Here is who carried the roster, who torched
+            the projection sheet, and who somehow remained available while
+            everyone confidently clicked other names.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          {awards.map((award) => (
+            <RecapAwardCard key={award.title} award={award} />
+          ))}
+        </div>
+
+        {undraftedPlayers.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-white/5 bg-[#030712] p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Best Undrafted Team
+                </p>
+                <h3 className="mt-2 text-xl font-black text-white">
+                  {undraftedTotal.toFixed(1)} points left undrafted
+                </h3>
+              </div>
+              <p className="max-w-xl text-sm font-bold leading-6 text-slate-400">
+                The best available roster nobody took. Useful for scouting, and
+                slightly uncomfortable for whoever needed depth.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {undraftedPlayers.map((entry) => (
+                <div
+                  key={entry.player.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">
+                      {formatPlayerName(entry.player.name)}
+                    </p>
+                    <p className="text-xs font-bold text-slate-500">
+                      {entry.player.position} • {entry.player.school}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-black text-emerald-300">
+                    {entry.points.toFixed(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export default function FootballLeaderboardPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
+  const [recapDismissed, setRecapDismissed] = useState(false);
+  const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -451,6 +545,10 @@ export default function FootballLeaderboardPage() {
     if (savedPool) {
       setPool(savedPool);
       setPicks(loadFootballDraftPicks(savedPool.id));
+      setRecapDismissed(
+        window.localStorage.getItem(`dWf:footballRecapDismissed:${savedPool.id}`) ===
+          "true"
+      );
     }
   }, []);
 
@@ -592,7 +690,9 @@ export default function FootballLeaderboardPage() {
         ? {
             title: "Champion",
             headline: standings[0].team,
-            detail: `Won the pool with ${standings[0].displayScore.toFixed(1)} points.`,
+            detail: `Won the pool with ${standings[0].displayScore.toFixed(
+              1
+            )} points. The math says champion; the group chat will decide whether it was genius or theft.`,
           }
         : null,
       mvp
@@ -601,7 +701,7 @@ export default function FootballLeaderboardPage() {
             headline: mvp.player.name,
             detail: `${mvp.team} got ${mvp.points.toFixed(1)} points from the ${getOrdinal(
               mvp.pickNumber
-            )} pick.`,
+            )} pick. That is the sort of selection people start calling obvious after it already worked.`,
           }
         : null,
       lvp
@@ -610,16 +710,18 @@ export default function FootballLeaderboardPage() {
             headline: lvp.player.name,
             detail: `${lvp.team}'s ${getOrdinal(lvp.pickNumber)} pick finished ${
               (lvp.points - lvp.projected).toFixed(1)
-            } versus projection.`,
+            } versus projection. Not fatal, necessarily. Just the kind of pick that makes the recap writers circle back.`,
           }
         : null,
       value
         ? {
-            title: "Best Value",
+            title: "Best Mid-Round Value",
             headline: value.player.name,
             detail: `${value.team} found ${(value.points - value.projected).toFixed(
               1
-            )} extra points with the ${getOrdinal(value.pickNumber)} pick.`,
+            )} extra points with the ${getOrdinal(
+              value.pickNumber
+            )} pick. Mid-round value is how tidy drafts become annoying drafts.`,
           }
         : null,
     ].filter((award): award is FootballRecapAward => award !== null);
@@ -640,6 +742,15 @@ export default function FootballLeaderboardPage() {
     () => (pool ? buildDefenseColumns(pool.scoring ?? defaultScoring) : []),
     [pool]
   );
+  const shouldShowRecap =
+    recap.awards.length > 0 && (!recapDismissed || recapManuallyOpened);
+
+  function closeRecap() {
+    if (!pool) return;
+    setRecapDismissed(true);
+    setRecapManuallyOpened(false);
+    window.localStorage.setItem(`dWf:footballRecapDismissed:${pool.id}`, "true");
+  }
 
   if (!pool) {
     return (
@@ -657,6 +768,15 @@ export default function FootballLeaderboardPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+      {shouldShowRecap && (
+        <FootballRecapModal
+          awards={recap.awards}
+          undraftedPlayers={recap.undraftedPlayers}
+          poolName={pool.poolName}
+          onClose={closeRecap}
+        />
+      )}
+
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7">
         <Link href="/" aria-label="Draft With Friends home">
           <BrandMark size="lg" />
@@ -677,60 +797,18 @@ export default function FootballLeaderboardPage() {
             >
               {pool.poolName} Lobby
             </Link>
+
+            {recap.awards.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setRecapManuallyOpened(true)}
+                className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-3 text-center text-base font-black text-emerald-300 transition hover:bg-emerald-400/15"
+              >
+                View Recap
+              </button>
+            )}
           </div>
         </div>
-
-        {recap.awards.length > 0 && (
-          <section className="mt-8 rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:mt-10 sm:p-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                  Pool Recap
-                </p>
-                <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-                  Final awards
-                </h2>
-              </div>
-              <p className="text-sm font-bold text-slate-400">
-                Built from draft slot, scoring, and projection value.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {recap.awards.map((award) => (
-                <RecapAwardCard key={award.title} award={award} />
-              ))}
-            </div>
-
-            {recap.undraftedPlayers.length > 0 && (
-              <div className="mt-5 rounded-2xl border border-white/5 bg-[#030712] p-4">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                  Best Undrafted Team
-                </p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {recap.undraftedPlayers.map((entry) => (
-                    <div
-                      key={entry.player.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-white">
-                          {formatPlayerName(entry.player.name)}
-                        </p>
-                        <p className="text-xs font-bold text-slate-500">
-                          {entry.player.position} • {entry.player.school}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-black text-emerald-300">
-                        {entry.points.toFixed(1)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
 
         <div className="mt-8 grid gap-5 sm:mt-10 lg:grid-cols-[320px_1fr]">
           <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">

@@ -244,6 +244,13 @@ function getOrdinal(value: number) {
   return `${value}${suffix}`;
 }
 
+function getRoundPickLabel(pickIndex: number, teamCount: number) {
+  const round = Math.floor(pickIndex / teamCount) + 1;
+  const pickInRound = (pickIndex % teamCount) + 1;
+
+  return `Round ${round}, Pick ${pickInRound} (${getOrdinal(pickIndex + 1)} overall)`;
+}
+
 function RecapAwardCard({ award }: { award: GolfRecapAward }) {
   return (
     <div className="rounded-2xl border border-white/5 bg-[#1F2937] p-4">
@@ -256,6 +263,98 @@ function RecapAwardCard({ award }: { award: GolfRecapAward }) {
   );
 }
 
+function GolfRecapModal({
+  awards,
+  undraftedGolfers,
+  undraftedTotal,
+  poolName,
+  eventName,
+  onClose,
+}: {
+  awards: GolfRecapAward[];
+  undraftedGolfers: UndraftedGolfer[];
+  undraftedTotal: number | null;
+  poolName: string;
+  eventName: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 px-3 py-6 backdrop-blur-sm sm:px-6">
+      <section className="relative w-full max-w-5xl rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-2xl shadow-black sm:p-6">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close pool recap"
+          className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-[#030712] text-2xl font-black text-slate-300 transition hover:border-emerald-300/50 hover:text-white"
+        >
+          X
+        </button>
+
+        <div className="pr-12">
+          <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
+            Tournament Recap
+          </p>
+          <h2 className="mt-2 text-3xl font-black text-white sm:text-5xl">
+            {eventName} Awards
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm font-bold leading-6 text-slate-400 sm:text-base">
+            {poolName} is in the books. Here is who carried, who hurt, and who
+            somehow sat there undrafted while everyone pretended they had a plan.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          {awards.map((award) => (
+            <RecapAwardCard key={award.title} award={award} />
+          ))}
+        </div>
+
+        {undraftedGolfers.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-white/5 bg-[#030712] p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                  Best Undrafted Team
+                </p>
+                <h3 className="mt-2 text-xl font-black text-white">
+                  {undraftedTotal === null
+                    ? "The waiver-wire dream team"
+                    : `${formatScore(undraftedTotal)} left on the board`}
+                </h3>
+              </div>
+              <p className="max-w-xl text-sm font-bold leading-6 text-slate-400">
+                The best available group nobody drafted. Useful information, and
+                also a tiny public audit of the draft room.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {undraftedGolfers.map((golfer) => (
+                <div
+                  key={golfer.name}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">
+                      {golfer.name}
+                    </p>
+                    <p className="text-xs font-bold text-slate-500">
+                      {golfer.position}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-black text-emerald-300">
+                    {formatScore(golfer.total)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export default function LeaderboardPage() {
   const [pool, setPool] = useState<Pool | null>(null);
   const [draftPicks, setDraftPicks] = useState<DraftPickRow[]>([]);
@@ -263,6 +362,8 @@ export default function LeaderboardPage() {
   const [golferStatuses, setGolferStatuses] = useState<GolferStatusRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [recapDismissed, setRecapDismissed] = useState(false);
+  const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
 
   async function loadLeaderboard() {
     const params = new URLSearchParams(window.location.search);
@@ -306,6 +407,10 @@ export default function LeaderboardPage() {
         };
 
     setPool(formattedPool);
+    const dismissedKey = window.localStorage.getItem(
+      `dWf:golfRecapDismissed:${formattedPool.id}`
+    );
+    setRecapDismissed(dismissedKey === "true");
 
     const savedPicks = savedPool
       ? await getDraftPicks(formattedPool.id)
@@ -535,6 +640,16 @@ export default function LeaderboardPage() {
   const rankedTeams = [...teamsWithGolfers].sort((a, b) => a.total - b.total);
   const totalPicks = pool.numberOfTeams * pool.golfersPerTeam;
   const draftComplete = totalPicks > 0 && draftPicks.length >= totalPicks;
+  const scoredFieldForCompletion = scoresWithStatuses
+    .map((score) => normalizeGolferScore(score))
+    .filter(
+      (score) =>
+        score.hasScore && !score.missedCut && typeof score.round3 === "number"
+    );
+  const tournamentComplete =
+    draftComplete &&
+    scoredFieldForCompletion.length > 0 &&
+    scoredFieldForCompletion.every((score) => typeof score.round4 === "number");
   const draftedNameKeys = new Set(draftPicks.map((pick) => normalizeName(pick.golfer_name)));
   const allDraftedGolfers = teamsWithGolfers.flatMap((team) => team.golfers);
   const scoredDraftedGolfers = allDraftedGolfers.filter((golfer) => golfer.hasScore);
@@ -575,32 +690,57 @@ export default function LeaderboardPage() {
     .filter((golfer) => golfer.hasScore && !golfer.missedCut)
     .sort((a, b) => a.total - b.total)
     .slice(0, Math.max(3, pool.scoresToCount));
+  const undraftedTeamTotal =
+    undraftedGolfers.length >= pool.scoresToCount
+      ? undraftedGolfers
+          .slice(0, pool.scoresToCount)
+          .reduce((sum, golfer) => sum + golfer.total, 0)
+      : null;
+  const championTeams = rankedTeams.filter(
+    (team) => rankedTeams[0] && team.total === rankedTeams[0].total
+  );
   const recapAwards: GolfRecapAward[] =
-    draftComplete && scoredDraftedGolfers.length > 0
+    tournamentComplete && scoredDraftedGolfers.length > 0
       ? [
           rankedTeams[0]
             ? {
                 title: "Champion",
-                headline: rankedTeams[0].teamName,
-                detail: `Won the pool at ${formatScore(rankedTeams[0].total)}.`,
+                headline:
+                  championTeams.length > 1
+                    ? championTeams.map((team) => team.teamName).join(" and ")
+                    : rankedTeams[0].teamName,
+                detail:
+                  championTeams.length > 1
+                    ? `Shared the top spot at ${formatScore(
+                        rankedTeams[0].total
+                      )}. Nothing like a tie to keep the group chat calm and reasonable.`
+                    : `Won the pool at ${formatScore(
+                        rankedTeams[0].total
+                      )}. Clean enough to brag, close enough to pretend it was never in doubt.`,
               }
             : null,
           mvpGolfer
             ? {
                 title: "MVP",
                 headline: mvpGolfer.name,
-                detail: `${mvpGolfer.teamName} landed the best drafted score at ${formatScore(
+                detail: `${mvpGolfer.teamName} got the best drafted score at ${formatScore(
                   mvpGolfer.total
-                )}.`,
+                )} from ${getRoundPickLabel(
+                  mvpGolfer.pickIndex,
+                  pool.numberOfTeams
+                )}. That is not a pick, that is roster maintenance with a cape.`,
               }
             : null,
           lvpGolfer
             ? {
                 title: "LVP",
                 headline: lvpGolfer.name,
-                detail: `${lvpGolfer.teamName}'s ${getOrdinal(
-                  lvpGolfer.pickIndex + 1
-                )} pick finished at ${formatScore(lvpGolfer.total)}.`,
+                detail: `${lvpGolfer.teamName} spent ${getRoundPickLabel(
+                  lvpGolfer.pickIndex,
+                  pool.numberOfTeams
+                )} here and got ${formatScore(
+                  lvpGolfer.total
+                )}. Every draft needs one pick everyone quietly scrolls past.`,
               }
             : null,
           midRoundValue
@@ -609,14 +749,37 @@ export default function LeaderboardPage() {
                 headline: midRoundValue.name,
                 detail: `${midRoundValue.teamName} found ${formatScore(
                   midRoundValue.total
-                )} with the ${getOrdinal(midRoundValue.pickIndex + 1)} pick.`,
+                )} at ${getRoundPickLabel(
+                  midRoundValue.pickIndex,
+                  pool.numberOfTeams
+                )}. That is the kind of middle-round value that makes everyone else start rewriting history.`,
               }
             : null,
         ].filter((award): award is GolfRecapAward => award !== null)
       : [];
+  const shouldShowRecap =
+    recapAwards.length > 0 && (!recapDismissed || recapManuallyOpened);
+
+  function closeRecap() {
+    if (!pool) return;
+    setRecapDismissed(true);
+    setRecapManuallyOpened(false);
+    window.localStorage.setItem(`dWf:golfRecapDismissed:${pool.id}`, "true");
+  }
 
   return (
     <main className="min-h-screen bg-[#030712] px-3 py-5 text-white sm:px-6 lg:px-10">
+      {shouldShowRecap && (
+        <GolfRecapModal
+          awards={recapAwards}
+          undraftedGolfers={undraftedGolfers}
+          undraftedTotal={undraftedTeamTotal}
+          poolName={pool.poolName}
+          eventName={pool.golfEvent}
+          onClose={closeRecap}
+        />
+      )}
+
       <section className="mx-auto max-w-7xl">
         <div className="mb-5">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -653,60 +816,18 @@ export default function LeaderboardPage() {
             >
               {pool.poolName} Lobby
             </a>
+
+            {recapAwards.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setRecapManuallyOpened(true)}
+                className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-base font-black text-emerald-300 transition hover:bg-emerald-400/20"
+              >
+                View Recap
+              </button>
+            )}
           </div>
         </div>
-
-        {recapAwards.length > 0 && (
-          <section className="mb-6 rounded-3xl border border-emerald-400/20 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                  Pool Recap
-                </p>
-                <h2 className="mt-2 text-2xl font-black sm:text-3xl">
-                  Final awards
-                </h2>
-              </div>
-              <p className="text-sm font-bold text-slate-400">
-                Built from the draft board and live leaderboard.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {recapAwards.map((award) => (
-                <RecapAwardCard key={award.title} award={award} />
-              ))}
-            </div>
-
-            {undraftedGolfers.length > 0 && (
-              <div className="mt-5 rounded-2xl border border-white/5 bg-[#030712] p-4">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                  Best Undrafted Team
-                </p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {undraftedGolfers.map((golfer) => (
-                    <div
-                      key={golfer.name}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-[#1F2937] px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-white">
-                          {golfer.name}
-                        </p>
-                        <p className="text-xs font-bold text-slate-500">
-                          {golfer.position}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-black text-emerald-300">
-                        {formatScore(golfer.total)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-        )}
 
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
           <aside className="rounded-2xl border border-slate-700/60 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
