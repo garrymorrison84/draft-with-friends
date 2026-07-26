@@ -315,7 +315,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-5 max-w-[340px] text-xl font-black leading-8 text-emerald-300">
-              Love the draft, but not the season-long commitment?
+              No spreadsheets. No manual tracking. Just snake drafts with friends.
             </p>
 
             <MobileExperienceShowcase />
@@ -333,7 +333,7 @@ export default function Home() {
             </h1>
 
             <p className="relative z-10 mt-6 max-w-[calc(100%-122px)] text-base font-black leading-6 text-emerald-300 min-[375px]:text-lg min-[375px]:leading-7 min-[390px]:max-w-[calc(100%-128px)] sm:max-w-[calc(100%-180px)] sm:text-2xl md:max-w-3xl">
-              Love the draft, but not the season-long commitment?
+              No spreadsheets. No manual tracking. Just snake drafts with friends.
             </p>
           </div>
 
