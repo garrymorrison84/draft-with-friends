@@ -28,10 +28,109 @@ function pickLabel(pickIndex: number, teamCount: number) {
   return `${round}.${pickInRound}`;
 }
 
+function TeamDetailsModal({
+  team,
+  onClose,
+  onDraft,
+  canDraft,
+}: {
+  team: WinsTeam;
+  onClose: () => void;
+  onDraft: () => void;
+  canDraft: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
+      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-black uppercase tracking-widest text-emerald-300">
+                Team Details
+              </p>
+              <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
+                {team.name}
+              </h2>
+              <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
+                {team.conference} • {team.wins}-{team.losses}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
+              <div className="rounded-2xl bg-[#030712] p-4">
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                  Win Total
+                </p>
+                <p className="mt-1 text-2xl font-black text-emerald-300">
+                  {formatWinTotal(team.winTotal)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onDraft}
+                disabled={!canDraft}
+                className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              >
+                {canDraft ? "Draft" : "Not Open"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-xl font-black">Season Schedule</h3>
+              <p className="mt-2 text-sm font-semibold text-slate-400">
+                Review the full schedule before making the pick.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 rounded-xl border border-white/10 px-4 py-2 text-sm font-black text-slate-300 hover:border-emerald-400/40 hover:bg-[#0b1220]"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
+            {team.schedule.map((game) => (
+              <div
+                key={`${game.week}-${game.opponent}`}
+                className="grid grid-cols-[90px_minmax(0,1fr)_64px] items-center gap-3 border-b border-slate-700/45 px-4 py-4 text-sm font-black last:border-b-0"
+              >
+                <div className="text-slate-500">{game.week}</div>
+                <div className="min-w-0">
+                  <p className="truncate text-white">
+                    {game.location} {game.opponent}
+                  </p>
+                </div>
+                <div
+                  className={`text-right ${
+                    game.result === "W"
+                      ? "text-emerald-300"
+                      : game.result === "L"
+                        ? "text-rose-300"
+                        : "text-slate-500"
+                  }`}
+                >
+                  {game.result ?? "TBD"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WinsDraftPage() {
   const [pool, setPool] = useState<WinsPool | null>(null);
   const [picks, setPicks] = useState<WinsDraftPick[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<WinsTeam | null>(null);
+  const [detailsTeam, setDetailsTeam] = useState<WinsTeam | null>(null);
+  const [pendingTeam, setPendingTeam] = useState<WinsTeam | null>(null);
   const [query, setQuery] = useState("");
   const [conferenceFilter, setConferenceFilter] = useState("ALL");
   const [now, setNow] = useState(() => new Date());
@@ -46,7 +145,6 @@ export default function WinsDraftPage() {
     const savedPicks = loadWinsDraftPicks(savedPool.id);
     setPool(savedPool);
     setPicks(savedPicks);
-    setSelectedTeam(eligibleWinsTeams(savedPool).find((team) => !savedPicks.some((pick) => pick.teamId === team.id)) ?? null);
   }, []);
 
   useEffect(() => {
@@ -110,10 +208,8 @@ export default function WinsDraftPage() {
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
 
-    const nextTeam = teams.find(
-      (item) => item.id !== team.id && !nextPicks.some((pick) => pick.teamId === item.id)
-    );
-    setSelectedTeam(nextTeam ?? null);
+    setDetailsTeam(null);
+    setPendingTeam(null);
   }
 
   function undoPick() {
@@ -121,6 +217,11 @@ export default function WinsDraftPage() {
     const nextPicks = picks.slice(0, -1);
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
+  }
+
+  function openConfirmPick(team: WinsTeam) {
+    if (!draftOpen || draftComplete || draftedIds.has(team.id)) return;
+    setPendingTeam(team);
   }
 
   return (
@@ -336,15 +437,11 @@ export default function WinsDraftPage() {
                 {filteredTeams.map((team) => (
                   <div
                     key={team.id}
-                    className={`grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 border-b border-slate-700/45 px-4 py-4 text-sm font-black last:border-b-0 ${
-                      selectedTeam?.id === team.id
-                        ? "bg-emerald-400/10"
-                        : "bg-[#050a13] hover:bg-emerald-400/5"
-                    }`}
+                    className="grid grid-cols-[minmax(0,1fr)_74px_70px] items-center gap-x-3 border-b border-slate-700/45 bg-[#050a13] px-4 py-4 text-sm font-black last:border-b-0 hover:bg-emerald-400/5"
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedTeam(team)}
+                      onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
                       <p className="truncate text-base font-black text-white transition hover:text-emerald-300">
@@ -361,7 +458,7 @@ export default function WinsDraftPage() {
 
                     <button
                       type="button"
-                      onClick={() => draftTeam(team)}
+                      onClick={() => openConfirmPick(team)}
                       disabled={!draftOpen || draftComplete || draftedIds.has(team.id)}
                       className="rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
                     >
@@ -378,56 +475,66 @@ export default function WinsDraftPage() {
               </div>
             </div>
 
-            {selectedTeam && (
-              <div className="mt-5 rounded-2xl border border-slate-600/35 bg-[#050a13] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                      Schedule
-                    </p>
-                    <h3 className="mt-2 truncate text-2xl font-black text-white">
-                      {selectedTeam.name}
-                    </h3>
-                    <p className="mt-1 text-sm font-bold text-slate-500">
-                      {selectedTeam.conference} • Win Total {formatWinTotal(selectedTeam.winTotal)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-[#172235] px-3 py-1 text-sm font-black text-slate-300">
-                    {selectedTeam.wins}-{selectedTeam.losses}
-                  </span>
-                </div>
-
-                <div className="mt-4 max-h-48 space-y-2 overflow-y-auto">
-                  {selectedTeam.schedule.slice(0, 6).map((game) => (
-                    <div
-                      key={`${game.week}-${game.opponent}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-700/45 bg-[#030712] px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm font-black">{game.week}</p>
-                        <p className="text-xs font-bold text-slate-500">
-                          {game.location} vs {game.opponent}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-sm font-black ${
-                          game.result === "W"
-                            ? "text-emerald-300"
-                            : game.result === "L"
-                              ? "text-rose-300"
-                              : "text-slate-500"
-                        }`}
-                      >
-                        {game.result ?? "TBD"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </aside>
         </div>
       </div>
+
+      {detailsTeam && (
+        <TeamDetailsModal
+          team={detailsTeam}
+          onClose={() => setDetailsTeam(null)}
+          onDraft={() => {
+            setPendingTeam(detailsTeam);
+            setDetailsTeam(null);
+          }}
+          canDraft={draftOpen && !draftComplete && !draftedIds.has(detailsTeam.id)}
+        />
+      )}
+
+      {pendingTeam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/70 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100dvh-3rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <p className="text-sm font-semibold uppercase tracking-widest text-emerald-300">
+              Confirm Pick
+            </p>
+
+            <h2 className="mt-3 text-2xl font-black text-white">
+              Draft {pendingTeam.name}?
+            </h2>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300">
+                {pendingTeam.conference}
+              </span>
+              <span className="text-sm font-bold text-slate-400">
+                Win Total {formatWinTotal(pendingTeam.winTotal)}
+              </span>
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              This will add {pendingTeam.name} to {currentManager}&apos;s current pick.
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingTeam(null)}
+                className="rounded-xl border border-white/15 px-4 py-3 font-bold text-slate-200 transition hover:bg-[#111827]"
+              >
+                No
+              </button>
+
+              <button
+                type="button"
+                onClick={() => draftTeam(pendingTeam)}
+                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
