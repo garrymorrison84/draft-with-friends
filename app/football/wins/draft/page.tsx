@@ -704,7 +704,7 @@ export default function WinsDraftPage() {
               </div>
             </div>
 
-            <div className="mt-4 min-h-[520px] flex-1 overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
+            <div className="mt-4 min-h-[520px] flex-1 overflow-auto border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] lg:min-h-0">
               <div style={{ minWidth: `${pool.numberOfTeams * 142}px` }}>
                 <div
                   className="sticky top-0 z-20 grid bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
