@@ -880,10 +880,9 @@ export default function WinsDraftPage() {
             <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
               <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-360px)] lg:max-h-none">
                 <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className="grid grid-cols-[minmax(0,1fr)_118px_74px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                  <div className="grid grid-cols-[minmax(0,1fr)_92px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
                     <div>Team</div>
                     <div className="text-center leading-4">Projected Win Total</div>
-                    <div className="text-right">Action</div>
                   </div>
                 </div>
 
@@ -893,14 +892,14 @@ export default function WinsDraftPage() {
                   return (
                     <div
                       key={team.id}
-                      className="grid grid-cols-[minmax(0,1fr)_118px_74px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
+                      className="grid grid-cols-[minmax(0,1fr)_92px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
                     >
                     <button
                       type="button"
                       onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
-                      <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)] items-center gap-3">
+                      <div className="grid min-w-0 grid-cols-[90px_minmax(0,1fr)] items-center gap-3">
                         <span className="flex justify-center">
                           <span className={`inline-flex min-w-[74px] justify-center rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
                             {formatConferenceLabel(team.conference)}
@@ -917,18 +916,19 @@ export default function WinsDraftPage() {
                       </div>
                     </button>
 
-                    <div className="text-center text-sm font-black text-slate-300">
-                      {formatWinTotal(team.winTotal)}
+                    <div className="grid gap-2">
+                      <div className="text-center text-sm font-black text-slate-300">
+                        {formatWinTotal(team.winTotal)}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openConfirmPick(team)}
+                        disabled={!draftOpen || draftComplete || draftedIds.has(team.id)}
+                        className="rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                      >
+                        Draft
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => openConfirmPick(team)}
-                      disabled={!draftOpen || draftComplete || draftedIds.has(team.id)}
-                      className="rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-                    >
-                      Draft
-                    </button>
                     </div>
                   );
                 })}
