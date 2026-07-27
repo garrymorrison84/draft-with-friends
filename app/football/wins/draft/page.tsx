@@ -857,9 +857,11 @@ export default function WinsDraftPage() {
                       onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
-                          {team.conference}
+                      <div className="grid min-w-0 grid-cols-[92px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
+                        <span className="flex justify-start">
+                          <span className={`inline-flex min-w-[78px] justify-center rounded-full border px-3 py-1 text-xs font-black sm:min-w-[92px] ${styles.badge}`}>
+                            {team.conference}
+                          </span>
                         </span>
                         <div className="min-w-0">
                           <p className="truncate text-base font-black text-white">
