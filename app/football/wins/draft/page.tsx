@@ -12,6 +12,17 @@ import {
   scheduledDraftOpeningBufferSeconds,
 } from "../../../lib/draftTiming";
 import {
+  isDraftSoundEnabled,
+  playCountdownTickSound,
+  playDraftCompleteSound,
+  playDraftStartSound,
+  playPauseResumeWhistleSound,
+  playPickMadeSound,
+  preloadDraftSounds,
+  setDraftSoundEnabled,
+  stopCountdownTickSound,
+} from "../../../lib/draftSounds";
+import {
   eligibleWinsTeams,
   formatWinTotal,
   loadWinsDraftPicks,
@@ -35,6 +46,14 @@ function formatClockTime(totalSeconds: number) {
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function formatDraftOpeningMessage(secondsRemaining: number) {
+  if (secondsRemaining >= 45 && secondsRemaining <= 75) {
+    return "Draft opens in a minute";
+  }
+
+  return "Draft opens in a moment";
 }
 
 function scheduleOpponentLabel(game: WinsTeam["schedule"][number]) {
@@ -227,7 +246,19 @@ export default function WinsDraftPage() {
   const [now, setNow] = useState(() => new Date());
   const [draftOpeningStartedAt, setDraftOpeningStartedAt] =
     useState<number | null>(null);
+  const [soundsEnabled, setSoundsEnabled] = useState(isDraftSoundEnabled);
+  const [pickTimerStartedAt, setPickTimerStartedAt] = useState(Date.now);
+  const [isPickClockPaused, setIsPickClockPaused] = useState(false);
+  const [pausedPickClockRemaining, setPausedPickClockRemaining] =
+    useState<number | null>(null);
   const wasDraftOpenRef = useRef(false);
+  const wasDraftOpeningBufferActiveRef = useRef(false);
+  const tickKeyRef = useRef("");
+  const draftCompleteSoundPlayedRef = useRef(false);
+
+  useEffect(() => {
+    preloadDraftSounds();
+  }, []);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -247,6 +278,12 @@ export default function WinsDraftPage() {
   }, []);
 
   useEffect(() => {
+    setPickTimerStartedAt(Date.now());
+    setIsPickClockPaused(false);
+    setPausedPickClockRemaining(null);
+    tickKeyRef.current = "";
+    stopCountdownTickSound();
+
     if (picks.length > 0) {
       setDraftOpeningStartedAt(null);
     }
@@ -261,6 +298,11 @@ export default function WinsDraftPage() {
       if (pool.draftType === "scheduled" && picks.length === 0) {
         setDraftOpeningStartedAt(getDraftOpeningBufferStartedAt(pool.id));
       }
+      setPickTimerStartedAt(Date.now());
+      setIsPickClockPaused(false);
+      setPausedPickClockRemaining(null);
+      tickKeyRef.current = "";
+      playDraftStartSound();
     } else if (!currentlyOpen && wasDraftOpenRef.current) {
       wasDraftOpenRef.current = false;
       setDraftOpeningStartedAt(null);
@@ -268,29 +310,22 @@ export default function WinsDraftPage() {
   }, [now, picks.length, pool]);
 
   const teams = useMemo(() => (pool ? eligibleWinsTeams(pool) : []), [pool]);
-
-  if (!pool) {
-    return (
-      <main className="min-h-screen bg-[#030712] px-5 py-8 text-white">
-        <BrandMark size="md" />
-        <h1 className="mt-8 text-4xl font-black">Pool not found</h1>
-      </main>
-    );
-  }
-
-  const totalPicks = pool.numberOfTeams * pool.picksPerTeam;
-  const draftedIds = new Set(picks.map((pick) => pick.teamId));
-  const draftComplete = picks.length >= totalPicks;
-  const draftOpen = isDraftOpen(pool, now);
-  const draftStartsIn = getDraftStartsIn(pool, now);
-  const currentManager = draftComplete
-    ? null
-    : snakeManagerForPick(pool, picks.length);
-  const activePickClockSeconds = Math.max(
-    0,
-    Number(pool.pickClockSeconds) || 0
+  const totalPicks = pool ? pool.numberOfTeams * pool.picksPerTeam : 0;
+  const draftedIds = useMemo(
+    () => new Set(picks.map((pick) => pick.teamId)),
+    [picks]
   );
+  const draftComplete = pool ? picks.length >= totalPicks : false;
+  const draftOpen = pool ? isDraftOpen(pool, now) : false;
+  const draftStartsIn = pool ? getDraftStartsIn(pool, now) : null;
+  const currentManager = pool && !draftComplete
+    ? snakeManagerForPick(pool, picks.length)
+    : null;
+  const activePickClockSeconds = pool
+    ? Math.max(0, Number(pool.pickClockSeconds) || 0)
+    : 0;
   const draftOpeningBufferRemaining =
+    pool &&
     draftOpen &&
     !draftComplete &&
     picks.length === 0 &&
@@ -303,36 +338,109 @@ export default function WinsDraftPage() {
       : 0;
   const draftOpeningBufferActive = draftOpeningBufferRemaining > 0;
   const pickClockRemaining =
+    pool &&
     draftOpen &&
     !draftComplete &&
     !draftOpeningBufferActive &&
     activePickClockSeconds > 0
-      ? Math.max(
-          0,
-          activePickClockSeconds -
-            (Math.floor(now.getTime() / 1000) % activePickClockSeconds)
-        )
+      ? isPickClockPaused && pausedPickClockRemaining !== null
+        ? pausedPickClockRemaining
+        : Math.max(
+            0,
+            activePickClockSeconds -
+              Math.floor((Date.now() - pickTimerStartedAt) / 1000)
+          )
       : null;
-  const availableConferences = winsConferenceOptions.filter((conference) =>
-    pool.conferences.includes(conference)
-  );
-  const filteredTeams = teams
-    .filter((team) => !draftedIds.has(team.id))
-    .filter(
-      (team) =>
-        conferenceFilter === "ALL" || team.conference === conferenceFilter
-    )
-    .filter((team) => {
-      const text = `${team.name} ${team.conference}`.toLowerCase();
-      return text.includes(query.toLowerCase());
-    });
-  const boardSlots = Array.from({ length: totalPicks }).map((_, index) => {
-    const pick = picks[index];
-    const team = pick ? teams.find((item) => item.id === pick.teamId) : null;
-    const manager = pick?.manager ?? snakeManagerForPick(pool, index);
+  const availableConferences = pool
+    ? winsConferenceOptions.filter((conference) =>
+        pool.conferences.includes(conference)
+      )
+    : [];
+  const filteredTeams = pool
+    ? teams
+        .filter((team) => !draftedIds.has(team.id))
+        .filter(
+          (team) =>
+            conferenceFilter === "ALL" || team.conference === conferenceFilter
+        )
+        .filter((team) => {
+          const text = `${team.name} ${team.conference}`.toLowerCase();
+          return text.includes(query.toLowerCase());
+        })
+    : [];
+  const boardSlots = pool
+    ? Array.from({ length: totalPicks }).map((_, index) => {
+        const pick = picks[index];
+        const team = pick ? teams.find((item) => item.id === pick.teamId) : null;
+        const manager = pick?.manager ?? snakeManagerForPick(pool, index);
 
-    return { index, pick, team, manager };
-  });
+        return { index, pick, team, manager };
+      })
+    : [];
+
+  useEffect(() => {
+    if (draftOpeningBufferActive) {
+      wasDraftOpeningBufferActiveRef.current = true;
+      return;
+    }
+
+    if (wasDraftOpeningBufferActiveRef.current) {
+      wasDraftOpeningBufferActiveRef.current = false;
+      setPickTimerStartedAt(Date.now());
+      setIsPickClockPaused(false);
+      setPausedPickClockRemaining(null);
+      tickKeyRef.current = "";
+      stopCountdownTickSound();
+    }
+  }, [draftOpeningBufferActive]);
+
+  useEffect(() => {
+    if (
+      !pool ||
+      isPickClockPaused ||
+      draftOpeningBufferActive ||
+      pickClockRemaining === null ||
+      draftComplete ||
+      !draftOpen
+    ) {
+      stopCountdownTickSound();
+      return;
+    }
+
+    const pickKey = `${pool.id}-${picks.length}`;
+    if (
+      pickClockRemaining >= 1 &&
+      pickClockRemaining <= 8 &&
+      tickKeyRef.current !== pickKey
+    ) {
+      tickKeyRef.current = pickKey;
+      playCountdownTickSound();
+    } else if (pickClockRemaining > 8) {
+      stopCountdownTickSound();
+    }
+  }, [
+    draftComplete,
+    draftOpen,
+    draftOpeningBufferActive,
+    isPickClockPaused,
+    pickClockRemaining,
+    picks.length,
+    pool,
+  ]);
+
+  useEffect(() => {
+    if (!draftComplete) {
+      draftCompleteSoundPlayedRef.current = false;
+      return;
+    }
+
+    stopCountdownTickSound();
+
+    if (!draftCompleteSoundPlayedRef.current) {
+      draftCompleteSoundPlayedRef.current = true;
+      playDraftCompleteSound();
+    }
+  }, [draftComplete]);
 
   function draftTeam(team: WinsTeam) {
     if (!pool) return;
@@ -350,6 +458,12 @@ export default function WinsDraftPage() {
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
 
+    if (nextPicks.length >= totalPicks) {
+      stopCountdownTickSound();
+    } else {
+      playPickMadeSound();
+    }
+
     setDetailsTeam(null);
     setPendingTeam(null);
   }
@@ -359,6 +473,45 @@ export default function WinsDraftPage() {
     const nextPicks = picks.slice(0, -1);
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
+    setPendingTeam(null);
+    setDetailsTeam(null);
+    stopCountdownTickSound();
+  }
+
+  function togglePickClockPause() {
+    if (pickClockRemaining === null || activePickClockSeconds <= 0) return;
+
+    if (isPickClockPaused) {
+      const remaining = pausedPickClockRemaining ?? pickClockRemaining;
+      setPickTimerStartedAt(
+        Date.now() - (activePickClockSeconds - remaining) * 1000
+      );
+      setPausedPickClockRemaining(null);
+      setIsPickClockPaused(false);
+      if (remaining <= 8) tickKeyRef.current = "";
+      playPauseResumeWhistleSound();
+      return;
+    }
+
+    setPausedPickClockRemaining(pickClockRemaining);
+    setIsPickClockPaused(true);
+    stopCountdownTickSound();
+    playPauseResumeWhistleSound();
+  }
+
+  function toggleDraftSounds() {
+    const nextSoundsEnabled = !soundsEnabled;
+    setSoundsEnabled(nextSoundsEnabled);
+    setDraftSoundEnabled(nextSoundsEnabled);
+  }
+
+  if (!pool) {
+    return (
+      <main className="min-h-screen bg-[#030712] px-5 py-8 text-white">
+        <BrandMark size="md" />
+        <h1 className="mt-8 text-4xl font-black">Pool not found</h1>
+      </main>
+    );
   }
 
   function openConfirmPick(team: WinsTeam) {
@@ -415,10 +568,63 @@ export default function WinsDraftPage() {
               type="button"
               onClick={undoPick}
               disabled={picks.length === 0}
-              className="rounded-xl border border-white/10 px-5 py-3 font-black text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-10 flex-1 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 sm:py-3"
             >
               Undo Pick
             </button>
+            {draftOpen &&
+              !draftOpeningBufferActive &&
+              !draftComplete &&
+              activePickClockSeconds > 0 && (
+                <button
+                  type="button"
+                  onClick={togglePickClockPause}
+                  className="min-h-10 flex-1 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:flex-none sm:px-4 sm:py-3"
+                >
+                  {isPickClockPaused ? "Resume" : "Pause"}
+                </button>
+              )}
+            <button
+              type="button"
+              onClick={toggleDraftSounds}
+              aria-label={soundsEnabled ? "Turn draft sounds off" : "Turn draft sounds on"}
+              title={soundsEnabled ? "Sound on" : "Sound off"}
+              className={`min-h-10 flex-1 rounded-xl border px-3 py-2 text-sm font-black transition sm:flex-none sm:px-4 sm:py-3 ${
+                soundsEnabled
+                  ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                  : "border-slate-700 text-slate-400 hover:border-emerald-400/40 hover:bg-[#0b1220]"
+              }`}
+            >
+              <span className="inline-flex items-center gap-2">
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.4"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                  {soundsEnabled ? (
+                    <>
+                      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                      <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="m16 9 5 5" />
+                      <path d="m21 9-5 5" />
+                    </>
+                  )}
+                </svg>
+                {soundsEnabled ? "On" : "Off"}
+              </span>
+            </button>
+            <span className="flex min-h-10 flex-1 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:flex-none sm:px-4 sm:py-3">
+              Snake Draft
+            </span>
             {draftComplete && (
               <Link
                 href={`/football/wins/leaderboard?id=${pool.id}`}
@@ -452,7 +658,7 @@ export default function WinsDraftPage() {
                   </p>
                   <p className="mt-1 text-lg font-black text-white">
                     {draftOpeningBufferActive
-                      ? "Draft opens in a moment"
+                      ? formatDraftOpeningMessage(draftOpeningBufferRemaining)
                       : `${currentManager} is on the clock`}
                   </p>
                 </div>

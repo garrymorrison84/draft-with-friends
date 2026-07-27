@@ -97,6 +97,15 @@ function formatClockTime(seconds: number) {
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
+
+function formatDraftOpeningMessage(secondsRemaining: number) {
+  if (secondsRemaining >= 45 && secondsRemaining <= 75) {
+    return "Draft opens in a minute";
+  }
+
+  return "Draft opens in a moment";
+}
+
 function hasScheduledOpponent(player: FootballPlayer) {
   return /^(vs|@)\s+\S+/.test(player.opponent);
 }
@@ -974,7 +983,7 @@ export default function FootballDraftPage() {
               {isPickClockPaused
                 ? "Draft paused"
                 : draftOpeningBufferActive
-                  ? "Draft is live"
+                  ? formatDraftOpeningMessage(draftOpeningBufferRemaining)
                   : `${currentTeam} is up`}
             </span>
             <span className="shrink-0 text-white">

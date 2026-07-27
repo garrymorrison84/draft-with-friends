@@ -169,6 +169,15 @@ function formatClockTime(seconds: number) {
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
+
+function formatDraftOpeningMessage(secondsRemaining: number) {
+  if (secondsRemaining >= 45 && secondsRemaining <= 75) {
+    return "Draft opens in a minute";
+  }
+
+  return "Draft opens in a moment";
+}
+
 function formatFinishDate(dateValue: string | null) {
   if (!dateValue) return "Recent";
 
@@ -1073,7 +1082,7 @@ export default function DraftPage() {
               {isPickClockPaused
                 ? "Draft paused"
                 : timerDraftOpeningBufferActive
-                  ? "Draft is live"
+                  ? formatDraftOpeningMessage(timerDraftOpeningBufferRemaining)
                   : `${currentTeam} is up`}
             </span>
             <span className="shrink-0 text-white">
