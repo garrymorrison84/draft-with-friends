@@ -75,10 +75,10 @@ const conferenceStyles: Record<
   { badge: string; board: string; card: string; name: string }
 > = {
   ACC: {
-    badge: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20",
-    board: "border-sky-500/35 bg-sky-500/20",
-    card: "border-sky-300/45 bg-sky-500/12 hover:bg-sky-500/18",
-    name: "hover:text-sky-200",
+    badge: "border-blue-200 bg-blue-600/50 text-blue-50 shadow-blue-500/20",
+    board: "border-blue-500/35 bg-blue-700/24",
+    card: "border-blue-300/45 bg-blue-600/12 hover:bg-blue-600/18",
+    name: "hover:text-blue-200",
   },
   "Big Ten": {
     badge: "border-cyan-200 bg-cyan-500/45 text-cyan-50 shadow-cyan-500/20",
@@ -783,10 +783,7 @@ export default function WinsDraftPage() {
                           >
                             {team.name}
                           </p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${styles?.badge}`}>
-                              {formatConferenceLabel(team.conference)}
-                            </span>
+                          <div className="mt-2 flex items-center">
                             <span className="text-xs font-bold text-slate-500 sm:text-sm">
                               {team.wins}-{team.losses}
                             </span>
