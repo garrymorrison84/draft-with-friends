@@ -187,6 +187,27 @@ export default function WinsPoolLobbyPage() {
             </div>
           )}
 
+          <div className="mt-6 rounded-2xl border border-white/5 bg-[#1F2937] p-4 sm:p-5">
+            <h3 className="text-xl font-black">Draft Order</h3>
+            <p className="mt-1 text-sm font-bold text-slate-400">
+              Members draft in this order. The order reverses each round.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              {pool.draftOrder.map((team, index) => (
+                <div
+                  key={`${team}-${index}`}
+                  className="flex items-center justify-between rounded-2xl border border-white/5 bg-[#030712] p-4"
+                >
+                  <span className="min-w-0 truncate text-lg font-black">{team}</span>
+                  <span className="rounded-full bg-emerald-400 px-3 py-1 text-sm font-black text-slate-950">
+                    {index + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="mt-6 rounded-2xl border border-white/5 bg-[#1F2937] p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
