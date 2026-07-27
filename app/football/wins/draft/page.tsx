@@ -123,6 +123,13 @@ function getConferenceStyle(conference: string) {
   return conferenceStyles[conference] ?? defaultConferenceStyle;
 }
 
+function formatConferenceLabel(conference: string) {
+  if (conference === "Independents") return "Ind";
+  if (conference === "Big Ten") return "Big 10";
+  if (conference === "Pac-12") return "Pac 12";
+  return conference;
+}
+
 function TeamDetailsModal({
   team,
   onClose,
@@ -155,7 +162,7 @@ function TeamDetailsModal({
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
-                  {team.conference}
+                  {formatConferenceLabel(team.conference)}
                 </span>
                 <span className="text-sm font-black uppercase tracking-widest text-slate-400">
                   {team.wins}-{team.losses}
@@ -255,6 +262,7 @@ export default function WinsDraftPage() {
   const wasDraftOpeningBufferActiveRef = useRef(false);
   const tickKeyRef = useRef("");
   const draftCompleteSoundPlayedRef = useRef(false);
+  const autoDraftKeyRef = useRef("");
 
   useEffect(() => {
     preloadDraftSounds();
@@ -282,6 +290,7 @@ export default function WinsDraftPage() {
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
     tickKeyRef.current = "";
+    autoDraftKeyRef.current = "";
     stopCountdownTickSound();
 
     if (picks.length > 0) {
@@ -302,6 +311,7 @@ export default function WinsDraftPage() {
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       tickKeyRef.current = "";
+      autoDraftKeyRef.current = "";
       playDraftStartSound();
     } else if (!currentlyOpen && wasDraftOpenRef.current) {
       wasDraftOpenRef.current = false;
@@ -390,6 +400,7 @@ export default function WinsDraftPage() {
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       tickKeyRef.current = "";
+      autoDraftKeyRef.current = "";
       stopCountdownTickSound();
     }
   }, [draftOpeningBufferActive]);
@@ -429,6 +440,39 @@ export default function WinsDraftPage() {
   ]);
 
   useEffect(() => {
+    if (
+      !pool ||
+      !draftOpen ||
+      draftComplete ||
+      draftOpeningBufferActive ||
+      isPickClockPaused ||
+      activePickClockSeconds <= 0 ||
+      pickClockRemaining !== 0
+    ) {
+      return;
+    }
+
+    const nextTeam = filteredTeams[0];
+    if (!nextTeam) return;
+
+    const autoDraftKey = `${pool.id}-${picks.length}`;
+    if (autoDraftKeyRef.current === autoDraftKey) return;
+
+    autoDraftKeyRef.current = autoDraftKey;
+    draftTeam(nextTeam);
+  }, [
+    activePickClockSeconds,
+    draftComplete,
+    draftOpen,
+    draftOpeningBufferActive,
+    filteredTeams,
+    isPickClockPaused,
+    pickClockRemaining,
+    picks.length,
+    pool,
+  ]);
+
+  useEffect(() => {
     if (!draftComplete) {
       draftCompleteSoundPlayedRef.current = false;
       return;
@@ -457,6 +501,10 @@ export default function WinsDraftPage() {
 
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
+    setPickTimerStartedAt(Date.now());
+    setIsPickClockPaused(false);
+    setPausedPickClockRemaining(null);
+    tickKeyRef.current = "";
 
     if (nextPicks.length >= totalPicks) {
       stopCountdownTickSound();
@@ -563,77 +611,6 @@ export default function WinsDraftPage() {
                 : "Anytime draft"}
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={undoPick}
-              disabled={picks.length === 0}
-              className="min-h-10 flex-1 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 sm:py-3"
-            >
-              Undo Pick
-            </button>
-            {draftOpen &&
-              !draftOpeningBufferActive &&
-              !draftComplete &&
-              activePickClockSeconds > 0 && (
-                <button
-                  type="button"
-                  onClick={togglePickClockPause}
-                  className="min-h-10 flex-1 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:flex-none sm:px-4 sm:py-3"
-                >
-                  {isPickClockPaused ? "Resume" : "Pause"}
-                </button>
-              )}
-            <button
-              type="button"
-              onClick={toggleDraftSounds}
-              aria-label={soundsEnabled ? "Turn draft sounds off" : "Turn draft sounds on"}
-              title={soundsEnabled ? "Sound on" : "Sound off"}
-              className={`min-h-10 flex-1 rounded-xl border px-3 py-2 text-sm font-black transition sm:flex-none sm:px-4 sm:py-3 ${
-                soundsEnabled
-                  ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
-                  : "border-slate-700 text-slate-400 hover:border-emerald-400/40 hover:bg-[#0b1220]"
-              }`}
-            >
-              <span className="inline-flex items-center gap-2">
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.4"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M11 5 6 9H3v6h3l5 4V5Z" />
-                  {soundsEnabled ? (
-                    <>
-                      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-                      <path d="M18.5 5.5a9 9 0 0 1 0 13" />
-                    </>
-                  ) : (
-                    <>
-                      <path d="m16 9 5 5" />
-                      <path d="m21 9-5 5" />
-                    </>
-                  )}
-                </svg>
-                {soundsEnabled ? "On" : "Off"}
-              </span>
-            </button>
-            <span className="flex min-h-10 flex-1 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:flex-none sm:px-4 sm:py-3">
-              Snake Draft
-            </span>
-            {draftComplete && (
-              <Link
-                href={`/football/wins/leaderboard?id=${pool.id}`}
-                className="rounded-xl bg-emerald-400 px-5 py-3 text-center font-black text-slate-950"
-              >
-                View Season Board
-              </Link>
-            )}
-          </div>
         </section>
 
         {!draftOpen && (
@@ -675,22 +652,95 @@ export default function WinsDraftPage() {
 
         <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-4 lg:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] xl:grid-cols-[minmax(380px,460px)_minmax(0,1fr)]">
           <section className="order-1 flex min-w-0 flex-col rounded-2xl border border-slate-600/35 bg-[#111827] p-2.5 shadow-xl shadow-black/40 sm:rounded-3xl sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
               <div>
                 <h2 className="text-2xl font-black sm:text-3xl">Draft Board</h2>
                 <p className="mt-1 text-sm text-slate-400 sm:mt-2 sm:text-base">
                   Snake draft order reverses each round.
                 </p>
               </div>
-              <p className="text-2xl font-black text-emerald-300 sm:text-3xl">
-                {picks.length}/{totalPicks}
-              </p>
+              <div className="flex flex-col gap-3 xl:items-end">
+                <p className="text-2xl font-black text-emerald-300 sm:text-3xl">
+                  {picks.length}/{totalPicks}
+                </p>
+                <div className="flex flex-wrap gap-2 sm:gap-3 xl:justify-end">
+                  <button
+                    type="button"
+                    onClick={undoPick}
+                    disabled={picks.length === 0}
+                    className="min-h-10 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-3"
+                  >
+                    Undo Pick
+                  </button>
+                  {draftOpen &&
+                    !draftOpeningBufferActive &&
+                    !draftComplete &&
+                    activePickClockSeconds > 0 && (
+                      <button
+                        type="button"
+                        onClick={togglePickClockPause}
+                        className="min-h-10 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:px-4 sm:py-3"
+                      >
+                        {isPickClockPaused ? "Resume" : "Pause"}
+                      </button>
+                    )}
+                  <button
+                    type="button"
+                    onClick={toggleDraftSounds}
+                    aria-label={soundsEnabled ? "Turn draft sounds off" : "Turn draft sounds on"}
+                    title={soundsEnabled ? "Sound on" : "Sound off"}
+                    className={`min-h-10 rounded-xl border px-3 py-2 text-sm font-black transition sm:px-4 sm:py-3 ${
+                      soundsEnabled
+                        ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                        : "border-slate-700 text-slate-400 hover:border-emerald-400/40 hover:bg-[#0b1220]"
+                    }`}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <svg
+                        aria-hidden="true"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2.4"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                        {soundsEnabled ? (
+                          <>
+                            <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+                            <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="m16 9 5 5" />
+                            <path d="m21 9-5 5" />
+                          </>
+                        )}
+                      </svg>
+                      {soundsEnabled ? "On" : "Off"}
+                    </span>
+                  </button>
+                  <span className="flex min-h-10 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:px-4 sm:py-3">
+                    Snake Draft
+                  </span>
+                  {draftComplete && (
+                    <Link
+                      href={`/football/wins/leaderboard?id=${pool.id}`}
+                      className="rounded-xl bg-emerald-400 px-5 py-3 text-center text-sm font-black text-slate-950"
+                    >
+                      View Season Board
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4 min-h-[520px] flex-1 overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
-              <div style={{ minWidth: `${pool.numberOfTeams * 150}px` }}>
+            <div className="mt-4 min-h-[520px] flex-1 overflow-hidden rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
+              <div className="h-full overflow-auto" style={{ minWidth: `${pool.numberOfTeams * 150}px` }}>
                 <div
-                  className="sticky top-0 z-20 grid overflow-hidden bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
+                  className="sticky top-0 z-20 grid overflow-hidden rounded-t-2xl bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)] sm:rounded-t-3xl"
                   style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
                 >
                   {pool.draftOrder.map((manager, index) => {
@@ -735,7 +785,7 @@ export default function WinsDraftPage() {
                           team
                             ? styles?.board
                             : isCurrentPick
-                              ? "border-emerald-300/35 bg-emerald-400/12 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)]"
+                              ? "border-slate-700/70 bg-emerald-400/12 ring-1 ring-inset ring-emerald-300/35"
                               : "border-slate-700/70 bg-[#050a13]/95"
                         }`}
                       >
@@ -763,7 +813,7 @@ export default function WinsDraftPage() {
                           </p>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${styles?.badge}`}>
-                              {team.conference}
+                              {formatConferenceLabel(team.conference)}
                             </span>
                             <span className="text-xs font-bold text-slate-500 sm:text-sm">
                               {team.wins}-{team.losses}
@@ -802,7 +852,7 @@ export default function WinsDraftPage() {
               Filter by conference, search teams, then draft from the list.
             </p>
             <p className="mt-2 text-xs font-bold text-slate-500">
-              {pool.conferences.join(", ")} • {filteredTeams.length.toLocaleString()} available teams
+              {pool.conferences.map(formatConferenceLabel).join(", ")} • {filteredTeams.length.toLocaleString()} available teams
             </p>
 
             <input
@@ -813,7 +863,7 @@ export default function WinsDraftPage() {
               className="mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60"
             />
 
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            <div className="mt-4 flex flex-wrap justify-center gap-2 pb-1">
               {["ALL", ...availableConferences].map((conference) => {
                 const active = conferenceFilter === conference;
 
@@ -828,7 +878,7 @@ export default function WinsDraftPage() {
                         : "border-slate-700 bg-[#050a13] text-slate-300 hover:border-emerald-300/40"
                     }`}
                   >
-                    {conference === "ALL" ? "All" : conference}
+                    {conference === "ALL" ? "All" : formatConferenceLabel(conference)}
                   </button>
                 );
               })}
@@ -837,7 +887,7 @@ export default function WinsDraftPage() {
             <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
               <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-360px)] lg:max-h-none">
                 <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className="grid grid-cols-[minmax(0,1fr)_96px_70px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                  <div className="grid grid-cols-[minmax(0,1fr)_104px_72px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
                     <div>Team</div>
                     <div className="text-center leading-4">Projected Win Total</div>
                     <div className="text-right">Action</div>
@@ -850,17 +900,17 @@ export default function WinsDraftPage() {
                   return (
                     <div
                       key={team.id}
-                      className="grid grid-cols-[minmax(0,1fr)_96px_70px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
+                      className="grid grid-cols-[minmax(0,1fr)_104px_72px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
                     >
                     <button
                       type="button"
                       onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
-                      <div className="grid min-w-0 grid-cols-[92px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[112px_minmax(0,1fr)]">
+                      <div className="grid min-w-0 grid-cols-[96px_minmax(0,1fr)] items-center gap-3">
                         <span className="flex justify-start">
-                          <span className={`inline-flex min-w-[78px] justify-center rounded-full border px-3 py-1 text-xs font-black sm:min-w-[92px] ${styles.badge}`}>
-                            {team.conference}
+                          <span className={`inline-flex min-w-[76px] justify-center rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                            {formatConferenceLabel(team.conference)}
                           </span>
                         </span>
                         <div className="min-w-0">
@@ -927,7 +977,7 @@ export default function WinsDraftPage() {
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300">
-                {pendingTeam.conference}
+                {formatConferenceLabel(pendingTeam.conference)}
               </span>
               <span className="text-sm font-bold text-slate-400">
                 Projected Win Total {formatWinTotal(pendingTeam.winTotal)}
