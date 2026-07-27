@@ -338,7 +338,9 @@ export default function Home() {
           </div>
 
           <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
-            Create your own custom pool. Share the link with your crew.
+            Create your own custom pool. Share the link with your crew. Snake draft
+            in minutes, skip the waiver wire and season-long grind, and crown a
+            champion before Sunday is over.
           </p>
 
           <div className="mt-8 lg:mt-10">
