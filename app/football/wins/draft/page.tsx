@@ -195,21 +195,10 @@ function TeamDetailsModal({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-xl font-black">Season Schedule</h3>
-              <p className="mt-2 text-sm font-semibold text-slate-400">
-                Review the full schedule before making the pick.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="shrink-0 rounded-xl border border-white/10 px-4 py-2 text-sm font-black text-slate-300 hover:border-emerald-400/40 hover:bg-[#0b1220]"
-            >
-              Close
-            </button>
-          </div>
+          <h3 className="text-xl font-black">Season Schedule</h3>
+          <p className="mt-2 text-sm font-semibold text-slate-400">
+            Review the full schedule before making the pick.
+          </p>
 
           <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
             {team.schedule.map((game) => (
@@ -237,6 +226,16 @@ function TeamDetailsModal({
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="shrink-0 border-t border-white/10 p-4 sm:flex sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 transition hover:bg-white/5 sm:w-auto"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
