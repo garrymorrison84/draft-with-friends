@@ -92,8 +92,10 @@ function DraftPhonePreview({
   className?: string;
   screenClassName?: string;
 }) {
+  const resolvedScreenClassName = screenClassName || "!min-h-[492px]";
+
   return (
-    <PhoneFrame className={`rotate-[-2deg] ${className}`} screenClassName={screenClassName}>
+    <PhoneFrame className={`rotate-[-2deg] ${className}`} screenClassName={resolvedScreenClassName}>
       <div className="rounded-2xl border border-slate-700/70 bg-[#111827] p-3">
         <div className="flex items-start justify-between gap-3">
           <div>
