@@ -75,10 +75,10 @@ const conferenceStyles: Record<
   { badge: string; board: string; card: string; name: string }
 > = {
   ACC: {
-    badge: "border-blue-200 bg-blue-600/50 text-blue-50 shadow-blue-500/20",
-    board: "border-blue-500/35 bg-blue-700/24",
-    card: "border-blue-300/45 bg-blue-600/12 hover:bg-blue-600/18",
-    name: "hover:text-blue-200",
+    badge: "border-white/80 bg-white/15 text-white shadow-white/10",
+    board: "border-white/25 bg-white/10",
+    card: "border-white/30 bg-white/8 hover:bg-white/12",
+    name: "hover:text-white",
   },
   "Big Ten": {
     badge: "border-cyan-200 bg-cyan-500/45 text-cyan-50 shadow-cyan-500/20",
@@ -632,9 +632,6 @@ export default function WinsDraftPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                <p className="mr-1 flex min-h-10 items-center text-2xl font-black text-emerald-300 sm:text-3xl">
-                  {picks.length}/{totalPicks}
-                </p>
                   <button
                     type="button"
                     onClick={undoPick}
@@ -817,15 +814,15 @@ export default function WinsDraftPage() {
               pool.draftType === "scheduled" &&
               activePickClockSeconds > 0 &&
               (draftOpeningBufferActive || pickClockRemaining !== null) && (
-                <div className="pointer-events-none absolute bottom-3 right-3 z-30 rounded-2xl border border-emerald-500/40 bg-emerald-950/80 px-4 py-3 text-sm font-black text-emerald-100 shadow-2xl shadow-emerald-950/40 backdrop-blur sm:bottom-6 sm:right-6 sm:px-5 sm:py-4 sm:text-base">
-                  <span className="mr-3 text-emerald-300">
+                <div className="fixed bottom-5 right-4 z-50 flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-2xl border border-emerald-400/30 bg-[#06261f]/95 px-3.5 py-3 text-sm font-black shadow-2xl shadow-black/50 backdrop-blur sm:right-6 sm:gap-3 sm:px-4 sm:py-3.5 sm:text-base">
+                  <span className="min-w-0 max-w-[190px] truncate text-emerald-300 sm:max-w-[260px]">
                     {isPickClockPaused
                       ? "Clock paused"
                       : draftOpeningBufferActive
                         ? "Draft opening"
                         : `${currentManager} is up`}
                   </span>
-                  <span className="tabular-nums text-white">
+                  <span className="shrink-0 tabular-nums text-white">
                     {formatClockTime(
                       draftOpeningBufferActive
                         ? draftOpeningBufferRemaining
