@@ -793,16 +793,20 @@ export default function WinsDraftPage() {
                           </div>
                         </div>
                       ) : (
-                        <>
+                        <div className="relative z-10 min-w-0">
                           {isCurrentPick && (
-                            <p className="relative z-10 text-sm font-black text-emerald-300">
+                            <p className="text-sm font-black text-emerald-300">
                               On the clock
                             </p>
                           )}
-	                          <p className="relative z-10 mt-2 text-xs font-bold text-slate-600 sm:mt-3 sm:text-sm">
-	                            Awaiting selection
-	                          </p>
-                        </>
+                          <p
+                            className={`text-xs font-bold text-slate-600 sm:text-sm ${
+                              isCurrentPick ? "mt-2 sm:mt-3" : ""
+                            }`}
+                          >
+                            Awaiting selection
+                          </p>
+                        </div>
                       )}
                       </div>
                     );
@@ -876,7 +880,7 @@ export default function WinsDraftPage() {
             <div className="mt-6 overflow-hidden rounded-2xl border border-slate-600/35 bg-[#050a13]">
               <div className="max-h-[620px] overflow-y-auto lg:h-[calc(100vh-360px)] lg:max-h-none">
                 <div className="sticky top-0 z-10 border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className="grid grid-cols-[minmax(0,1fr)_104px_72px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
+                  <div className="grid grid-cols-[minmax(0,1fr)_118px_74px] items-center gap-x-3 text-xs font-black uppercase tracking-wide text-slate-500">
                     <div>Team</div>
                     <div className="text-center leading-4">Projected Win Total</div>
                     <div className="text-right">Action</div>
@@ -889,16 +893,16 @@ export default function WinsDraftPage() {
                   return (
                     <div
                       key={team.id}
-                      className="grid grid-cols-[minmax(0,1fr)_104px_72px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
+                      className="grid grid-cols-[minmax(0,1fr)_118px_74px] items-center gap-x-3 border-b border-slate-700/55 bg-[#050a13] px-4 py-4 text-sm font-black transition last:border-b-0 hover:bg-[#0b1220]"
                     >
                     <button
                       type="button"
                       onClick={() => setDetailsTeam(team)}
                       className="min-w-0 text-left"
                     >
-                      <div className="grid min-w-0 grid-cols-[96px_minmax(0,1fr)] items-center gap-3">
-                        <span className="flex justify-start">
-                          <span className={`inline-flex min-w-[76px] justify-center rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                      <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)] items-center gap-3">
+                        <span className="flex justify-center">
+                          <span className={`inline-flex min-w-[74px] justify-center rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
                             {formatConferenceLabel(team.conference)}
                           </span>
                         </span>
