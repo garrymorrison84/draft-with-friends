@@ -622,52 +622,24 @@ export default function WinsDraftPage() {
           </section>
         )}
 
-        {draftOpen &&
-          !draftComplete &&
-          pool.draftType === "scheduled" &&
-          activePickClockSeconds > 0 && (
-            <section className="sticky top-3 z-40 mt-8 rounded-2xl border border-emerald-400/30 bg-[#07110f]/95 p-4 shadow-2xl shadow-emerald-950/35 backdrop-blur">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-emerald-300">
-                    {draftOpeningBufferActive ? "Draft Opening" : "Pick Clock"}
-                  </p>
-                  <p className="mt-1 text-lg font-black text-white">
-                    {draftOpeningBufferActive
-                      ? formatDraftOpeningMessage(draftOpeningBufferRemaining)
-                      : `${currentManager} is on the clock`}
-                  </p>
-                </div>
-                <div className="text-4xl font-black tabular-nums text-emerald-300">
-                  {draftOpeningBufferActive
-                    ? formatClockTime(draftOpeningBufferRemaining)
-                    : pickClockRemaining !== null
-                      ? formatClockTime(pickClockRemaining)
-                      : formatPickClock(pool.pickClockSeconds)}
-                </div>
-              </div>
-            </section>
-          )}
-
         <div className="mt-8 grid gap-5 sm:mt-10 sm:gap-4 lg:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] xl:grid-cols-[minmax(380px,460px)_minmax(0,1fr)]">
-          <section className="order-1 flex min-w-0 flex-col rounded-2xl border border-slate-600/35 bg-[#111827] p-2.5 shadow-xl shadow-black/40 sm:rounded-3xl sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <section className="relative order-1 flex min-w-0 flex-col rounded-2xl border border-slate-600/35 bg-[#111827] p-2.5 shadow-xl shadow-black/40 sm:rounded-3xl sm:p-6 lg:sticky lg:top-6 lg:order-2 lg:h-[calc(100vh-48px)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black sm:text-3xl">Draft Board</h2>
                 <p className="mt-1 text-sm text-slate-400 sm:mt-2 sm:text-base">
                   Snake draft order reverses each round.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 xl:items-end">
-                <p className="text-2xl font-black text-emerald-300 sm:text-3xl">
+              <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                <p className="mr-1 flex min-h-10 items-center text-2xl font-black text-emerald-300 sm:text-3xl">
                   {picks.length}/{totalPicks}
                 </p>
-                <div className="flex flex-wrap gap-2 sm:gap-3 xl:justify-end">
                   <button
                     type="button"
                     onClick={undoPick}
                     disabled={picks.length === 0}
-                    className="min-h-10 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:px-4 sm:py-3"
+                    className="min-h-10 flex-1 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 sm:py-3"
                   >
                     Undo Pick
                   </button>
@@ -678,7 +650,7 @@ export default function WinsDraftPage() {
                       <button
                         type="button"
                         onClick={togglePickClockPause}
-                        className="min-h-10 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:px-4 sm:py-3"
+                        className="min-h-10 flex-1 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:flex-none sm:px-4 sm:py-3"
                       >
                         {isPickClockPaused ? "Resume" : "Pause"}
                       </button>
@@ -688,7 +660,7 @@ export default function WinsDraftPage() {
                     onClick={toggleDraftSounds}
                     aria-label={soundsEnabled ? "Turn draft sounds off" : "Turn draft sounds on"}
                     title={soundsEnabled ? "Sound on" : "Sound off"}
-                    className={`min-h-10 rounded-xl border px-3 py-2 text-sm font-black transition sm:px-4 sm:py-3 ${
+                    className={`min-h-10 flex-1 rounded-xl border px-3 py-2 text-sm font-black transition sm:flex-none sm:px-4 sm:py-3 ${
                       soundsEnabled
                         ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
                         : "border-slate-700 text-slate-400 hover:border-emerald-400/40 hover:bg-[#0b1220]"
@@ -721,7 +693,7 @@ export default function WinsDraftPage() {
                       {soundsEnabled ? "On" : "Off"}
                     </span>
                   </button>
-                  <span className="flex min-h-10 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:px-4 sm:py-3">
+                  <span className="flex min-h-10 flex-1 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:flex-none sm:px-4 sm:py-3">
                     Snake Draft
                   </span>
                   {draftComplete && (
@@ -732,15 +704,14 @@ export default function WinsDraftPage() {
                       View Season Board
                     </Link>
                   )}
-                </div>
               </div>
             </div>
 
-            <div className="mt-4 min-h-[520px] flex-1 overflow-hidden rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
-              <div className="h-full overflow-auto" style={{ minWidth: `${pool.numberOfTeams * 150}px` }}>
+            <div className="mt-4 min-h-[520px] flex-1 overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
+              <div style={{ minWidth: `${pool.numberOfTeams * 142}px` }}>
                 <div
-                  className="sticky top-0 z-20 grid overflow-hidden rounded-t-2xl bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)] sm:rounded-t-3xl"
-                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
+                  className="sticky top-0 z-20 grid bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
+                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(142px, 1fr))` }}
                 >
                   {pool.draftOrder.map((manager, index) => {
                     const isCurrentManager =
@@ -760,9 +731,9 @@ export default function WinsDraftPage() {
                           : ""
                       }`}
                     >
-                      <p className="truncate text-sm font-black uppercase tracking-widest text-white sm:text-base">
-                        {manager}
-                      </p>
+	                      <p className="truncate text-sm font-black uppercase tracking-[0.14em] text-white sm:text-xl">
+	                        {manager}
+	                      </p>
                     </div>
                     );
                   })}
@@ -770,7 +741,7 @@ export default function WinsDraftPage() {
 
                 <div
                   className="grid bg-[#030712]"
-                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(150px, 1fr))` }}
+                  style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(142px, 1fr))` }}
                 >
                   {boardSlots.map(({ index, team }) => {
                     const styles = team ? getConferenceStyle(team.conference) : null;
@@ -780,28 +751,30 @@ export default function WinsDraftPage() {
                     return (
                       <div
                         key={index}
-                        className={`relative min-h-[108px] overflow-hidden border-b border-r p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
-                          team
-                            ? styles?.board
-                            : isCurrentPick
-                              ? "border-slate-700/70 bg-emerald-400/12 ring-1 ring-inset ring-emerald-300/35"
-                              : "border-slate-700/70 bg-[#050a13]/95"
-                        }`}
+	                        className={`relative min-h-[108px] overflow-hidden border-b border-r p-3 pt-12 last:border-r-0 sm:min-h-40 sm:p-5 sm:pt-14 ${
+	                          team
+	                            ? styles?.board
+	                            : isCurrentPick
+	                              ? "border-emerald-300/60 bg-[#0b2f2c]/95 shadow-[inset_0_0_0_1px_rgba(110,231,183,0.14)]"
+	                              : "border-slate-700/70 bg-[#050a13]/95"
+	                        }`}
                       >
                       <span
-                        className={`absolute right-3 top-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:right-5 sm:top-5 sm:px-3 sm:text-xs ${
-                          team
-                            ? styles?.badge
-                            : "bg-[#1F2937] text-slate-400"
-                        }`}
+	                        className={`absolute right-3 top-3 inline-flex rounded-full px-2.5 py-1 text-[11px] font-black sm:right-5 sm:top-5 sm:px-3 sm:text-xs ${
+	                          team
+	                            ? "bg-blue-500/35 text-blue-50 shadow-sm shadow-blue-950/40"
+	                            : isCurrentPick
+	                              ? "bg-emerald-400 text-slate-950 shadow-sm shadow-emerald-950/30"
+	                              : "bg-[#1F2937] text-slate-500"
+	                        }`}
                       >
                         {pickLabel(index, pool.numberOfTeams)}
                       </span>
 
                       {team ? (
                         <div className="relative z-10 min-w-0">
-                          <p
-                            className="min-w-0 max-w-full overflow-hidden break-words text-xl font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-2xl"
+	                          <p
+	                            className="min-w-0 max-w-full overflow-hidden break-words text-xl font-black leading-tight text-white [overflow-wrap:anywhere] sm:text-2xl"
                             style={{
                               display: "-webkit-box",
                               WebkitBoxOrient: "vertical",
@@ -826,15 +799,9 @@ export default function WinsDraftPage() {
                               On the clock
                             </p>
                           )}
-                          <p
-                            className={`relative z-10 text-xs font-bold sm:text-sm ${
-                              isCurrentPick
-                                ? "mt-2 text-slate-500 sm:mt-3"
-                                : "mt-6 text-slate-700 sm:mt-8"
-                            }`}
-                          >
-                            Awaiting selection
-                          </p>
+	                          <p className="relative z-10 mt-2 text-xs font-bold text-slate-600 sm:mt-3 sm:text-sm">
+	                            Awaiting selection
+	                          </p>
                         </>
                       )}
                       </div>
@@ -843,6 +810,29 @@ export default function WinsDraftPage() {
                 </div>
               </div>
             </div>
+
+            {draftOpen &&
+              !draftComplete &&
+              pool.draftType === "scheduled" &&
+              activePickClockSeconds > 0 &&
+              (draftOpeningBufferActive || pickClockRemaining !== null) && (
+                <div className="pointer-events-none absolute bottom-3 right-3 z-30 rounded-2xl border border-emerald-500/40 bg-emerald-950/80 px-4 py-3 text-sm font-black text-emerald-100 shadow-2xl shadow-emerald-950/40 backdrop-blur sm:bottom-6 sm:right-6 sm:px-5 sm:py-4 sm:text-base">
+                  <span className="mr-3 text-emerald-300">
+                    {isPickClockPaused
+                      ? "Clock paused"
+                      : draftOpeningBufferActive
+                        ? "Draft opening"
+                        : `${currentManager} is up`}
+                  </span>
+                  <span className="tabular-nums text-white">
+                    {formatClockTime(
+                      draftOpeningBufferActive
+                        ? draftOpeningBufferRemaining
+                        : pickClockRemaining ?? 0
+                    )}
+                  </span>
+                </div>
+              )}
           </section>
 
           <aside className="order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden">
