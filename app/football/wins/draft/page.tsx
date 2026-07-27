@@ -856,7 +856,7 @@ export default function WinsDraftPage() {
               className="mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60"
             />
 
-            <div className="mt-4 flex flex-wrap justify-center gap-2 pb-1">
+            <div className="mt-4 flex flex-nowrap gap-2 overflow-x-auto pb-2">
               {["ALL", ...availableConferences].map((conference) => {
                 const active = conferenceFilter === conference;
 
@@ -865,7 +865,7 @@ export default function WinsDraftPage() {
                     key={conference}
                     type="button"
                     onClick={() => setConferenceFilter(conference)}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition ${
+                    className={`shrink-0 rounded-full border px-3 py-2 text-xs font-black transition ${
                       active
                         ? "border-emerald-300 bg-emerald-300 text-slate-950"
                         : "border-slate-700 bg-[#050a13] text-slate-300 hover:border-emerald-300/40"
