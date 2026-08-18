@@ -195,7 +195,7 @@ function sameEventName(first?: string | null, second?: string | null) {
 }
 
 function getRankMap(scores: GolferScoreRow[], showRound4: boolean) {
-  const validScores = scores
+  const scoredGolfers = scores
     .map((score) => {
       const calculated = normalizeGolferScore(score, { showRound4 });
 
@@ -206,7 +206,15 @@ function getRankMap(scores: GolferScoreRow[], showRound4: boolean) {
         missedCut: calculated.missedCut,
       };
     })
-    .filter((score) => score.hasScore && !score.missedCut)
+    .filter((score) => score.hasScore && !score.missedCut);
+
+  // Score feeds can occasionally return the same golfer more than once. A
+  // duplicate row is not a tie and must not add another player at that rank.
+  const validScores = Array.from(
+    new Map(
+      scoredGolfers.map((score) => [normalizeName(score.name), score])
+    ).values()
+  )
     .sort((a, b) => a.calculatedTotal - b.calculatedTotal);
 
   const rankMap: Record<string, string> = {};

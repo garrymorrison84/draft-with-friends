@@ -309,6 +309,7 @@ export default function DraftPage() {
   const [draftOpeningStartedAt, setDraftOpeningStartedAt] = useState<number | null>(null);
   const [isPickClockPaused, setIsPickClockPaused] = useState(false);
   const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
+  const savePickInFlightRef = useRef(false);
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
   const wasDraftOpenRef = useRef(false);
@@ -926,7 +927,7 @@ export default function DraftPage() {
   }
 
   async function saveGolferPick(golfer: Golfer) {
-    if (draftComplete || isSavingPick || !draftOpen) return false;
+    if (draftComplete || savePickInFlightRef.current || !draftOpen) return false;
 
     if (isGolferTaken(golfer)) {
       setPendingGolfer(null);
@@ -953,6 +954,10 @@ export default function DraftPage() {
     const nextPicks = [...draftPicks];
     nextPicks[nextPickIndex] = nextPick;
 
+    // React state updates are asynchronous, so a fast second confirmation can
+    // otherwise enter this function before isSavingPick becomes true. Lock the
+    // submission synchronously to guarantee one save and one sound per pick.
+    savePickInFlightRef.current = true;
     setIsSavingPick(true);
     setDraftPicks(nextPicks);
     setPendingGolfer(null);
@@ -986,6 +991,7 @@ export default function DraftPage() {
       console.error(error);
       return false;
     } finally {
+      savePickInFlightRef.current = false;
       setIsSavingPick(false);
     }
   }
