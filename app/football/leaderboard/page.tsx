@@ -13,6 +13,7 @@ import {
   loadFootballDraftPicks,
   loadFootballPool,
 } from "../lib/storage";
+import { loadPersistedFootballHistory } from "../lib/platformStorage";
 import {
   getProjectedScore,
   scoreFootballStats,
@@ -536,12 +537,16 @@ export default function FootballLeaderboardPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
+  const [isLoadingPool, setIsLoadingPool] = useState(true);
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
-    if (!id) return;
+    if (!id) {
+      setIsLoadingPool(false);
+      return;
+    }
 
     const savedPool = loadFootballPool(id);
     if (savedPool) {
@@ -551,7 +556,31 @@ export default function FootballLeaderboardPage() {
         window.localStorage.getItem(`dWf:footballRecapDismissed:${savedPool.id}`) ===
           "true"
       );
+      setIsLoadingPool(false);
+      return;
     }
+
+    let cancelled = false;
+
+    loadPersistedFootballHistory(id)
+      .then((history) => {
+        if (cancelled || !history) return;
+
+        setPool(history.pool);
+        setPicks(history.picks);
+        setRecapDismissed(
+          window.localStorage.getItem(
+            `dWf:footballRecapDismissed:${history.pool.id}`
+          ) === "true"
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPool(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -754,6 +783,17 @@ export default function FootballLeaderboardPage() {
     setRecapDismissed(true);
     setRecapManuallyOpened(false);
     window.localStorage.setItem(`dWf:footballRecapDismissed:${pool.id}`, "true");
+  }
+
+  if (isLoadingPool) {
+    return (
+      <main className="min-h-screen bg-[#030712] text-white">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="md" />
+          <p className="mt-8 text-slate-400">Loading historical leaderboard...</p>
+        </div>
+      </main>
+    );
   }
 
   if (!pool) {
