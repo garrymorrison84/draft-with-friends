@@ -80,8 +80,24 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: adminError }, { status: 500 });
   }
 
+  const { data: existingPool, error: ownerLookupError } = await client
+    .from("platform_pools")
+    .select("owner_id")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (ownerLookupError) {
+    return NextResponse.json({ error: ownerLookupError.message }, { status: 500 });
+  }
+
+  const ownerId = existingPool?.owner_id || crypto.randomUUID();
   const { error: poolError } = await client.from("platform_pools").upsert(
-    { id: poolId, pool_type: "college_fantasy", settings: pool },
+    {
+      id: poolId,
+      owner_id: ownerId,
+      pool_type: "college_fantasy",
+      settings: pool,
+    },
     { onConflict: "id" }
   );
 
