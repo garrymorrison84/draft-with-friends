@@ -7,9 +7,14 @@ import {
   FootballPool,
   FootballScoring,
   defaultScoring,
+  loadFootballDraftPicks,
   loadFootballPool,
   saveFootballPool,
 } from "../lib/storage";
+import {
+  loadPersistedFootballHistory,
+  persistFootballHistory,
+} from "../lib/platformStorage";
 
 type RosterKey = keyof FootballScoring["roster"];
 type ScoringCategory = "passing" | "rushing" | "receiving" | "defense" | "kicking" | "misc";
@@ -102,7 +107,15 @@ export default function FootballScoringPage() {
     if (savedPool) {
       setPool(savedPool);
       setScoring(mergeScoring(savedPool.scoring));
+      return;
     }
+
+    loadPersistedFootballHistory(id).then((history) => {
+      if (!history) return;
+      saveFootballPool(history.pool);
+      setPool(history.pool);
+      setScoring(mergeScoring(history.pool.scoring));
+    });
   }, []);
 
   const rosterTotal = useMemo(
@@ -368,11 +381,12 @@ export default function FootballScoringPage() {
     ];
   }
 
-  function saveAndContinue() {
+  async function saveAndContinue() {
     if (!pool) return;
 
     const nextPool = { ...pool, scoring };
     saveFootballPool(nextPool);
+    await persistFootballHistory(nextPool, loadFootballDraftPicks(nextPool.id));
     window.location.href = `/football/pool?id=${pool.id}`;
   }
 

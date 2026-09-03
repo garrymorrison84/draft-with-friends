@@ -16,7 +16,13 @@ import {
   getTotalRosterSlots,
   loadFootballDraftPicks,
   loadFootballPool,
+  saveFootballDraftPicks,
+  saveFootballPool,
 } from "../lib/storage";
+import {
+  loadPersistedFootballHistory,
+  persistFootballHistory,
+} from "../lib/platformStorage";
 
 function getCurrentTeam(pool: FootballPool, pickCount: number, draftComplete: boolean) {
   if (draftComplete) return "Draft Complete";
@@ -40,7 +46,9 @@ export default function FootballPoolPage() {
   );
 
   useEffect(() => {
-    function loadLobby() {
+    let initialLoad = true;
+
+    async function loadLobby() {
       const params = new URLSearchParams(window.location.search);
       const poolId = params.get("id");
 
@@ -50,13 +58,24 @@ export default function FootballPoolPage() {
       }
 
       const savedPool = loadFootballPool(poolId);
-      if (!savedPool) {
+      if (initialLoad && savedPool) {
+        initialLoad = false;
+        const savedPicks = loadFootballDraftPicks(savedPool.id);
+        setPool(savedPool);
+        setPicks(savedPicks);
         setIsLoading(false);
+        persistFootballHistory(savedPool, savedPicks).catch(console.error);
         return;
       }
 
-      setPool(savedPool);
-      setPicks(loadFootballDraftPicks(savedPool.id));
+      initialLoad = false;
+      const history = await loadPersistedFootballHistory(poolId);
+      if (history) {
+        saveFootballPool(history.pool);
+        saveFootballDraftPicks(history.pool.id, history.picks);
+        setPool(history.pool);
+        setPicks(history.picks);
+      }
       setIsLoading(false);
     }
 

@@ -23,6 +23,7 @@ import {
   defaultScoring,
   saveFootballPool,
 } from "../lib/storage";
+import { persistFootballHistory } from "../lib/platformStorage";
 
 const conferenceOptions = [
   "ACC",
@@ -125,7 +126,7 @@ export default function CreateFootballPoolPage() {
     return selectedConferences.join(", ");
   }
 
-  function continueToScoring() {
+  async function continueToScoring() {
     const id = createFootballPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
@@ -144,7 +145,7 @@ export default function CreateFootballPoolPage() {
       scheduledDraftTimeZone
     );
 
-    saveFootballPool({
+    const nextPool = {
       id,
       poolName: poolName.trim() || "College Fantasy Football Draft",
       season: week.trim() || "Week 1",
@@ -161,7 +162,10 @@ export default function CreateFootballPoolPage() {
       pickClockSeconds: draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
       autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    saveFootballPool(nextPool);
+    await persistFootballHistory(nextPool, []);
 
     window.location.href = `/football/scoring?id=${id}`;
   }

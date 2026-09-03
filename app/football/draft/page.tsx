@@ -34,7 +34,12 @@ import {
   loadFootballDraftPicks,
   loadFootballPool,
   saveFootballDraftPicks,
+  saveFootballPool,
 } from "../lib/storage";
+import {
+  loadPersistedFootballHistory,
+  persistFootballHistory,
+} from "../lib/platformStorage";
 import {
   getPlayerPpg,
   getProjectedScore,
@@ -456,11 +461,26 @@ export default function FootballDraftPage() {
     const id = new URLSearchParams(window.location.search).get("id");
     if (!id) return;
 
-    const savedPool = loadFootballPool(id);
-    if (savedPool) {
-      setPool(savedPool);
-      setPicks(loadFootballDraftPicks(savedPool.id));
+    async function loadDraft() {
+      const savedPool = loadFootballPool(id!);
+      if (savedPool) {
+        const savedPicks = loadFootballDraftPicks(savedPool.id);
+        setPool(savedPool);
+        setPicks(savedPicks);
+        persistFootballHistory(savedPool, savedPicks).catch(console.error);
+        return;
+      }
+
+      const history = await loadPersistedFootballHistory(id!);
+      if (!history) return;
+
+      saveFootballPool(history.pool);
+      saveFootballDraftPicks(history.pool.id, history.picks);
+      setPool(history.pool);
+      setPicks(history.picks);
     }
+
+    loadDraft();
   }, []);
 
   useEffect(() => {
@@ -809,6 +829,7 @@ export default function FootballDraftPage() {
     ];
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
+    persistFootballHistory(pool, nextPicks).catch(console.error);
     setPendingPlayer(null);
     setDetailsPlayer(null);
 
@@ -899,6 +920,7 @@ export default function FootballDraftPage() {
     const nextPicks = picks.slice(0, -1);
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
+    persistFootballHistory(pool, nextPicks).catch(console.error);
     setShowCompleted(false);
     setPendingPlayer(null);
     setDetailsPlayer(null);

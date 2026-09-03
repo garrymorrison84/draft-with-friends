@@ -1,4 +1,3 @@
-import { supabase } from "../../lib/supabase";
 import type { FootballDraftPick, FootballPool } from "./storage";
 
 type PlatformPoolRow = {
@@ -68,33 +67,38 @@ function restorePick(row: PlatformPickRow): FootballDraftPick | null {
 }
 
 export async function loadPersistedFootballHistory(poolId: string) {
-  const [{ data: poolRow, error: poolError }, { data: pickRows, error: picksError }] =
-    await Promise.all([
-      supabase
-        .from("platform_pools")
-        .select("id,settings")
-        .eq("id", poolId)
-        .eq("pool_type", "college_fantasy")
-        .maybeSingle(),
-      supabase
-        .from("platform_draft_picks")
-        .select("pick_index,selection_id,selection_snapshot")
-        .eq("pool_id", poolId)
-        .order("pick_index", { ascending: true }),
-    ]);
+  const response = await fetch(`/api/football/pools?id=${encodeURIComponent(poolId)}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
 
-  if (poolError || picksError || !poolRow) {
-    if (poolError) console.error(poolError);
-    if (picksError) console.error(picksError);
-    return null;
-  }
+  const data = await response.json();
+  const poolRow = data.pool as PlatformPoolRow | undefined;
+  const pickRows = data.picks as PlatformPickRow[] | undefined;
+  if (!poolRow) return null;
 
   const pool = restorePool(poolRow as PlatformPoolRow);
   if (!pool) return null;
 
-  const picks = ((pickRows || []) as PlatformPickRow[])
+  const picks = (pickRows || [])
     .map(restorePick)
     .filter((pick): pick is FootballDraftPick => pick !== null);
 
   return { pool, picks };
+}
+
+export async function persistFootballHistory(
+  pool: FootballPool,
+  picks: FootballDraftPick[]
+) {
+  const response = await fetch("/api/football/pools", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pool, picks }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || "Could not save shared football pool.");
+  }
 }
