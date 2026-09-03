@@ -5,6 +5,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+async function getFootballServiceOwnerId(
+  client: NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>
+) {
+  const email = "football-pools@draftwithfriends.com";
+  const { data: usersData, error: usersError } =
+    await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
+
+  if (usersError) throw usersError;
+
+  const existingUser = usersData.users.find((user) => user.email === email);
+  if (existingUser) return existingUser.id;
+
+  const { data, error } = await client.auth.admin.createUser({
+    email,
+    password: crypto.randomUUID() + crypto.randomUUID(),
+    email_confirm: true,
+    user_metadata: { role: "football_pool_service" },
+  });
+
+  if (error || !data.user) {
+    throw error || new Error("Could not create football pool service owner.");
+  }
+
+  return data.user.id;
+}
+
 export async function GET(request: NextRequest) {
   const poolId = request.nextUrl.searchParams.get("id")?.trim();
   if (!poolId) {
@@ -90,7 +116,22 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: ownerLookupError.message }, { status: 500 });
   }
 
-  const ownerId = existingPool?.owner_id || crypto.randomUUID();
+  let ownerId = existingPool?.owner_id;
+  if (!ownerId) {
+    try {
+      ownerId = await getFootballServiceOwnerId(client);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Could not assign football pool owner.",
+        },
+        { status: 500 }
+      );
+    }
+  }
   const { error: poolError } = await client.from("platform_pools").upsert(
     {
       id: poolId,
