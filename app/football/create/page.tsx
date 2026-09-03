@@ -56,6 +56,8 @@ export default function CreateFootballPoolPage() {
   const [playerPoolMode, setPlayerPoolMode] = useState<"power" | "custom">("power");
   const [selectedConferences, setSelectedConferences] = useState(powerPoolConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function loadOrganizer() {
@@ -147,8 +149,10 @@ export default function CreateFootballPoolPage() {
     return selectedConferences.join(", ");
   }
 
-  function continueToScoring() {
+  async function continueToScoring() {
     if (!organizer) return;
+    setIsCreating(true);
+    setErrorMessage("");
     const id = createFootballPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
@@ -188,9 +192,18 @@ export default function CreateFootballPoolPage() {
     };
 
     saveFootballPool(nextPool);
-    persistFootballHistory(nextPool, []).catch(console.error);
-
-    window.location.href = `/football/scoring?id=${id}`;
+    try {
+      await persistFootballHistory(nextPool, []);
+      window.location.href = `/football/scoring?id=${id}`;
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not create the shared football pool. Try again."
+      );
+      setIsCreating(false);
+    }
   }
 
   if (isCheckingAuth || !organizer) {
@@ -615,12 +628,19 @@ export default function CreateFootballPoolPage() {
               )}
             </Panel>
 
+            {errorMessage && (
+              <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm font-bold text-red-200">
+                {errorMessage}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={continueToScoring}
-              className="mt-4 rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 hover:bg-emerald-300"
+              disabled={isCreating}
+              className="mt-4 rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Continue to Scoring Setup
+              {isCreating ? "Creating Shared Pool..." : "Continue to Scoring Setup"}
             </button>
           </div>
         </div>
