@@ -354,7 +354,13 @@ export default function Home() {
                 href="/football"
                 className="flex min-h-20 items-center justify-center gap-3 rounded-2xl bg-emerald-400 px-6 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
               >
-                <span aria-hidden="true" className="text-3xl leading-none">🏈</span>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 32 32"
+                  className="h-8 w-8 shrink-0 fill-current"
+                >
+                  <path d="M27.8 4.2C23.9.3 15.6 1.4 9.1 7.9S.3 22.7 4.2 26.6s12.2 2.8 18.7-3.7 8.8-14.8 4.9-18.7ZM11.6 21.8l-1.4-1.4 2.1-2.1-1.5-1.5 1.4-1.4 1.5 1.5 1.2-1.2-1.5-1.5 1.4-1.4 1.5 1.5 1.2-1.2-1.5-1.5 1.4-1.4 1.5 1.5 2.1-2.1 1.4 1.4-9.3 9.3Z" />
+                </svg>
                 <span>Create College Fantasy Football Pool</span>
               </a>
 
@@ -362,7 +368,15 @@ export default function Home() {
                 href="/create-pool"
                 className="flex min-h-20 items-center justify-center gap-3 rounded-2xl bg-emerald-400 px-6 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
               >
-                <span aria-hidden="true" className="text-3xl leading-none">⛳</span>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 32 32"
+                  className="h-8 w-8 shrink-0 fill-current"
+                >
+                  <path d="M8 2h2v23H8V2Z" />
+                  <path d="M10 3h16l-5 5 5 5H10V3Z" />
+                  <ellipse cx="9" cy="26" rx="8" ry="3.5" />
+                </svg>
                 <span>Create PGA Event Pool</span>
               </a>
             </div>
