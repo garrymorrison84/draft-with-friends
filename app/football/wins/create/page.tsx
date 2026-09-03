@@ -9,6 +9,7 @@ import {
   buildScheduledDraftAt,
   defaultDraftTimeZone,
   draftTimeZoneOptions,
+  getAvailableDraftTimeValue,
   getDraftDateOptions,
   getDraftTimeOptions,
   getLocalDateValue,
@@ -113,9 +114,14 @@ export default function CreateWinsPoolPage() {
     const id = createWinsPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
-    const scheduledStart = buildScheduledDraftAt(
+    const availableDraftTime = getAvailableDraftTimeValue(
       scheduledDraftDate,
       scheduledDraftTime,
+      scheduledDraftTimeZone
+    );
+    const scheduledStart = buildScheduledDraftAt(
+      scheduledDraftDate,
+      availableDraftTime,
       scheduledDraftTimeZone
     );
 
@@ -424,9 +430,16 @@ export default function CreateWinsPoolPage() {
 
                   <SelectField
                     label="Draft Time"
-                    value={scheduledDraftTime}
+                    value={getAvailableDraftTimeValue(
+                      scheduledDraftDate,
+                      scheduledDraftTime,
+                      scheduledDraftTimeZone
+                    )}
                     onChange={setScheduledDraftTime}
-                    options={getDraftTimeOptions()}
+                    options={getDraftTimeOptions(
+                      scheduledDraftDate,
+                      scheduledDraftTimeZone
+                    )}
                   />
 
                   <SelectField

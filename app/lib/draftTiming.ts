@@ -71,8 +71,12 @@ export function getDraftDateOptions(days = 45) {
   });
 }
 
-export function getDraftTimeOptions() {
-  return Array.from({ length: 96 }).map((_, index) => {
+export function getDraftTimeOptions(
+  dateValue?: string,
+  timeZone: DraftTimeZone = defaultDraftTimeZone,
+  now = new Date()
+) {
+  const options = Array.from({ length: 96 }).map((_, index) => {
     const hour = Math.floor(index / 4);
     const minute = (index % 4) * 15;
     const displayHour = hour % 12 || 12;
@@ -83,6 +87,25 @@ export function getDraftTimeOptions() {
       label: `${displayHour}:${padTwo(minute)} ${meridiem}`,
     };
   });
+
+  if (!dateValue) return options;
+
+  return options.filter((option) => {
+    const scheduledAt = buildScheduledDraftAt(dateValue, option.value, timeZone);
+    return scheduledAt !== null && new Date(scheduledAt).getTime() > now.getTime();
+  });
+}
+
+export function getAvailableDraftTimeValue(
+  dateValue: string,
+  timeValue: string,
+  timeZone: DraftTimeZone = defaultDraftTimeZone,
+  now = new Date()
+) {
+  const options = getDraftTimeOptions(dateValue, timeZone, now);
+  return options.some((option) => option.value === timeValue)
+    ? timeValue
+    : options[0]?.value || "";
 }
 
 function getTimeZoneOffsetMs(date: Date, timeZone: DraftTimeZone) {

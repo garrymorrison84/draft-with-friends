@@ -14,6 +14,7 @@ import FormSelect from "../components/FormSelect";
 import {
   buildScheduledDraftAt,
   defaultDraftTimeZone,
+  getAvailableDraftTimeValue,
   getDraftDateOptions,
   getDraftTimeOptions,
   getLocalDateValue,
@@ -246,9 +247,14 @@ export default function CreatePoolPage() {
       draftOrder.length === finalTeamNames.length
         ? draftOrder.map((team, index) => team?.trim() || finalTeamNames[index])
         : finalTeamNames;
-    const scheduledStart = buildScheduledDraftAt(
+    const availableDraftTime = getAvailableDraftTimeValue(
       scheduledDraftDate,
       scheduledDraftTime,
+      scheduledDraftTimeZone
+    );
+    const scheduledStart = buildScheduledDraftAt(
+      scheduledDraftDate,
+      availableDraftTime,
       scheduledDraftTimeZone
     );
 
@@ -664,9 +670,16 @@ export default function CreatePoolPage() {
                       </label>
                       <FormSelect
                         ariaLabel="Draft time"
-                        value={scheduledDraftTime}
+                        value={getAvailableDraftTimeValue(
+                          scheduledDraftDate,
+                          scheduledDraftTime,
+                          scheduledDraftTimeZone
+                        )}
                         onChange={setScheduledDraftTime}
-                        options={getDraftTimeOptions()}
+                        options={getDraftTimeOptions(
+                          scheduledDraftDate,
+                          scheduledDraftTimeZone
+                        )}
                         buttonClassName="border-white/5 bg-[#030712] font-normal"
                       />
                     </div>
