@@ -1,4 +1,5 @@
 import type { FootballDraftPick, FootballPool } from "./storage";
+import { supabase } from "../../lib/supabase";
 
 type PlatformPoolRow = {
   id: string;
@@ -91,10 +92,16 @@ export async function persistFootballHistory(
   pool: FootballPool,
   picks: FootballDraftPick[]
 ) {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
   const response = await fetch("/api/football/pools", {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify({ pool, picks }),
+    keepalive: true,
   });
 
   if (!response.ok) {

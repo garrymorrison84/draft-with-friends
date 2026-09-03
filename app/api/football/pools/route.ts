@@ -5,29 +5,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function getFootballServiceOwnerId(
+async function getAuthenticatedOrganizerId(
+  request: NextRequest,
   client: NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>
 ) {
-  const email = "football-pools@draftwithfriends.com";
-  const { data: usersData, error: usersError } =
-    await client.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  const authorization = request.headers.get("authorization");
+  const accessToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!accessToken) return null;
 
-  if (usersError) throw usersError;
-
-  const existingUser = usersData.users.find((user) => user.email === email);
-  if (existingUser) return existingUser.id;
-
-  const { data, error } = await client.auth.admin.createUser({
-    email,
-    password: crypto.randomUUID() + crypto.randomUUID(),
-    email_confirm: true,
-    user_metadata: { role: "football_pool_service" },
-  });
-
-  if (error || !data.user) {
-    throw error || new Error("Could not create football pool service owner.");
-  }
-
+  const { data, error } = await client.auth.getUser(accessToken);
+  if (error || !data.user) return null;
   return data.user.id;
 }
 
@@ -116,22 +103,15 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: ownerLookupError.message }, { status: 500 });
   }
 
+  const organizerId = await getAuthenticatedOrganizerId(request, client);
   let ownerId = existingPool?.owner_id;
-  if (!ownerId) {
-    try {
-      ownerId = await getFootballServiceOwnerId(client);
-    } catch (error) {
-      return NextResponse.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Could not assign football pool owner.",
-        },
-        { status: 500 }
-      );
-    }
+  if (!ownerId && !organizerId) {
+    return NextResponse.json(
+      { error: "Organizer sign-in is required to create a football pool." },
+      { status: 401 }
+    );
   }
+  ownerId ||= organizerId;
   const { error: poolError } = await client.from("platform_pools").upsert(
     {
       id: poolId,

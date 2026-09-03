@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import BrandMark from "../../components/BrandMark";
 import FormSelect from "../../components/FormSelect";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   buildScheduledDraftAt,
   defaultDraftTimeZone,
@@ -37,6 +39,8 @@ const conferenceOptions = [
 const powerPoolConferences = defaultFootballPlayerPool.conferences;
 
 export default function CreateFootballPoolPage() {
+  const [organizer, setOrganizer] = useState<User | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [poolName, setPoolName] = useState("");
   const [week, setWeek] = useState("Week 1");
   const [numberOfTeams, setNumberOfTeams] = useState(4);
@@ -52,6 +56,23 @@ export default function CreateFootballPoolPage() {
   const [playerPoolMode, setPlayerPoolMode] = useState<"power" | "custom">("power");
   const [selectedConferences, setSelectedConferences] = useState(powerPoolConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function loadOrganizer() {
+      const user = await getCurrentOrganizerUser();
+      if (!user) {
+        window.location.replace(
+          "/organizer/sign-in?redirect=%2Ffootball%2Fcreate"
+        );
+        return;
+      }
+
+      setOrganizer(user);
+      setIsCheckingAuth(false);
+    }
+
+    loadOrganizer();
+  }, []);
 
   function finalTeamNames() {
     return Array.from({ length: numberOfTeams }).map(
@@ -127,6 +148,7 @@ export default function CreateFootballPoolPage() {
   }
 
   function continueToScoring() {
+    if (!organizer) return;
     const id = createFootballPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
@@ -161,6 +183,7 @@ export default function CreateFootballPoolPage() {
         draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
       pickClockSeconds: draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
       autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
+      ownerId: organizer.id,
       createdAt: new Date().toISOString(),
     };
 
@@ -168,6 +191,16 @@ export default function CreateFootballPoolPage() {
     persistFootballHistory(nextPool, []).catch(console.error);
 
     window.location.href = `/football/scoring?id=${id}`;
+  }
+
+  if (isCheckingAuth || !organizer) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#030712] px-6 text-white">
+        <p className="text-sm font-bold text-slate-400">
+          Checking organizer account...
+        </p>
+      </main>
+    );
   }
 
   return (
