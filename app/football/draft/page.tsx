@@ -445,6 +445,7 @@ export default function FootballDraftPage() {
   const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
+  const committedPickKeyRef = useRef("");
   const wasDraftOpenRef = useRef(false);
   const wasDraftOpeningBufferActiveRef = useRef(false);
   const draftJustOpenedPickKeyRef = useRef("");
@@ -659,13 +660,18 @@ export default function FootballDraftPage() {
     setPickTimerStartedAt(Date.now());
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
-    autoPickInFlightRef.current = false;
-    autoPickedKeyRef.current = "";
     stopCountdownTickSound();
     if (picks.length !== 0) {
       setDraftOpeningStartedAt(null);
     }
   }, [picks.length]);
+
+  useEffect(() => {
+    // Release the timeout lock only after the next pick's fresh timer has rendered.
+    // Releasing it in the picks.length effect lets the next pick briefly inherit 0:00.
+    autoPickInFlightRef.current = false;
+    autoPickedKeyRef.current = "";
+  }, [pickTimerStartedAt]);
 
   useEffect(() => {
     if (draftOpen && !wasDraftOpenRef.current) {
@@ -777,8 +783,10 @@ export default function FootballDraftPage() {
   }
 
   function savePlayerPick(player: FootballPlayer) {
+    const pickKey = pool ? `${pool.id}-${picks.length}` : "";
     if (
       !pool ||
+      committedPickKeyRef.current === pickKey ||
       draftedIds.has(player.id) ||
       !draftOpen ||
       draftComplete ||
@@ -794,6 +802,7 @@ export default function FootballDraftPage() {
       return false;
     }
 
+    committedPickKeyRef.current = pickKey;
     const nextPicks = [
       ...picks,
       { playerId: player.id, team: currentTeam, pickNumber: picks.length + 1 },
@@ -886,6 +895,7 @@ export default function FootballDraftPage() {
 
   function undoPick() {
     if (!pool) return;
+    committedPickKeyRef.current = "";
     const nextPicks = picks.slice(0, -1);
     setPicks(nextPicks);
     saveFootballDraftPicks(pool.id, nextPicks);
