@@ -352,14 +352,14 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2">
               <a
                 href="/football"
-                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
+                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)] md:text-xl"
               >
                 Create College Fantasy Football Pool
               </a>
 
               <a
                 href="/create-pool"
-                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
+                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)] md:text-xl"
               >
                 Create PGA Event Pool
               </a>
