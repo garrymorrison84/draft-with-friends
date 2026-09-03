@@ -335,14 +335,13 @@ export default function Home() {
             </h1>
 
             <p className="relative z-10 mt-6 max-w-[calc(100%-122px)] text-base font-black leading-6 text-emerald-300 min-[375px]:text-lg min-[375px]:leading-7 min-[390px]:max-w-[calc(100%-128px)] sm:max-w-[calc(100%-180px)] sm:text-2xl md:max-w-3xl">
-              No spreadsheets. No manual tracking. Just snake drafts with friends.
+              Weekend long contests. No waiver wires. No bye weeks. No text threads
+              for drafting. No excel spreadsheets for tracking.
             </p>
           </div>
 
           <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
-            Create your own custom pool. Share the link with your crew. Snake draft
-            in minutes, skip the waiver wire and season-long grind, and crown a
-            champion before Sunday is over.
+            Build your pool. Invite your friends. Snake draft teams. Track in realtime.
           </p>
 
           <div className="mt-8 lg:mt-10">
@@ -352,17 +351,17 @@ export default function Home() {
 
             <div className="grid gap-4 sm:grid-cols-3">
               <a
-                href="/create-pool"
-                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
-              >
-                Create PGA Pool
-              </a>
-
-              <a
                 href="/football"
                 className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
               >
                 Weekly College Fantasy Football
+              </a>
+
+              <a
+                href="/create-pool"
+                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
+              >
+                Create PGA Pool
               </a>
 
               <a
