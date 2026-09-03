@@ -9,6 +9,8 @@ const draftSounds = {
 
 const audioCache = new Map<string, HTMLAudioElement>();
 let activeCountdownTick: HTMLAudioElement | null = null;
+let lastPickSoundKey = "";
+let lastPickSoundAt = 0;
 
 export function isDraftSoundEnabled() {
   if (typeof window === "undefined") return true;
@@ -43,6 +45,16 @@ function playSound(src: string, volume = 0.72) {
   player.currentTime = 0;
   player.volume = volume;
   player.play().catch(() => {});
+}
+
+function playSingleSound(src: string, volume = 0.72) {
+  const audio = getAudio(src);
+  if (!audio) return;
+
+  audio.pause();
+  audio.currentTime = 0;
+  audio.volume = volume;
+  audio.play().catch(() => {});
 }
 
 export function preloadDraftSounds() {
@@ -83,7 +95,17 @@ export function playPauseResumeWhistleSound() {
   playSound(draftSounds.pauseResumeWhistle, 0.85);
 }
 
-export function playPickMadeSound() {
+export function playPickMadeSound(pickKey = "") {
+  const playedAt = Date.now();
+  if (
+    playedAt - lastPickSoundAt < 1000 &&
+    (!pickKey || pickKey === lastPickSoundKey)
+  ) {
+    return;
+  }
+
+  lastPickSoundKey = pickKey;
+  lastPickSoundAt = playedAt;
   stopCountdownTickSound();
-  playSound(draftSounds.pickSuccess, 0.58);
+  playSingleSound(draftSounds.pickSuccess, 0.58);
 }

@@ -51,32 +51,32 @@ const positionStyles: Record<
   QB: {
     badge: "border-purple-200 bg-purple-500/45 text-purple-50 shadow-purple-500/20",
     card: "hover:border-purple-200/90",
-    board: "border-sky-500/35 bg-[#0b3b55]/95",
+    board: "border-purple-300/50 bg-purple-500/20",
   },
   RB: {
     badge: "border-sky-200 bg-sky-500/45 text-sky-50 shadow-sky-500/20",
     card: "hover:border-sky-200/90",
-    board: "border-sky-500/35 bg-[#0b3b55]/95",
+    board: "border-sky-300/50 bg-sky-500/20",
   },
   WR: {
     badge: "border-yellow-200 bg-yellow-500/45 text-yellow-50 shadow-yellow-500/20",
     card: "hover:border-yellow-200/90",
-    board: "border-sky-500/35 bg-[#0b3b55]/95",
+    board: "border-yellow-300/50 bg-yellow-500/20",
   },
   TE: {
     badge: "border-red-200 bg-red-500/45 text-red-50 shadow-red-500/20",
     card: "hover:border-red-200/90",
-    board: "border-sky-500/35 bg-[#0b3b55]/95",
+    board: "border-red-300/50 bg-red-500/20",
   },
   DST: {
     badge: "border-green-200 bg-green-500/45 text-green-50 shadow-green-500/20",
     card: "hover:border-green-200/90",
-    board: "border-sky-500/35 bg-[#0b3b55]/95",
+    board: "border-green-300/50 bg-green-500/20",
   },
   K: {
     badge: "border-slate-100 bg-slate-400/45 text-white shadow-slate-400/20",
     card: "hover:border-slate-100/90",
-    board: "border-sky-500/35 bg-[#0b3b55]/95",
+    board: "border-slate-300/50 bg-slate-400/20",
   },
 };
 
@@ -820,7 +820,7 @@ export default function FootballDraftPage() {
     if (isFinalPick) {
       stopCountdownTickSound();
     } else {
-      playPickMadeSound();
+      playPickMadeSound(pickKey);
     }
 
     return true;
