@@ -352,39 +352,16 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2">
               <a
                 href="/football"
-                className="group flex min-h-28 items-center gap-4 rounded-2xl border border-emerald-300/30 bg-gradient-to-br from-emerald-300 to-emerald-400 px-5 py-5 text-slate-950 shadow-[0_14px_30px_rgba(52,211,153,0.16)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:from-emerald-200 hover:to-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.24)] sm:px-6"
+                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
               >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950/10 ring-1 ring-slate-950/10">
-                  <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-current">
-                    <path d="M27.8 4.2C23.9.3 15.6 1.4 9.1 7.9S.3 22.7 4.2 26.6s12.2 2.8 18.7-3.7 8.8-14.8 4.9-18.7ZM11.6 21.8l-1.4-1.4 2.1-2.1-1.5-1.5 1.4-1.4 1.5 1.5 1.2-1.2-1.5-1.5 1.4-1.4 1.5 1.5 1.2-1.2-1.5-1.5 1.4-1.4 1.5 1.5 2.1-2.1 1.4 1.4-9.3 9.3Z" />
-                  </svg>
-                </span>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block text-xs font-black uppercase tracking-[0.16em] text-slate-800/70">College Football</span>
-                  <span className="mt-1 block text-lg font-black leading-tight md:text-xl">Create Fantasy Pool</span>
-                </span>
-                <span aria-hidden="true" className="text-2xl font-light transition-transform group-hover:translate-x-1">→</span>
+                Create College Fantasy Football Pool
               </a>
 
               <a
                 href="/create-pool"
-                className="group flex min-h-28 items-center gap-4 rounded-2xl border border-emerald-300/30 bg-gradient-to-br from-emerald-300 to-emerald-400 px-5 py-5 text-slate-950 shadow-[0_14px_30px_rgba(52,211,153,0.16)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:from-emerald-200 hover:to-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.24)] sm:px-6"
+                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 md:text-xl"
               >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-950/10 ring-1 ring-slate-950/10">
-                  <svg aria-hidden="true" viewBox="0 0 32 32" className="h-7 w-7 fill-current">
-                    <circle cx="19" cy="10" r="7" />
-                    <path d="M18 16h2l2 4h-6l2-4Zm-5 5h12l2 8H11l2-8Z" />
-                    <circle cx="16.5" cy="7.5" r=".8" className="fill-emerald-300" />
-                    <circle cx="20.5" cy="6.5" r=".8" className="fill-emerald-300" />
-                    <circle cx="22" cy="10.5" r=".8" className="fill-emerald-300" />
-                    <circle cx="18" cy="11.5" r=".8" className="fill-emerald-300" />
-                  </svg>
-                </span>
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block text-xs font-black uppercase tracking-[0.16em] text-slate-800/70">PGA Golf</span>
-                  <span className="mt-1 block text-lg font-black leading-tight md:text-xl">Create Event Pool</span>
-                </span>
-                <span aria-hidden="true" className="text-2xl font-light transition-transform group-hover:translate-x-1">→</span>
+                Create PGA Event Pool
               </a>
             </div>
           </div>
