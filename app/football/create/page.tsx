@@ -126,7 +126,7 @@ export default function CreateFootballPoolPage() {
     return selectedConferences.join(", ");
   }
 
-  async function continueToScoring() {
+  function continueToScoring() {
     const id = createFootballPoolId();
     const teams = finalTeamNames();
     const order = draftOrder.length === teams.length ? draftOrder : teams;
@@ -165,7 +165,7 @@ export default function CreateFootballPoolPage() {
     };
 
     saveFootballPool(nextPool);
-    await persistFootballHistory(nextPool, []);
+    persistFootballHistory(nextPool, []).catch(console.error);
 
     window.location.href = `/football/scoring?id=${id}`;
   }

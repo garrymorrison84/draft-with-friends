@@ -381,12 +381,15 @@ export default function FootballScoringPage() {
     ];
   }
 
-  async function saveAndContinue() {
+  function saveAndContinue() {
     if (!pool) return;
 
     const nextPool = { ...pool, scoring };
     saveFootballPool(nextPool);
-    await persistFootballHistory(nextPool, loadFootballDraftPicks(nextPool.id));
+    persistFootballHistory(
+      nextPool,
+      loadFootballDraftPicks(nextPool.id)
+    ).catch(console.error);
     window.location.href = `/football/pool?id=${pool.id}`;
   }
 
