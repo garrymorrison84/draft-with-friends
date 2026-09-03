@@ -95,6 +95,10 @@ export async function PUT(request: NextRequest) {
     {
       id: poolId,
       owner_id: ownerId,
+      name:
+        typeof pool.poolName === "string" && pool.poolName.trim()
+          ? pool.poolName.trim()
+          : "College Football Pool",
       pool_type: "college_fantasy",
       settings: pool,
     },
