@@ -93,14 +93,11 @@ export default function FootballHomePage() {
               <p className="text-sm font-black uppercase tracking-widest text-emerald-200">
                 Next step
               </p>
-              <p className="mt-2 text-lg font-black text-white sm:text-xl">
-                Create Your College Fantasy Football Pool
-              </p>
               <Link
                 href="/football/create"
-                className="mt-5 inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-300 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 md:min-h-20 md:px-8 md:py-5 md:text-xl"
+                className="mt-3 inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-300 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 md:min-h-20 md:px-8 md:py-5 md:text-xl"
               >
-                Start College Fantasy Football
+                Create Your College Fantasy Football Pool
               </Link>
             </div>
           </div>
