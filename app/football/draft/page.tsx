@@ -39,6 +39,7 @@ import {
 import {
   loadPersistedFootballHistory,
   persistFootballHistory,
+  submitFootballPick,
 } from "../lib/platformStorage";
 import {
   getPlayerPpg,
@@ -445,6 +446,7 @@ export default function FootballDraftPage() {
   const draftJustOpenedPickKeyRef = useRef("");
   const draftCompleteSoundPlayedRef = useRef(false);
   const tickKeyRef = useRef("");
+  const pickSubmissionInFlightRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -465,28 +467,46 @@ export default function FootballDraftPage() {
     }
 
     async function loadDraft() {
-      const savedPool = loadFootballPool(id!);
-      if (savedPool) {
-        if (!hasSelectedTeam(savedPool)) return;
-        const savedPicks = loadFootballDraftPicks(savedPool.id);
-        setPool(savedPool);
-        setPicks(savedPicks);
-        persistFootballHistory(savedPool, savedPicks).catch(console.error);
-        return;
-      }
-
       const history = await loadPersistedFootballHistory(id!);
-      if (!history) return;
-      if (!hasSelectedTeam(history.pool)) return;
-
-      saveFootballPool(history.pool);
-      saveFootballDraftPicks(history.pool.id, history.picks);
-      setPool(history.pool);
-      setPicks(history.picks);
+      const localPool = loadFootballPool(id!);
+      const savedPool = history?.pool || localPool;
+      if (!savedPool || !hasSelectedTeam(savedPool)) return;
+      const savedPicks = history?.picks || loadFootballDraftPicks(savedPool.id);
+      saveFootballPool(savedPool);
+      saveFootballDraftPicks(savedPool.id, savedPicks);
+      setPool(savedPool);
+      setPicks(savedPicks);
     }
 
     loadDraft();
   }, []);
+
+  useEffect(() => {
+    if (!pool) return;
+    let cancelled = false;
+
+    async function syncDraftBoard() {
+      if (!pool || pickSubmissionInFlightRef.current) return;
+      const history = await loadPersistedFootballHistory(pool.id);
+      if (!history || cancelled) return;
+      setPicks((current) => {
+        const keyFor = (list: FootballDraftPick[]) =>
+          list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}`).join("|");
+        if (keyFor(current) === keyFor(history.picks)) return current;
+        saveFootballDraftPicks(pool.id, history.picks);
+        setPendingPlayer(null);
+        committedPickKeyRef.current = "";
+        return history.picks;
+      });
+    }
+
+    syncDraftBoard();
+    const interval = window.setInterval(syncDraftBoard, 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [pool]);
 
   useEffect(() => {
     let cancelled = false;
@@ -808,10 +828,11 @@ export default function FootballDraftPage() {
     setPendingPlayer(null);
   }
 
-  function savePlayerPick(player: FootballPlayer) {
+  async function savePlayerPick(player: FootballPlayer) {
     const pickKey = pool ? `${pool.id}-${picks.length}` : "";
     if (
       !pool ||
+      pickSubmissionInFlightRef.current ||
       committedPickKeyRef.current === pickKey ||
       draftedIds.has(player.id) ||
       !draftOpen ||
@@ -829,33 +850,50 @@ export default function FootballDraftPage() {
     }
 
     committedPickKeyRef.current = pickKey;
+    pickSubmissionInFlightRef.current = true;
     const nextPicks = [
       ...picks,
       { playerId: player.id, team: currentTeam, pickNumber: picks.length + 1 },
     ];
-    setPicks(nextPicks);
-    saveFootballDraftPicks(pool.id, nextPicks);
-    persistFootballHistory(pool, nextPicks).catch(console.error);
-    setPendingPlayer(null);
-    setDetailsPlayer(null);
+    try {
+      await submitFootballPick({
+        poolId: pool.id,
+        playerId: player.id,
+        team: currentTeam,
+        expectedPickIndex: picks.length,
+      });
+      setPicks(nextPicks);
+      saveFootballDraftPicks(pool.id, nextPicks);
+      setPendingPlayer(null);
+      setDetailsPlayer(null);
 
-    const isFinalPick = nextPicks.length >= totalPicks;
-
-    if (isFinalPick) {
-      setShowCompleted(true);
+      const isFinalPick = nextPicks.length >= totalPicks;
+      if (isFinalPick) {
+        setShowCompleted(true);
+        stopCountdownTickSound();
+      } else {
+        playPickMadeSound(pickKey);
+      }
+      return true;
+    } catch (error) {
+      console.error(error);
+      committedPickKeyRef.current = "";
+      const history = await loadPersistedFootballHistory(pool.id);
+      if (history) {
+        setPicks(history.picks);
+        saveFootballDraftPicks(pool.id, history.picks);
+      }
+      setPendingPlayer(null);
+      return false;
+    } finally {
+      pickSubmissionInFlightRef.current = false;
+      autoPickInFlightRef.current = false;
     }
-    if (isFinalPick) {
-      stopCountdownTickSound();
-    } else {
-      playPickMadeSound(pickKey);
-    }
-
-    return true;
   }
 
   function confirmDraftPlayer() {
     if (!pendingPlayer) return;
-    savePlayerPick(pendingPlayer);
+    void savePlayerPick(pendingPlayer);
   }
 
   useEffect(() => {
@@ -899,12 +937,9 @@ export default function FootballDraftPage() {
     autoPickInFlightRef.current = true;
     autoPickedKeyRef.current = pickKey;
     setPendingPlayer(null);
-    const didPick = savePlayerPick(nextPlayer);
-
-    if (!didPick) {
-      autoPickInFlightRef.current = false;
-      autoPickedKeyRef.current = "";
-    }
+    void savePlayerPick(nextPlayer).then((didPick) => {
+      if (!didPick) autoPickedKeyRef.current = "";
+    });
   }, [
     activePickClockSeconds,
     currentTeam,

@@ -109,3 +109,30 @@ export async function persistFootballHistory(
     throw new Error(data?.error || "Could not save shared football pool.");
   }
 }
+
+export async function submitFootballPick({
+  poolId,
+  playerId,
+  team,
+  expectedPickIndex,
+}: {
+  poolId: string;
+  playerId: string;
+  team: string;
+  expectedPickIndex: number;
+}) {
+  const response = await fetch("/api/football/pools", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(data?.error || "Could not save this draft pick.") as Error & {
+      status?: number;
+    };
+    error.status = response.status;
+    throw error;
+  }
+  return data;
+}

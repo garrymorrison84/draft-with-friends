@@ -58,6 +58,63 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ pool, picks: picks || [] });
 }
 
+export async function POST(request: NextRequest) {
+  const body: unknown = await request.json();
+  if (!isRecord(body)) {
+    return NextResponse.json({ error: "Invalid draft pick payload." }, { status: 400 });
+  }
+
+  const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
+  const playerId = typeof body.playerId === "string" ? body.playerId.trim() : "";
+  const team = typeof body.team === "string" ? body.team.trim() : "";
+  const expectedPickIndex = Number(body.expectedPickIndex);
+  if (!poolId || !playerId || !team || !Number.isInteger(expectedPickIndex) || expectedPickIndex < 0) {
+    return NextResponse.json({ error: "Incomplete draft pick payload." }, { status: 400 });
+  }
+
+  const { client, error: adminError } = getSupabaseAdmin();
+  if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+
+  const [{ data: pool, error: poolError }, { data: currentPicks, error: picksError }] =
+    await Promise.all([
+      client.from("platform_pools").select("id").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
+      client.from("platform_draft_picks")
+        .select("pick_index,selection_id,selection_snapshot")
+        .eq("pool_id", poolId)
+        .order("pick_index", { ascending: true }),
+    ]);
+
+  if (poolError || picksError) {
+    return NextResponse.json({ error: poolError?.message || picksError?.message }, { status: 500 });
+  }
+  if (!pool) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+
+  const picks = currentPicks || [];
+  if (picks.length !== expectedPickIndex || picks.some((pick) => pick.selection_id === playerId)) {
+    return NextResponse.json({ error: "Draft board changed. Syncing the latest pick.", picks }, { status: 409 });
+  }
+
+  const { error: insertError } = await client.from("platform_draft_picks").insert({
+    pool_id: poolId,
+    pick_index: expectedPickIndex,
+    selection_id: playerId,
+    selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1 },
+  });
+
+  if (insertError) {
+    const { data: latestPicks } = await client.from("platform_draft_picks")
+      .select("pick_index,selection_id,selection_snapshot")
+      .eq("pool_id", poolId)
+      .order("pick_index", { ascending: true });
+    return NextResponse.json(
+      { error: "Another device submitted this pick first. Syncing the draft.", picks: latestPicks || picks },
+      { status: 409 }
+    );
+  }
+
+  return NextResponse.json({ success: true, pickIndex: expectedPickIndex });
+}
+
 export async function PUT(request: NextRequest) {
   const body: unknown = await request.json();
   if (!isRecord(body) || !isRecord(body.pool) || !Array.isArray(body.picks)) {
