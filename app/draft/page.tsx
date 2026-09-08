@@ -1272,7 +1272,7 @@ export default function DraftPage() {
               </div>
             </div>
 
-            <div className="mt-4 min-h-[520px] flex-1 overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:min-h-[620px] sm:rounded-3xl lg:min-h-0">
+            <div className="mt-4 h-[374px] min-h-0 flex-none overflow-auto rounded-2xl border border-slate-500/35 bg-[#0B1220] shadow-inner shadow-black/30 sm:mt-8 sm:h-auto sm:min-h-[620px] sm:flex-1 sm:rounded-3xl lg:min-h-0">
               <div style={{ minWidth: `${teams.length * 150}px` }}>
                 <div
                   className="sticky top-0 z-20 grid overflow-hidden bg-[#12313b] shadow-[0_18px_28px_rgba(0,0,0,0.35)]"
