@@ -144,6 +144,38 @@ export async function PATCH(request: NextRequest) {
   const body: unknown = await request.json();
   if (!isRecord(body)) return NextResponse.json({ error: "Invalid team update." }, { status: 400 });
   const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
+  if (body.action === "set-draft-pause") {
+    if (!poolId) return NextResponse.json({ error: "Missing pool id." }, { status: 400 });
+    const { client, error: adminError } = getSupabaseAdmin();
+    if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+    const { data: row, error: poolError } = await client
+      .from("platform_pools")
+      .select("owner_id,settings")
+      .eq("id", poolId)
+      .eq("pool_type", "college_fantasy")
+      .maybeSingle();
+    if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
+    if (!row || !isRecord(row.settings)) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    const organizerId = await getAuthenticatedOrganizerId(request, client);
+    if (!organizerId || organizerId !== row.owner_id) {
+      return NextResponse.json({ error: "Only the commissioner can pause the draft." }, { status: 403 });
+    }
+    const paused = body.paused === true;
+    const pickClockSeconds = Math.max(0, Number(row.settings.pickClockSeconds) || 0);
+    const remaining = Math.max(0, Math.min(pickClockSeconds, Number(body.remaining) || 0));
+    const now = new Date();
+    const nextSettings = {
+      ...row.settings,
+      draftPaused: paused,
+      draftPausedRemaining: paused ? remaining : null,
+      draftTimerStartedAt: paused
+        ? row.settings.draftTimerStartedAt || null
+        : new Date(now.getTime() - (pickClockSeconds - remaining) * 1000).toISOString(),
+    };
+    const { error: updateError } = await client.from("platform_pools").update({ settings: nextSettings }).eq("id", poolId);
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json({ success: true, pool: nextSettings });
+  }
   const currentName = typeof body.currentName === "string" ? body.currentName.trim() : "";
   const newName = typeof body.newName === "string" ? body.newName.trim().slice(0, 40) : "";
   if (!poolId || !currentName || !newName) {

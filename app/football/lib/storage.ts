@@ -69,6 +69,9 @@ export type FootballPool = {
   timeZone?: import("../../lib/draftTiming").DraftTimeZone;
   pickClockSeconds?: number;
   autoPickOnTimeout?: boolean;
+  draftPaused?: boolean;
+  draftPausedRemaining?: number | null;
+  draftTimerStartedAt?: string | null;
   createdAt: string;
   ownerId?: string;
 };

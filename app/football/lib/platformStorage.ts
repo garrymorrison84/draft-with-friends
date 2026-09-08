@@ -148,3 +148,27 @@ export async function submitFootballPick({
   }
   return data;
 }
+
+export async function setFootballDraftPause({
+  poolId,
+  paused,
+  remaining,
+}: {
+  poolId: string;
+  paused: boolean;
+  remaining: number;
+}) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  const response = await fetch("/api/football/pools", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ action: "set-draft-pause", poolId, paused, remaining }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(data?.error || "Could not update the shared draft clock.");
+  return data.pool as FootballPool;
+}

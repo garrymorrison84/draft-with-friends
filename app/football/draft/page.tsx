@@ -41,6 +41,7 @@ import {
 import {
   loadPersistedFootballHistory,
   persistFootballHistory,
+  setFootballDraftPause,
   submitFootballPick,
 } from "../lib/platformStorage";
 import {
@@ -482,6 +483,12 @@ export default function FootballDraftPage() {
       saveFootballDraftPicks(savedPool.id, savedPicks);
       setPool(savedPool);
       setPicks(savedPicks);
+      setIsPickClockPaused(savedPool.draftPaused === true);
+      setPausedPickClockRemaining(savedPool.draftPaused ? savedPool.draftPausedRemaining ?? null : null);
+      if (savedPool.draftTimerStartedAt) {
+        const sharedStartedAt = Date.parse(savedPool.draftTimerStartedAt);
+        if (Number.isFinite(sharedStartedAt)) setPickTimerStartedAt(sharedStartedAt);
+      }
       const snapshotPlayers = savedPicks
         .map((pick) => pick.playerSnapshot)
         .filter((player): player is FootballPlayer => Boolean(player));
@@ -516,6 +523,14 @@ export default function FootballDraftPage() {
       if (!pool || pickSubmissionInFlightRef.current) return;
       const history = await loadPersistedFootballHistory(pool.id);
       if (!history || cancelled) return;
+      setPool((current) => current ? { ...current, ...history.pool } : history.pool);
+      const sharedPaused = history.pool.draftPaused === true;
+      setIsPickClockPaused(sharedPaused);
+      setPausedPickClockRemaining(sharedPaused ? history.pool.draftPausedRemaining ?? null : null);
+      if (!sharedPaused && history.pool.draftTimerStartedAt) {
+        const sharedStartedAt = Date.parse(history.pool.draftTimerStartedAt);
+        if (Number.isFinite(sharedStartedAt)) setPickTimerStartedAt(sharedStartedAt);
+      }
       setPicks((current) => {
         const keyFor = (list: FootballDraftPick[]) =>
           list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}:${pick.pickedAt || ""}`).join("|");
@@ -1013,25 +1028,29 @@ export default function FootballDraftPage() {
     setDetailsPlayer(null);
   }
 
-  function togglePickClockPause() {
-    if (pickClockRemaining === null || activePickClockSeconds <= 0) return;
+  async function togglePickClockPause() {
+    if (!pool || !isCommissioner || pickClockRemaining === null || activePickClockSeconds <= 0) return;
 
-    if (isPickClockPaused) {
-      const remaining = pausedPickClockRemaining ?? pickClockRemaining;
-      setPickTimerStartedAt(
-        Date.now() - (activePickClockSeconds - remaining) * 1000
-      );
-      setPausedPickClockRemaining(null);
-      setIsPickClockPaused(false);
-      if (remaining <= 8) tickKeyRef.current = "";
+    const nextPaused = !isPickClockPaused;
+    const remaining = isPickClockPaused
+      ? pausedPickClockRemaining ?? pickClockRemaining
+      : pickClockRemaining;
+    setPickError("");
+    try {
+      const sharedPool = await setFootballDraftPause({ poolId: pool.id, paused: nextPaused, remaining });
+      setPool(sharedPool);
+      setIsPickClockPaused(nextPaused);
+      setPausedPickClockRemaining(nextPaused ? remaining : null);
+      if (!nextPaused && sharedPool.draftTimerStartedAt) {
+        const sharedStartedAt = Date.parse(sharedPool.draftTimerStartedAt);
+        if (Number.isFinite(sharedStartedAt)) setPickTimerStartedAt(sharedStartedAt);
+      }
+      if (nextPaused) stopCountdownTickSound();
+      else if (remaining <= 8) tickKeyRef.current = "";
       playPauseResumeWhistleSound();
-      return;
+    } catch (error) {
+      setPickError(error instanceof Error ? error.message : "Could not update the shared draft clock.");
     }
-
-    setPausedPickClockRemaining(pickClockRemaining);
-    setIsPickClockPaused(true);
-    stopCountdownTickSound();
-    playPauseResumeWhistleSound();
   }
 
   function toggleDraftSounds() {
@@ -1264,13 +1283,13 @@ export default function FootballDraftPage() {
                 >
                   Undo Pick
                 </button>
-                {draftOpen &&
+                {isCommissioner && draftOpen &&
                   !draftOpeningBufferActive &&
                   !draftComplete &&
                   activePickClockSeconds > 0 && (
                   <button
                     type="button"
-                    onClick={togglePickClockPause}
+                    onClick={() => void togglePickClockPause()}
                     className="min-h-10 flex-1 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:flex-none sm:px-4 sm:py-3"
                   >
                     {isPickClockPaused ? "Resume" : "Pause"}
