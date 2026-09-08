@@ -348,7 +348,7 @@ function PlayerDetailsModal({
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <h3 className="text-xl font-black">Game Log</h3>
           <p className="mt-2 text-sm font-semibold text-slate-400">
-            Fantasy points use this pool&apos;s scoring rules.
+            Fantasy points reflect your pool&apos;s scoring rules.
           </p>
           {!hasReplayGameLogs && (
             <p className="mt-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm font-bold text-amber-100">
