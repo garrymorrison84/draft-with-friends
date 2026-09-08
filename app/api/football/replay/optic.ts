@@ -100,6 +100,19 @@ function averageDefenseStats(logs: { statLine: FootballStatLine }[]) {
   return total;
 }
 
+function normalizeDefenseTouchdowns(stats: FootballStatLine) {
+  const returnTds = stats.returnTds || 0;
+  const providerDefensiveTds = stats.defenseTds || 0;
+
+  return {
+    ...stats,
+    // OpticOdds' defensive_touchdowns is an umbrella value that also includes
+    // kick and punt return scores. Return TDs have their own scoring category,
+    // so remove that overlap before calculating D/ST fantasy points.
+    defenseTds: Math.max(0, providerDefensiveTds - returnTds),
+  };
+}
+
 function projectedPoints(stats: FootballStatLine) {
   return Number((
     (stats.passingYards || 0) / 25 + (stats.passingTds || 0) * 4 - (stats.interceptionsThrown || 0) * 2 +
@@ -253,7 +266,7 @@ export async function getOpticOddsFootball(key: string) {
         id: `${fixture.id}-dst-${team.id}`,
         week: `W${fixture.season_week || "-"}`,
         opponent: opponentForFixture(fixture, team.id),
-        statLine: gameStats,
+        statLine: normalizeDefenseTouchdowns(gameStats),
       }));
     const averageStats = averageDefenseStats(logs);
     return {
