@@ -43,8 +43,7 @@ export type PlayerScoreResult = {
 };
 
 function finishScore(points: number, scoring: FootballScoring) {
-  const adjusted = scoring.fractionalPoints ? points : Math.round(points);
-  return Number(adjusted.toFixed(1));
+  return scoring.fractionalPoints ? points : Math.round(points);
 }
 
 function addComponent(
@@ -238,9 +237,11 @@ export function scoreFootballStats(
   );
 
   return {
-    total: finishScore(
-      components.reduce((sum, component) => sum + component.points, 0),
-      scoring
+    total: Number(
+      finishScore(
+        components.reduce((sum, component) => sum + component.points, 0),
+        scoring
+      ).toFixed(1)
     ),
     components,
   };

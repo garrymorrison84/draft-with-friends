@@ -50,6 +50,10 @@ function conferenceName(value?: string | null) {
 
 function statLine(stats: RawStats = {}): FootballStatLine {
   const n = (name: string) => Number(stats[name] || 0);
+  const twoPointConversions = n("two_point_conversions") ||
+    n("passing_two_point_conversions") +
+      n("rushing_two_point_conversions") +
+      n("receiving_two_point_conversions");
   return {
     passingAttempts: n("passing_attempts"), completions: n("passing_completions"),
     passingYards: n("passing_yards"), passingTds: n("passing_touchdowns"),
@@ -67,6 +71,7 @@ function statLine(stats: RawStats = {}): FootballStatLine {
     fieldGoalsMissed: Math.max(0, n("field_goal_attempts") - n("field_goals_made")),
     fieldGoals50Plus: n("long_field_goal_made") >= 50 ? 1 : 0,
     fumblesLost: n("fumbles_lost"),
+    twoPointConversions,
   } as FootballStatLine;
 }
 
@@ -152,6 +157,7 @@ const propMap: Record<string, keyof FootballStatLine> = {
   player_receptions: "receptions", player_receiving_targets: "receivingTargets",
   player_receiving_yards: "receivingYards", player_receiving_touchdowns: "receivingTds",
   player_extra_points_made: "extraPointsMade", player_field_goals_made: "fieldGoalsMade",
+  player_two_point_conversions: "twoPointConversions",
 };
 
 export async function getOpticOddsFootball(key: string) {

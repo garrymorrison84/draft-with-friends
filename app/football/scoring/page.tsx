@@ -69,14 +69,8 @@ function mergeScoring(savedScoring?: FootballScoring): FootballScoring {
 
   return {
     ...merged,
-    passing: {
-      ...merged.passing,
-      completion: merged.passing.completion === 0.2 ? 0 : merged.passing.completion,
-    },
-    rushing: {
-      ...merged.rushing,
-      attempt: merged.rushing.attempt === 0.2 ? 0 : merged.rushing.attempt,
-    },
+    passing: merged.passing,
+    rushing: merged.rushing,
     kicking: {
       ...merged.kicking,
       missedExtraPoint:

@@ -137,7 +137,8 @@ function gameLogColumnsForPosition(
       { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
       { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
       { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
-    ];
+      scoringRules.passing.twoPointConversion !== 0 && { label: "2PT", value: (stats: FootballStatLine) => stats.twoPointConversions },
+    ].filter(Boolean) as { label: string; value: (stats: FootballStatLine) => number | undefined }[];
   }
 
   if (position === "RB") {
@@ -148,7 +149,8 @@ function gameLogColumnsForPosition(
       { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
       { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
       { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
-    ];
+      scoringRules.rushing.twoPointConversion !== 0 && { label: "2PT", value: (stats: FootballStatLine) => stats.twoPointConversions },
+    ].filter(Boolean) as { label: string; value: (stats: FootballStatLine) => number | undefined }[];
   }
 
   if (position === "WR" || position === "TE") {
@@ -156,7 +158,8 @@ function gameLogColumnsForPosition(
       { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
       { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
       { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
-    ];
+      scoringRules.receiving.twoPointConversion !== 0 && { label: "2PT", value: (stats: FootballStatLine) => stats.twoPointConversions },
+    ].filter(Boolean) as { label: string; value: (stats: FootballStatLine) => number | undefined }[];
   }
 
   if (position === "DST") {

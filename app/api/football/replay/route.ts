@@ -78,6 +78,9 @@ type SportsDataPlayerStats = {
   FumbleReturnTouchdowns?: number;
   FumblesLost?: number;
   FieldGoalsMade50Plus?: number;
+  TwoPointConversionPasses?: number;
+  TwoPointConversionRuns?: number;
+  TwoPointConversionReceptions?: number;
 };
 
 type SportsDataTeamStats = {
@@ -241,6 +244,10 @@ function toStatLine(stats?: SportsDataPlayerStats, perGameStats = false): Footba
     fumbleRecoveries: value(stats.FumblesRecovered),
     fumblesLost: value(stats.FumblesLost),
     fieldGoals50Plus: value(stats.FieldGoalsMade50Plus),
+    twoPointConversions:
+      value(stats.TwoPointConversionPasses) +
+      value(stats.TwoPointConversionRuns) +
+      value(stats.TwoPointConversionReceptions),
   };
 }
 
