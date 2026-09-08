@@ -97,7 +97,11 @@ export default function FootballHomePage() {
                 href="/football/create"
                 className="mt-3 inline-flex min-h-16 w-full items-center justify-center rounded-2xl bg-emerald-300 px-6 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:bg-emerald-200 md:min-h-20 md:px-8 md:py-5 md:text-xl"
               >
-                Create Your College Fantasy Football Pool
+                <span>
+                  Create Your College
+                  <br />
+                  Fantasy Football Pool
+                </span>
               </Link>
             </div>
           </div>
