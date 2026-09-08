@@ -33,16 +33,14 @@ import {
   defaultScoring,
   footballPlayers,
   getTotalRosterSlots,
-  loadFootballDraftPicks,
-  loadFootballPool,
   saveFootballDraftPicks,
   saveFootballPool,
 } from "../lib/storage";
 import {
   loadPersistedFootballHistory,
-  persistFootballHistory,
   setFootballDraftPause,
   submitFootballPick,
+  undoLastFootballPick,
 } from "../lib/platformStorage";
 import {
   getPlayerPpg,
@@ -475,16 +473,15 @@ export default function FootballDraftPage() {
 
     async function loadDraft() {
       const history = await loadPersistedFootballHistory(id!);
-      const localPool = loadFootballPool(id!);
-      const savedPool = history?.pool || localPool;
-      if (!savedPool) return;
+      if (!history) return;
+      const savedPool = history.pool;
       if (history?.serverNow) {
         const serverNowMs = Date.parse(history.serverNow);
         if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
       }
       const chosenTeam = hasSelectedTeam(savedPool);
       if (!chosenTeam) return;
-      const savedPicks = history?.picks || loadFootballDraftPicks(savedPool.id);
+      const savedPicks = history.picks;
       saveFootballPool(savedPool);
       saveFootballDraftPicks(savedPool.id, savedPicks);
       setPool(savedPool);
@@ -1045,16 +1042,24 @@ export default function FootballDraftPage() {
     pool,
   ]);
 
-  function undoPick() {
-    if (!pool) return;
+  async function undoPick() {
+    if (!pool || !isCommissioner) return;
     committedPickKeyRef.current = "";
-    const nextPicks = picks.slice(0, -1);
-    setPicks(nextPicks);
-    saveFootballDraftPicks(pool.id, nextPicks);
-    persistFootballHistory(pool, nextPicks).catch(console.error);
-    setShowCompleted(false);
-    setPendingPlayer(null);
-    setDetailsPlayer(null);
+    setPickError("");
+    try {
+      await undoLastFootballPick(pool.id);
+      const history = await loadPersistedFootballHistory(pool.id);
+      if (history) {
+        setPool(history.pool);
+        setPicks(history.picks);
+        saveFootballDraftPicks(pool.id, history.picks);
+      }
+      setShowCompleted(false);
+      setPendingPlayer(null);
+      setDetailsPlayer(null);
+    } catch (error) {
+      setPickError(error instanceof Error ? error.message : "Could not undo the last pick.");
+    }
   }
 
   async function togglePickClockPause() {
@@ -1304,14 +1309,14 @@ export default function FootballDraftPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-                <button
+                {isCommissioner && <button
                   type="button"
-                  onClick={undoPick}
+                  onClick={() => void undoPick()}
                   disabled={picks.length === 0}
                   className="min-h-10 flex-1 rounded-xl border border-slate-700 px-3 py-2 text-sm font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#0b1220] disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 sm:py-3"
                 >
                   Undo Pick
-                </button>
+                </button>}
                 {isCommissioner && draftOpen &&
                   !draftOpeningBufferActive &&
                   !draftComplete &&

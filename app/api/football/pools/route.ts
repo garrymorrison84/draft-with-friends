@@ -163,6 +163,48 @@ export async function PATCH(request: NextRequest) {
   const body: unknown = await request.json();
   if (!isRecord(body)) return NextResponse.json({ error: "Invalid team update." }, { status: 400 });
   const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
+  if (body.action === "undo-last-pick") {
+    if (!poolId) return NextResponse.json({ error: "Missing pool id." }, { status: 400 });
+    const { client, error: adminError } = getSupabaseAdmin();
+    if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+    const { data: row, error: poolError } = await client
+      .from("platform_pools")
+      .select("owner_id,settings")
+      .eq("id", poolId)
+      .eq("pool_type", "college_fantasy")
+      .maybeSingle();
+    if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
+    if (!row || !isRecord(row.settings)) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    const organizerId = await getAuthenticatedOrganizerId(request, client);
+    if (!organizerId || organizerId !== row.owner_id) {
+      return NextResponse.json({ error: "Only the commissioner can undo a pick." }, { status: 403 });
+    }
+    const { data: latestPick, error: latestError } = await client
+      .from("platform_draft_picks")
+      .select("pick_index")
+      .eq("pool_id", poolId)
+      .order("pick_index", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (latestError) return NextResponse.json({ error: latestError.message }, { status: 500 });
+    if (!latestPick) return NextResponse.json({ error: "There is no pick to undo." }, { status: 409 });
+    const { error: deleteError } = await client
+      .from("platform_draft_picks")
+      .delete()
+      .eq("pool_id", poolId)
+      .eq("pick_index", latestPick.pick_index);
+    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    const resumedAt = new Date().toISOString();
+    const nextSettings = {
+      ...row.settings,
+      draftPaused: false,
+      draftPausedRemaining: null,
+      draftTimerStartedAt: resumedAt,
+    };
+    const { error: updateError } = await client.from("platform_pools").update({ settings: nextSettings }).eq("id", poolId);
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json({ success: true, removedPickIndex: latestPick.pick_index, pool: nextSettings, serverNow: resumedAt });
+  }
   if (body.action === "set-draft-pause") {
     if (!poolId) return NextResponse.json({ error: "Missing pool id." }, { status: 400 });
     const { client, error: adminError } = getSupabaseAdmin();
