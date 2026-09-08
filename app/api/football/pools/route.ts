@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
 
   const { data: insertedPick, error: insertError } = await client.from("platform_draft_picks").insert({
     pool_id: poolId,
+    entry_id: team,
     pick_index: expectedPickIndex,
     selection_id: playerId,
     selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1, playerSnapshot },
@@ -151,7 +152,12 @@ export async function POST(request: NextRequest) {
       .eq("pool_id", poolId)
       .order("pick_index", { ascending: true });
     return NextResponse.json(
-      { error: "Another device submitted this pick first. Syncing the draft.", picks: latestPicks || picks },
+      {
+        error: insertError.code === "23505"
+          ? "Another device submitted this pick first. Syncing the draft."
+          : "The pick could not be saved. Please try again.",
+        picks: latestPicks || picks,
+      },
       { status: 409 }
     );
   }
@@ -288,6 +294,7 @@ export async function PUT(request: NextRequest) {
 
   const picks = body.picks.filter(isRecord).map((pick, index) => ({
     pool_id: poolId,
+    entry_id: String(pick.team || ""),
     pick_index: index,
     selection_id: String(pick.playerId || ""),
     selection_snapshot: {
