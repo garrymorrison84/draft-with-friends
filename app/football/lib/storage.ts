@@ -102,6 +102,8 @@ export type FootballDraftPick = {
   playerId: string;
   team: string;
   pickNumber: number;
+  pickedAt?: string;
+  playerSnapshot?: FootballPlayer;
 };
 
 const poolKey = (id: string) => `dwf-football-pool-${id}`;

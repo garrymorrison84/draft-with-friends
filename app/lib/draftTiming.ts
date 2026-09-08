@@ -239,7 +239,9 @@ export function getDraftStartsIn(timing?: DraftTiming | null, now = new Date()) 
   return `${seconds}s`;
 }
 
-export function getDraftOpeningBufferStartedAt(poolId: string) {
+export function getDraftOpeningBufferStartedAt(poolId: string, scheduledDraftAt?: string | null) {
+  const scheduledStart = scheduledDraftAt ? Date.parse(scheduledDraftAt) : Number.NaN;
+  if (Number.isFinite(scheduledStart)) return scheduledStart;
   const startedAt = Date.now();
 
   if (typeof window === "undefined") return startedAt;

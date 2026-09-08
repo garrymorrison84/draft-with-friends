@@ -11,6 +11,7 @@ type PlatformPickRow = {
   pick_index: number;
   selection_id: string;
   selection_snapshot: unknown;
+  created_at?: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -65,7 +66,10 @@ function restorePick(row: PlatformPickRow): FootballDraftPick | null {
 
   if (!playerId || !team) return null;
 
-  return { playerId, team, pickNumber };
+  const playerSnapshot = isRecord(snapshot.playerSnapshot)
+    ? snapshot.playerSnapshot as unknown as import("./storage").FootballPlayer
+    : undefined;
+  return { playerId, team, pickNumber, pickedAt: row.created_at, playerSnapshot };
 }
 
 export async function loadPersistedFootballHistory(poolId: string) {
@@ -116,11 +120,13 @@ export async function submitFootballPick({
   playerId,
   team,
   expectedPickIndex,
+  playerSnapshot,
 }: {
   poolId: string;
   playerId: string;
   team: string;
   expectedPickIndex: number;
+  playerSnapshot: import("./storage").FootballPlayer;
 }) {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
@@ -130,7 +136,7 @@ export async function submitFootballPick({
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex, participantId: getParticipantId() }),
+    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex, participantId: getParticipantId(), playerSnapshot }),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {

@@ -72,6 +72,7 @@ type DraftPick = {
   team: string;
   golfer: Golfer;
   pickIndex: number;
+  pickedAt?: string;
 };
 
 function normalizeGolferName(name: string) {
@@ -433,6 +434,7 @@ export default function DraftPage() {
               vegasOdds: undefined,
             },
             pickIndex,
+            pickedAt: pick.created_at ?? pick.pickedAt,
           };
         }
       });
@@ -683,7 +685,9 @@ export default function DraftPage() {
       : null;
 
   useEffect(() => {
-    setPickTimerStartedAt(Date.now());
+    const lastPick = draftPicks.filter((pick): pick is DraftPick => Boolean(pick)).at(-1);
+    const serverStartedAt = lastPick?.pickedAt ? Date.parse(lastPick.pickedAt) : Date.now();
+    setPickTimerStartedAt(Number.isFinite(serverStartedAt) ? serverStartedAt : Date.now());
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
     autoPickInFlightRef.current = false;
@@ -703,10 +707,15 @@ export default function DraftPage() {
       draftJustOpenedPickKeyRef.current = openingPickKey;
       setDraftOpeningStartedAt(
         shouldUseOpeningBuffer && pool
-          ? getDraftOpeningBufferStartedAt(pool.id)
+          ? getDraftOpeningBufferStartedAt(pool.id, pool.scheduledDraftAt)
           : null
       );
-      setPickTimerStartedAt(Date.now());
+      const scheduledStart = pool?.scheduledDraftAt ? Date.parse(pool.scheduledDraftAt) : Number.NaN;
+      setPickTimerStartedAt(
+        shouldUseOpeningBuffer && Number.isFinite(scheduledStart)
+          ? scheduledStart + scheduledDraftOpeningBufferSeconds * 1000
+          : Date.now()
+      );
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       autoPickInFlightRef.current = false;
@@ -987,13 +996,15 @@ export default function DraftPage() {
       if (isLocalPool) {
         saveLocalDraftPicks(activePool.id, nextPicks);
       } else {
-        await saveDraftPick({
+        const savedPick = await saveDraftPick({
           pool_id: activePool.id,
           team: nextTeam,
           golfer_name: golfer.name,
           golfer_rank: golfer.rank,
           pick_index: nextPickIndex,
         });
+        nextPick.pickedAt = savedPick?.created_at || new Date().toISOString();
+        setDraftPicks([...nextPicks]);
       }
 
       const isFinalPick = nextPicks.every(Boolean);

@@ -483,6 +483,15 @@ export default function FootballDraftPage() {
       saveFootballDraftPicks(savedPool.id, savedPicks);
       setPool(savedPool);
       setPicks(savedPicks);
+      const snapshotPlayers = savedPicks
+        .map((pick) => pick.playerSnapshot)
+        .filter((player): player is FootballPlayer => Boolean(player));
+      if (snapshotPlayers.length) {
+        setPlayers((current) => [
+          ...snapshotPlayers,
+          ...current.filter((player) => !snapshotPlayers.some((snapshot) => snapshot.id === player.id)),
+        ]);
+      }
       const organizer = await getCurrentOrganizerUser();
       setIsCommissioner(Boolean(organizer?.id && organizer.id === savedPool.ownerId));
     }
@@ -500,7 +509,7 @@ export default function FootballDraftPage() {
       if (!history || cancelled) return;
       setPicks((current) => {
         const keyFor = (list: FootballDraftPick[]) =>
-          list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}`).join("|");
+          list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}:${pick.pickedAt || ""}`).join("|");
         if (keyFor(current) === keyFor(history.picks)) return current;
         saveFootballDraftPicks(pool.id, history.picks);
         setPendingPlayer(null);
@@ -712,7 +721,10 @@ export default function FootballDraftPage() {
   }, [draftablePositions, position]);
 
   useEffect(() => {
-    setPickTimerStartedAt(Date.now());
+    const serverStartedAt = picks.at(-1)?.pickedAt
+      ? Date.parse(picks.at(-1)!.pickedAt!)
+      : Date.now();
+    setPickTimerStartedAt(Number.isFinite(serverStartedAt) ? serverStartedAt : Date.now());
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
     stopCountdownTickSound();
@@ -737,10 +749,15 @@ export default function FootballDraftPage() {
       draftJustOpenedPickKeyRef.current = openingPickKey;
       setDraftOpeningStartedAt(
         shouldUseOpeningBuffer && pool
-          ? getDraftOpeningBufferStartedAt(pool.id)
+          ? getDraftOpeningBufferStartedAt(pool.id, pool.scheduledDraftAt)
           : null
       );
-      setPickTimerStartedAt(Date.now());
+      const scheduledStart = pool?.scheduledDraftAt ? Date.parse(pool.scheduledDraftAt) : Number.NaN;
+      setPickTimerStartedAt(
+        shouldUseOpeningBuffer && Number.isFinite(scheduledStart)
+          ? scheduledStart + scheduledDraftOpeningBufferSeconds * 1000
+          : Date.now()
+      );
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       autoPickInFlightRef.current = false;
@@ -862,17 +879,24 @@ export default function FootballDraftPage() {
 
     committedPickKeyRef.current = pickKey;
     pickSubmissionInFlightRef.current = true;
-    const nextPicks = [
-      ...picks,
-      { playerId: player.id, team: currentTeam, pickNumber: picks.length + 1 },
-    ];
     try {
-      await submitFootballPick({
+      const result = await submitFootballPick({
         poolId: pool.id,
         playerId: player.id,
         team: currentTeam,
         expectedPickIndex: picks.length,
+        playerSnapshot: player,
       });
+      const nextPicks = [
+        ...picks,
+        {
+          playerId: player.id,
+          team: currentTeam,
+          pickNumber: picks.length + 1,
+          pickedAt: result?.pickedAt || new Date().toISOString(),
+          playerSnapshot: player,
+        },
+      ];
       setPicks(nextPicks);
       saveFootballDraftPicks(pool.id, nextPicks);
       setPendingPlayer(null);
@@ -1304,7 +1328,7 @@ export default function FootballDraftPage() {
                       const displayedPickIndex =
                         roundIndex * pool.numberOfTeams + actualTeamIndex;
                       const pick = picks[displayedPickIndex];
-                      const player = players.find((item) => item.id === pick?.playerId);
+                      const player = players.find((item) => item.id === pick?.playerId) || pick?.playerSnapshot;
                       const styles = player ? positionStyles[player.position] : null;
                       const isCurrentPick =
                         !draftComplete && displayedPickIndex === picks.length;
@@ -1359,10 +1383,10 @@ export default function FootballDraftPage() {
                                   isCurrentPick ? "text-emerald-300" : "text-slate-500"
                                 }`}
                               >
-                                {isCurrentPick ? "On the clock" : "Open"}
+                                {pick ? "Pick recorded" : isCurrentPick ? "On the clock" : "Open"}
                               </p>
                               <p className="relative z-10 mt-2 text-xs font-bold text-slate-600 sm:mt-3 sm:text-sm">
-                                Awaiting selection
+                                {pick ? "Player data is resyncing…" : "Awaiting selection"}
                               </p>
                             </>
                           )}

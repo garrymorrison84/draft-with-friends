@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         .maybeSingle(),
       client
         .from("platform_draft_picks")
-        .select("pick_index,selection_id,selection_snapshot")
+        .select("pick_index,selection_id,selection_snapshot,created_at")
         .eq("pool_id", poolId)
         .order("pick_index", { ascending: true }),
     ]);
@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
   const playerId = typeof body.playerId === "string" ? body.playerId.trim() : "";
   const team = typeof body.team === "string" ? body.team.trim() : "";
   const participantId = typeof body.participantId === "string" ? body.participantId.trim() : "";
+  const playerSnapshot = isRecord(body.playerSnapshot) ? body.playerSnapshot : null;
   const expectedPickIndex = Number(body.expectedPickIndex);
   if (!poolId || !playerId || !team || !Number.isInteger(expectedPickIndex) || expectedPickIndex < 0) {
     return NextResponse.json({ error: "Incomplete draft pick payload." }, { status: 400 });
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
     await Promise.all([
       client.from("platform_pools").select("id,owner_id,settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
       client.from("platform_draft_picks")
-        .select("pick_index,selection_id,selection_snapshot")
+        .select("pick_index,selection_id,selection_snapshot,created_at")
         .eq("pool_id", poolId)
         .order("pick_index", { ascending: true }),
     ]);
@@ -120,16 +121,16 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { error: insertError } = await client.from("platform_draft_picks").insert({
+  const { data: insertedPick, error: insertError } = await client.from("platform_draft_picks").insert({
     pool_id: poolId,
     pick_index: expectedPickIndex,
     selection_id: playerId,
-    selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1 },
-  });
+    selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1, playerSnapshot },
+  }).select("created_at").single();
 
   if (insertError) {
     const { data: latestPicks } = await client.from("platform_draft_picks")
-      .select("pick_index,selection_id,selection_snapshot")
+      .select("pick_index,selection_id,selection_snapshot,created_at")
       .eq("pool_id", poolId)
       .order("pick_index", { ascending: true });
     return NextResponse.json(
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ success: true, pickIndex: expectedPickIndex });
+  return NextResponse.json({ success: true, pickIndex: expectedPickIndex, pickedAt: insertedPick?.created_at });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -202,7 +203,9 @@ export async function PUT(request: NextRequest) {
       playerId: String(pick.playerId || ""),
       team: String(pick.team || ""),
       pickNumber: Number(pick.pickNumber) || index + 1,
+      playerSnapshot: isRecord(pick.playerSnapshot) ? pick.playerSnapshot : null,
     },
+    ...(typeof pick.pickedAt === "string" ? { created_at: pick.pickedAt } : {}),
   }));
 
   if (picks.some((pick) => !pick.selection_id || !pick.selection_snapshot.team)) {
