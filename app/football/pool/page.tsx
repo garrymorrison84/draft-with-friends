@@ -48,6 +48,7 @@ export default function FootballPoolPage() {
   const [teamError, setTeamError] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
+  const [organizerEmail, setOrganizerEmail] = useState("");
   const [claims, setClaims] = useState<Record<string, string>>({});
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
@@ -106,7 +107,10 @@ export default function FootballPoolPage() {
   }, []);
 
   useEffect(() => {
-    getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
+    getCurrentOrganizerUser().then((user) => {
+      setOrganizerId(user?.id || null);
+      setOrganizerEmail(user?.email || "");
+    });
   }, []);
 
   async function renameSelectedTeam() {
@@ -217,6 +221,21 @@ export default function FootballPoolPage() {
         <Link href="/" aria-label="Draft With Friends home">
           <BrandMark size="lg" />
         </Link>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {organizerId && organizerId === pool.ownerId ? (
+            <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
+              Commissioner signed in{organizerEmail ? ` · ${organizerEmail}` : ""}
+            </span>
+          ) : (
+            <Link
+              href={`/organizer/sign-in?redirect=${encodeURIComponent(`/football/pool?id=${pool.id}`)}`}
+              className="rounded-xl border border-white/10 bg-[#111827] px-4 py-2 text-sm font-black text-white hover:border-emerald-300/60"
+            >
+              Organizer Sign In
+            </Link>
+          )}
+        </div>
 
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="min-w-0">

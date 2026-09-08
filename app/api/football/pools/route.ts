@@ -113,9 +113,7 @@ export async function POST(request: NextRequest) {
   const organizerId = await getAuthenticatedOrganizerId(request, client);
   const isCommissioner = Boolean(organizerId && organizerId === pool.owner_id);
   if (!isCommissioner) {
-    const { data: claimRow } = await client.from("platform_pools").select("settings").eq("id", `TEAM_CLAIMS_${poolId}`).maybeSingle();
-    const claimSettings = isRecord(claimRow?.settings) ? claimRow.settings : {};
-    const claims = isRecord(claimSettings.claims) ? claimSettings.claims : {};
+    const claims = isRecord(pool.settings.teamClaims) ? pool.settings.teamClaims : {};
     if (!participantId || claims[expectedTeam] !== participantId) {
       return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
     }
