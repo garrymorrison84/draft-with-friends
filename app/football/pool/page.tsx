@@ -41,6 +41,7 @@ export default function FootballPoolPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTeam, setSelectedTeam] = useState("");
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   );
@@ -62,6 +63,8 @@ export default function FootballPoolPage() {
         initialLoad = false;
         const savedPicks = loadFootballDraftPicks(savedPool.id);
         setPool(savedPool);
+        const savedTeam = window.sessionStorage.getItem(`dwf-football-team-${savedPool.id}`) || "";
+        if (savedPool.teamNames.includes(savedTeam)) setSelectedTeam(savedTeam);
         setPicks(savedPicks);
         setIsLoading(false);
         persistFootballHistory(savedPool, savedPicks).catch(console.error);
@@ -74,6 +77,8 @@ export default function FootballPoolPage() {
         saveFootballPool(history.pool);
         saveFootballDraftPicks(history.pool.id, history.picks);
         setPool(history.pool);
+        const savedTeam = window.sessionStorage.getItem(`dwf-football-team-${history.pool.id}`) || "";
+        if (history.pool.teamNames.includes(savedTeam)) setSelectedTeam(savedTeam);
         setPicks(history.picks);
       }
       setIsLoading(false);
@@ -179,10 +184,14 @@ export default function FootballPoolPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             {!lobbyStats.draftComplete && (
               <Link
-                href={`/football/draft?id=${pool.id}`}
-                className="rounded-2xl bg-emerald-400 px-8 py-4 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/30 transition hover:scale-105 hover:bg-emerald-300"
+                href={selectedTeam ? `/football/draft?id=${pool.id}&team=${encodeURIComponent(selectedTeam)}` : "#choose-team"}
+                aria-disabled={!selectedTeam}
+                onClick={(event) => {
+                  if (!selectedTeam) event.preventDefault();
+                }}
+                className={`rounded-2xl px-8 py-4 text-center text-lg font-black transition ${selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
               >
-                {picks.length > 0 ? "Continue Draft" : "Enter Draft"}
+                {!selectedTeam ? "Choose Your Team" : picks.length > 0 ? "Continue Draft" : "Enter Draft"}
               </Link>
             )}
             {lobbyStats.draftComplete && (
@@ -195,6 +204,30 @@ export default function FootballPoolPage() {
             )}
           </div>
         </div>
+
+        {!lobbyStats.draftComplete && (
+          <section id="choose-team" className="mt-8 rounded-3xl border border-emerald-400/20 bg-[#111827] p-5 sm:p-6">
+            <h2 className="text-xl font-black">Choose your team</h2>
+            <p className="mt-2 text-sm font-semibold text-slate-400">
+              Select the team you control before entering the draft.
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {pool.teamNames.map((team) => (
+                <button
+                  key={team}
+                  type="button"
+                  onClick={() => {
+                    setSelectedTeam(team);
+                    window.sessionStorage.setItem(`dwf-football-team-${pool.id}`, team);
+                  }}
+                  className={`rounded-xl border px-4 py-3 text-left font-black transition ${selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
+                >
+                  {team}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
           <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">

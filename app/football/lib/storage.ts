@@ -70,6 +70,7 @@ export type FootballPool = {
   pickClockSeconds?: number;
   autoPickOnTimeout?: boolean;
   createdAt: string;
+  ownerId?: string;
 };
 
 export type FootballPlayer = {

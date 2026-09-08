@@ -447,12 +447,27 @@ export default function FootballDraftPage() {
   const tickKeyRef = useRef("");
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("id");
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
     if (!id) return;
+
+    function hasSelectedTeam(candidatePool: FootballPool) {
+      const selectedTeam =
+        params.get("team") ||
+        window.sessionStorage.getItem(`dwf-football-team-${candidatePool.id}`) ||
+        "";
+      if (!candidatePool.teamNames.includes(selectedTeam)) {
+        window.location.replace(`/football/pool?id=${candidatePool.id}#choose-team`);
+        return false;
+      }
+      window.sessionStorage.setItem(`dwf-football-team-${candidatePool.id}`, selectedTeam);
+      return true;
+    }
 
     async function loadDraft() {
       const savedPool = loadFootballPool(id!);
       if (savedPool) {
+        if (!hasSelectedTeam(savedPool)) return;
         const savedPicks = loadFootballDraftPicks(savedPool.id);
         setPool(savedPool);
         setPicks(savedPicks);
@@ -462,6 +477,7 @@ export default function FootballDraftPage() {
 
       const history = await loadPersistedFootballHistory(id!);
       if (!history) return;
+      if (!hasSelectedTeam(history.pool)) return;
 
       saveFootballPool(history.pool);
       saveFootballDraftPicks(history.pool.id, history.picks);

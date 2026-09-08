@@ -383,6 +383,16 @@ export default function DraftPage() {
             autoPickOnTimeout: localPool!.autoPickOnTimeout,
           };
 
+      const selectedTeam =
+        params.get("team") ||
+        window.sessionStorage.getItem(`dwf-golf-team-${formattedPool.id}`) ||
+        "";
+      if (!formattedPool.teamNames.includes(selectedTeam)) {
+        window.location.replace(`/pool?id=${formattedPool.id}#choose-team`);
+        return;
+      }
+      window.sessionStorage.setItem(`dwf-golf-team-${formattedPool.id}`, selectedTeam);
+
       setIsLocalPool(!savedPool);
       setPool(formattedPool);
 

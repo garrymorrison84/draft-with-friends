@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   FootballPool,
   FootballScoring,
@@ -98,6 +99,8 @@ export default function FootballScoringPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [scoring, setScoring] = useState<FootballScoring>(defaultScoring);
   const [activeTab, setActiveTab] = useState<ScoringCategory>("passing");
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [finalizeError, setFinalizeError] = useState("");
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -381,16 +384,28 @@ export default function FootballScoringPage() {
     ];
   }
 
-  function saveAndContinue() {
+  async function saveAndContinue() {
     if (!pool) return;
 
-    const nextPool = { ...pool, scoring };
+    const organizer = await getCurrentOrganizerUser();
+    if (!organizer) {
+      const redirect = encodeURIComponent(`/football/scoring?id=${pool.id}`);
+      window.location.href = `/organizer/sign-in?redirect=${redirect}`;
+      return;
+    }
+
+    setIsFinalizing(true);
+    setFinalizeError("");
+    const nextPool = { ...pool, scoring, ownerId: organizer.id };
     saveFootballPool(nextPool);
-    persistFootballHistory(
-      nextPool,
-      loadFootballDraftPicks(nextPool.id)
-    ).catch(console.error);
-    window.location.href = `/football/pool?id=${pool.id}`;
+    try {
+      await persistFootballHistory(nextPool, loadFootballDraftPicks(nextPool.id));
+      window.location.href = `/football/pool?id=${pool.id}`;
+    } catch (error) {
+      console.error(error);
+      setFinalizeError(error instanceof Error ? error.message : "Could not finalize this pool.");
+      setIsFinalizing(false);
+    }
   }
 
   if (!pool) {
@@ -501,12 +516,19 @@ export default function FootballScoringPage() {
             </div>
           </section>
 
+          {finalizeError && (
+            <div className="rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm font-bold text-red-200">
+              {finalizeError}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={saveAndContinue}
-            className="rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 hover:bg-emerald-300"
+            disabled={isFinalizing}
+            className="rounded-xl bg-emerald-400 px-6 py-4 text-center font-bold text-slate-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Save Changes
+            {isFinalizing ? "Finalizing Pool..." : "Finalize Pool & Continue"}
           </button>
         </div>
       </div>

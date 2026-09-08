@@ -3,10 +3,8 @@
 import Link from "next/link";
 import type React from "react";
 import { useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
 import BrandMark from "../../components/BrandMark";
 import FormSelect from "../../components/FormSelect";
-import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   buildScheduledDraftAt,
   defaultDraftTimeZone,
@@ -25,7 +23,6 @@ import {
   defaultScoring,
   saveFootballPool,
 } from "../lib/storage";
-import { persistFootballHistory } from "../lib/platformStorage";
 
 const conferenceOptions = [
   "ACC",
@@ -39,8 +36,6 @@ const conferenceOptions = [
 const powerPoolConferences = defaultFootballPlayerPool.conferences;
 
 export default function CreateFootballPoolPage() {
-  const [organizer, setOrganizer] = useState<User | null>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [poolName, setPoolName] = useState("");
   const [week, setWeek] = useState("Week 1");
   const [numberOfTeams, setNumberOfTeams] = useState(4);
@@ -60,19 +55,6 @@ export default function CreateFootballPoolPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    async function loadOrganizer() {
-      const user = await getCurrentOrganizerUser();
-      if (!user) {
-        window.location.replace(
-          "/organizer/sign-in?redirect=%2Ffootball%2Fcreate"
-        );
-        return;
-      }
-
-      setOrganizer(user);
-      setIsCheckingAuth(false);
-    }
-
     async function loadCurrentWeek() {
       try {
         const response = await fetch("/api/football/replay", { cache: "no-store" });
@@ -84,7 +66,6 @@ export default function CreateFootballPoolPage() {
       }
     }
 
-    loadOrganizer();
     loadCurrentWeek();
   }, []);
 
@@ -162,7 +143,6 @@ export default function CreateFootballPoolPage() {
   }
 
   async function continueToScoring() {
-    if (!organizer) return;
     setIsCreating(true);
     setErrorMessage("");
     const id = createFootballPoolId();
@@ -199,33 +179,11 @@ export default function CreateFootballPoolPage() {
         draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
       pickClockSeconds: draftType === "scheduled" ? Math.max(30, pickClockSeconds) : untimedDraftTiming.pickClockSeconds,
       autoPickOnTimeout: draftType === "scheduled",
-      ownerId: organizer.id,
       createdAt: new Date().toISOString(),
     };
 
     saveFootballPool(nextPool);
-    try {
-      await persistFootballHistory(nextPool, []);
-      window.location.href = `/football/scoring?id=${id}`;
-    } catch (error) {
-      console.error(error);
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Could not create the shared football pool. Try again."
-      );
-      setIsCreating(false);
-    }
-  }
-
-  if (isCheckingAuth || !organizer) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[#030712] px-6 text-white">
-        <p className="text-sm font-bold text-slate-400">
-          Checking organizer account...
-        </p>
-      </main>
-    );
+    window.location.href = `/football/scoring?id=${id}`;
   }
 
   return (
