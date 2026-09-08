@@ -118,7 +118,7 @@ function hasScheduledOpponent(player: FootballPlayer) {
 }
 
 const eligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_48px_20px] md:grid-cols-[minmax(190px,1fr)_48px_minmax(90px,0.55fr)_64px]";
+  "grid-cols-[minmax(0,1fr)_48px_20px] md:grid-cols-[minmax(190px,1fr)_56px_72px]";
 const compactEligiblePlayerGrid =
   "grid-cols-[minmax(0,1fr)_48px_20px] xl:grid-cols-[minmax(0,1fr)_48px_64px]";
 
@@ -268,11 +268,9 @@ function playerGameRows(player: FootballPlayer, scoring: FootballPool["scoring"]
 function PlayerStatColumns({
   player,
   scoring,
-  compact = false,
 }: {
   player: FootballPlayer;
   scoring: FootballPool["scoring"];
-  compact?: boolean;
 }) {
   const ppg = getPlayerPpg(player, scoring);
 
@@ -280,9 +278,6 @@ function PlayerStatColumns({
     <>
       <div className="text-right text-emerald-300 md:text-center">
         {formatPoints(ppg)}
-      </div>
-      <div className={compact ? "hidden" : "hidden text-center text-slate-400 md:block"}>
-        {player.gameTime} {player.opponent}
       </div>
     </>
   );
@@ -1110,17 +1105,21 @@ export default function FootballDraftPage() {
           </div>
         )}
 
-        {draftOpen && !draftComplete && pool.draftType === "scheduled" && (
+        {!draftComplete && pool.draftType === "scheduled" && (
           <div className="fixed bottom-5 right-4 z-50 flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-2xl border border-emerald-400/30 bg-[#06261f]/95 px-3.5 py-3 text-sm font-black shadow-2xl shadow-black/50 backdrop-blur sm:right-6 sm:gap-3 sm:px-4 sm:py-3.5 sm:text-base">
             <span className="min-w-0 max-w-[190px] truncate text-emerald-300 sm:max-w-[260px]">
-              {isPickClockPaused
+              {!draftOpen
+                ? "Draft opens in"
+                : isPickClockPaused
                 ? "Draft paused"
                 : draftOpeningBufferActive
                   ? formatDraftOpeningMessage(draftOpeningBufferRemaining)
                   : `${currentTeam} is up`}
             </span>
             <span className="shrink-0 text-white">
-              {draftOpeningBufferActive
+              {!draftOpen
+                ? draftStartsIn || "a moment"
+                : draftOpeningBufferActive
                 ? formatClockTime(draftOpeningBufferRemaining)
                 : pickClockRemaining !== null
                   ? formatClockTime(pickClockRemaining)
@@ -1171,7 +1170,6 @@ export default function FootballDraftPage() {
                   <div className={`grid ${playerGridClass} items-center gap-x-1.5 text-center text-xs font-black uppercase tracking-wide text-slate-500 sm:gap-x-3`}>
                     <div className="text-left">Player</div>
                     <div className="text-right text-emerald-300 md:text-center">PPG</div>
-                    <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Game</div>
                     <div className={compactDraftLayout ? "hidden xl:block" : "hidden md:block"}>Action</div>
                   </div>
                 </div>
@@ -1180,7 +1178,6 @@ export default function FootballDraftPage() {
                 const drafted = draftedIds.has(player.id);
                 const selected = pendingPlayer?.id === player.id;
                 const styles = positionStyles[player.position];
-                const ppg = getPlayerPpg(player, pool.scoring);
 
                 return (
                   <div
@@ -1214,14 +1211,11 @@ export default function FootballDraftPage() {
                           <p className="truncate text-xs font-bold text-slate-500">
                             {player.gameTime} {player.opponent}
                           </p>
-                          <p className="mt-1 truncate text-xs font-bold text-slate-600 md:hidden">
-                            PPG {formatPoints(ppg)}
-                          </p>
                         </div>
                       </div>
                     </button>
 
-                    <PlayerStatColumns player={player} scoring={pool.scoring} compact={compactDraftLayout} />
+                    <PlayerStatColumns player={player} scoring={pool.scoring} />
 
                     <button
                       type="button"
