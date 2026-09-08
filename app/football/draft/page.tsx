@@ -329,7 +329,7 @@ function PlayerDetailsModal({
             </div>
 
             <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <div className="rounded-2xl bg-[#030712] p-4">
+              <div className="flex flex-col items-center justify-center rounded-2xl bg-[#030712] p-4 text-center">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-500">PPG</p>
                 <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(ppg)}</p>
               </div>
@@ -348,7 +348,7 @@ function PlayerDetailsModal({
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <h3 className="text-xl font-black">Game Log</h3>
           <p className="mt-2 text-sm font-semibold text-slate-400">
-            Fantasy points use this pool&apos;s scoring rules. No player photos or school logos are shown.
+            Fantasy points use this pool&apos;s scoring rules.
           </p>
           {!hasReplayGameLogs && (
             <p className="mt-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm font-bold text-amber-100">
