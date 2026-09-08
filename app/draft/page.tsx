@@ -239,7 +239,7 @@ function GolferDetailsModal({
               disabled={!canDraft}
               className="rounded-2xl bg-emerald-400 px-6 py-4 text-lg font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
             >
-              {canDraft ? "Draft" : "Not Open"}
+              Draft
             </button>
           </div>
         </div>
