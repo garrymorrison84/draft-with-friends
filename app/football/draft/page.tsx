@@ -451,6 +451,7 @@ export default function FootballDraftPage() {
   const draftCompleteSoundPlayedRef = useRef(false);
   const tickKeyRef = useRef("");
   const pickSubmissionInFlightRef = useRef(false);
+  const serverTimeOffsetRef = useRef(0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -476,6 +477,10 @@ export default function FootballDraftPage() {
       const localPool = loadFootballPool(id!);
       const savedPool = history?.pool || localPool;
       if (!savedPool) return;
+      if (history?.serverNow) {
+        const serverNowMs = Date.parse(history.serverNow);
+        if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
+      }
       const chosenTeam = hasSelectedTeam(savedPool);
       if (!chosenTeam) return;
       const savedPicks = history?.picks || loadFootballDraftPicks(savedPool.id);
@@ -485,10 +490,13 @@ export default function FootballDraftPage() {
       setPicks(savedPicks);
       setIsPickClockPaused(savedPool.draftPaused === true);
       setPausedPickClockRemaining(savedPool.draftPaused ? savedPool.draftPausedRemaining ?? null : null);
-      if (savedPool.draftTimerStartedAt) {
-        const sharedStartedAt = Date.parse(savedPool.draftTimerStartedAt);
-        if (Number.isFinite(sharedStartedAt)) setPickTimerStartedAt(sharedStartedAt);
-      }
+      const savedPickStartedAt = savedPicks.at(-1)?.pickedAt ? Date.parse(savedPicks.at(-1)!.pickedAt!) : Number.NaN;
+      const savedResumeStartedAt = savedPool.draftTimerStartedAt ? Date.parse(savedPool.draftTimerStartedAt) : Number.NaN;
+      const savedStartedAt = Math.max(
+        Number.isFinite(savedPickStartedAt) ? savedPickStartedAt : 0,
+        Number.isFinite(savedResumeStartedAt) ? savedResumeStartedAt : 0
+      );
+      if (savedStartedAt > 0) setPickTimerStartedAt(savedStartedAt);
       const snapshotPlayers = savedPicks
         .map((pick) => pick.playerSnapshot)
         .filter((player): player is FootballPlayer => Boolean(player));
@@ -523,13 +531,22 @@ export default function FootballDraftPage() {
       if (!pool || pickSubmissionInFlightRef.current) return;
       const history = await loadPersistedFootballHistory(pool.id);
       if (!history || cancelled) return;
+      if (history.serverNow) {
+        const serverNowMs = Date.parse(history.serverNow);
+        if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
+      }
       setPool((current) => current ? { ...current, ...history.pool } : history.pool);
       const sharedPaused = history.pool.draftPaused === true;
       setIsPickClockPaused(sharedPaused);
       setPausedPickClockRemaining(sharedPaused ? history.pool.draftPausedRemaining ?? null : null);
-      if (!sharedPaused && history.pool.draftTimerStartedAt) {
-        const sharedStartedAt = Date.parse(history.pool.draftTimerStartedAt);
-        if (Number.isFinite(sharedStartedAt)) setPickTimerStartedAt(sharedStartedAt);
+      if (!sharedPaused) {
+        const latestPickStartedAt = history.picks.at(-1)?.pickedAt ? Date.parse(history.picks.at(-1)!.pickedAt!) : Number.NaN;
+        const resumeStartedAt = history.pool.draftTimerStartedAt ? Date.parse(history.pool.draftTimerStartedAt) : Number.NaN;
+        const authoritativeStartedAt = Math.max(
+          Number.isFinite(latestPickStartedAt) ? latestPickStartedAt : 0,
+          Number.isFinite(resumeStartedAt) ? resumeStartedAt : 0
+        );
+        if (authoritativeStartedAt > 0) setPickTimerStartedAt(authoritativeStartedAt);
       }
       setPicks((current) => {
         const keyFor = (list: FootballDraftPick[]) =>
@@ -582,7 +599,10 @@ export default function FootballDraftPage() {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setNow(new Date()), 1000);
+    const interval = window.setInterval(
+      () => setNow(new Date(Date.now() + serverTimeOffsetRef.current)),
+      1000
+    );
 
     return () => window.clearInterval(interval);
   }, []);
@@ -637,7 +657,7 @@ export default function FootballDraftPage() {
         : Math.max(
           0,
           activePickClockSeconds -
-            Math.floor((Date.now() - pickTimerStartedAt) / 1000)
+            Math.floor((now.getTime() - pickTimerStartedAt) / 1000)
         )
       : null;
   const draftedIds = new Set(picks.map((pick) => pick.playerId));
@@ -767,8 +787,7 @@ export default function FootballDraftPage() {
   useEffect(() => {
     if (draftOpen && !wasDraftOpenRef.current) {
       const openingPickKey = pool ? `${pool.id}-${picks.length}` : "";
-      const shouldUseOpeningBuffer =
-        pool?.draftType === "scheduled" && picks.length === 0;
+      const shouldUseOpeningBuffer = false;
 
       draftJustOpenedPickKeyRef.current = openingPickKey;
       setDraftOpeningStartedAt(
@@ -778,8 +797,8 @@ export default function FootballDraftPage() {
       );
       const scheduledStart = pool?.scheduledDraftAt ? Date.parse(pool.scheduledDraftAt) : Number.NaN;
       setPickTimerStartedAt(
-        shouldUseOpeningBuffer && Number.isFinite(scheduledStart)
-          ? scheduledStart + scheduledDraftOpeningBufferSeconds * 1000
+        pool?.draftType === "scheduled" && picks.length === 0 && Number.isFinite(scheduledStart)
+          ? scheduledStart
           : Date.now()
       );
       setIsPickClockPaused(false);

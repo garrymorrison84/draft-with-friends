@@ -90,7 +90,11 @@ export async function loadPersistedFootballHistory(poolId: string) {
     .map(restorePick)
     .filter((pick): pick is FootballDraftPick => pick !== null);
 
-  return { pool, picks };
+  return {
+    pool,
+    picks,
+    serverNow: typeof data.serverNow === "string" ? data.serverNow : undefined,
+  };
 }
 
 export async function persistFootballHistory(

@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Pool not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ pool, picks: picks || [] });
+  return NextResponse.json({ pool, picks: picks || [], serverNow: new Date().toISOString() });
 }
 
 export async function POST(request: NextRequest) {
@@ -113,9 +113,19 @@ export async function POST(request: NextRequest) {
   const organizerId = await getAuthenticatedOrganizerId(request, client);
   const isCommissioner = Boolean(organizerId && organizerId === pool.owner_id);
   if (!isCommissioner) {
-    const claims = isRecord(pool.settings.teamClaims) ? pool.settings.teamClaims : {};
-    if (!participantId || claims[expectedTeam] !== participantId) {
+    const claims = isRecord(pool.settings.teamClaims) ? { ...pool.settings.teamClaims } : {};
+    if (!participantId || (claims[expectedTeam] && claims[expectedTeam] !== participantId)) {
       return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
+    }
+    if (!claims[expectedTeam]) {
+      for (const [claimedTeam, claimant] of Object.entries(claims)) {
+        if (claimant === participantId && claimedTeam !== expectedTeam) delete claims[claimedTeam];
+      }
+      claims[expectedTeam] = participantId;
+      const { error: claimError } = await client.from("platform_pools").update({
+        settings: { ...pool.settings, teamClaims: claims },
+      }).eq("id", poolId).eq("pool_type", "college_fantasy");
+      if (claimError) return NextResponse.json({ error: "Could not verify your team before saving the pick." }, { status: 500 });
     }
   }
 
