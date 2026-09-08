@@ -1108,11 +1108,16 @@ export default function FootballDraftPage() {
                           {player.position}
                         </span>
                         <div className="min-w-0">
-                          <p className={`${compactDraftLayout ? "text-sm" : "text-base"} truncate font-black text-white`}>
-                            {player.name}
-                          </p>
+                          <div className="flex min-w-0 items-baseline gap-2">
+                            <p className={`${compactDraftLayout ? "text-sm" : "text-base"} truncate font-black text-white`}>
+                              {player.name}
+                            </p>
+                            <span className="shrink-0 text-xs font-black uppercase text-slate-500">
+                              {player.schoolAbbreviation || player.school}
+                            </span>
+                          </div>
                           <p className="truncate text-xs font-bold text-slate-500">
-                            {player.schoolAbbreviation || player.school} • {player.gameTime} {player.opponent}
+                            {player.gameTime} {player.opponent}
                           </p>
                           <p className="mt-1 truncate text-xs font-bold text-slate-600 md:hidden">
                             PPG {formatPoints(ppg)}
