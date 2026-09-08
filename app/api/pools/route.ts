@@ -97,3 +97,46 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ success: true, pool: data });
 }
+
+export async function PATCH(request: NextRequest) {
+  const { client, error: adminError } = getSupabaseAdmin();
+  if (!client) {
+    return NextResponse.json({ success: false, error: adminError }, { status: 500 });
+  }
+
+  const body = await request.json();
+  const poolId = String(body.poolId || "").trim();
+  const currentName = String(body.currentName || "").trim();
+  const newName = String(body.newName || "").trim().slice(0, 40);
+  if (!poolId || !currentName || !newName) {
+    return NextResponse.json({ success: false, error: "Choose a team and enter a name." }, { status: 400 });
+  }
+
+  const [{ data: pool, error: poolError }, { count: pickCount, error: picksError }] =
+    await Promise.all([
+      client.from("pools").select("team_names,draft_order,draft_locked").eq("id", poolId).maybeSingle(),
+      client.from("draft_picks").select("pool_id", { count: "exact", head: true }).eq("pool_id", poolId),
+    ]);
+  if (poolError || picksError) {
+    return NextResponse.json({ success: false, error: poolError?.message || picksError?.message }, { status: 500 });
+  }
+  if (!pool) return NextResponse.json({ success: false, error: "Pool not found." }, { status: 404 });
+  if (pool.draft_locked || (pickCount || 0) > 0) {
+    return NextResponse.json({ success: false, error: "Team names lock when the draft begins." }, { status: 409 });
+  }
+
+  const teamNames = getStringArray(pool.team_names);
+  if (!teamNames.includes(currentName)) {
+    return NextResponse.json({ success: false, error: "That team is no longer available." }, { status: 409 });
+  }
+  if (teamNames.some((name) => name !== currentName && name.toLowerCase() === newName.toLowerCase())) {
+    return NextResponse.json({ success: false, error: "That team name is already in use." }, { status: 409 });
+  }
+  const rename = (name: string) => (name === currentName ? newName : name);
+  const { data, error } = await client.from("pools").update({
+    team_names: teamNames.map(rename),
+    draft_order: getStringArray(pool.draft_order).map(rename),
+  }).eq("id", poolId).select().single();
+  if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true, pool: data });
+}

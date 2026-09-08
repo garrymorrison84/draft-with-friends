@@ -115,6 +115,44 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ success: true, pickIndex: expectedPickIndex });
 }
 
+export async function PATCH(request: NextRequest) {
+  const body: unknown = await request.json();
+  if (!isRecord(body)) return NextResponse.json({ error: "Invalid team update." }, { status: 400 });
+  const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
+  const currentName = typeof body.currentName === "string" ? body.currentName.trim() : "";
+  const newName = typeof body.newName === "string" ? body.newName.trim().slice(0, 40) : "";
+  if (!poolId || !currentName || !newName) {
+    return NextResponse.json({ error: "Choose a team and enter a name." }, { status: 400 });
+  }
+
+  const { client, error: adminError } = getSupabaseAdmin();
+  if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+  const [{ data: row, error: poolError }, { count: pickCount, error: picksError }] = await Promise.all([
+    client.from("platform_pools").select("settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
+    client.from("platform_draft_picks").select("pool_id", { count: "exact", head: true }).eq("pool_id", poolId),
+  ]);
+  if (poolError || picksError) return NextResponse.json({ error: poolError?.message || picksError?.message }, { status: 500 });
+  if (!row || !isRecord(row.settings)) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  if ((pickCount || 0) > 0) return NextResponse.json({ error: "Team names lock when the draft begins." }, { status: 409 });
+
+  const settings = row.settings;
+  const teamNames = Array.isArray(settings.teamNames)
+    ? settings.teamNames.filter((name): name is string => typeof name === "string")
+    : [];
+  const draftOrder = Array.isArray(settings.draftOrder)
+    ? settings.draftOrder.filter((name): name is string => typeof name === "string")
+    : [];
+  if (!teamNames.includes(currentName)) return NextResponse.json({ error: "That team is no longer available." }, { status: 409 });
+  if (teamNames.some((name) => name !== currentName && name.toLowerCase() === newName.toLowerCase())) {
+    return NextResponse.json({ error: "That team name is already in use." }, { status: 409 });
+  }
+  const rename = (name: string) => (name === currentName ? newName : name);
+  const nextSettings = { ...settings, teamNames: teamNames.map(rename), draftOrder: draftOrder.map(rename) };
+  const { error } = await client.from("platform_pools").update({ settings: nextSettings }).eq("id", poolId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true, pool: nextSettings });
+}
+
 export async function PUT(request: NextRequest) {
   const body: unknown = await request.json();
   if (!isRecord(body) || !isRecord(body.pool) || !Array.isArray(body.picks)) {

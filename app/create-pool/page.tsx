@@ -132,6 +132,12 @@ export default function CreatePoolPage() {
   useEffect(() => {
     async function loadOrganizer() {
       const user = await getCurrentOrganizerUser();
+      if (!user) {
+        window.location.replace(
+          `/organizer/sign-in?redirect=${encodeURIComponent("/create-pool")}`
+        );
+        return;
+      }
       setOrganizer(user);
       setIsCheckingAuth(false);
     }
@@ -163,6 +169,19 @@ export default function CreatePoolPage() {
     loadOrganizer();
     loadActiveEvent();
   }, []);
+
+  if (isCheckingAuth || !organizer) {
+    return (
+      <main className="min-h-screen bg-[#030712] text-white">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="lg" />
+          <p className="mt-8 text-lg font-bold text-slate-300">
+            Checking organizer access…
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   function getFinalTeamNames() {
     return Array.from({ length: numberOfTeams }).map((_, index) => {

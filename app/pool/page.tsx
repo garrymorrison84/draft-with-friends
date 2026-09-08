@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getPool, getDraftPicks } from "../lib/poolApi";
+import { getPool, getDraftPicks, getCurrentOrganizerUser } from "../lib/poolApi";
 import {
   loadPool as loadLocalPool,
   loadDraftPicks as loadLocalDraftPicks,
@@ -26,6 +26,7 @@ type Pool = {
   scoresToCount: number;
   teamNames: string[];
   draftOrder: string[];
+  ownerId?: string | null;
 } & DraftTiming;
 
 export default function PoolPage() {
@@ -33,6 +34,10 @@ export default function PoolPage() {
   const [pickCount, setPickCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [teamError, setTeamError] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [organizerId, setOrganizerId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   );
@@ -68,6 +73,7 @@ export default function PoolPage() {
             scoresToCount: savedPool.scores_to_count,
             teamNames: savedPool.team_names,
             draftOrder: savedPool.draft_order,
+            ownerId: savedPool.owner_id,
             draftType: savedPool.draft_type || localTiming?.draftType,
             scheduledDraftAt:
               savedPool.scheduled_draft_at || localTiming?.scheduledDraftAt,
@@ -87,6 +93,7 @@ export default function PoolPage() {
             scoresToCount: localPool!.scoresToCount,
             teamNames: localPool!.teamNames,
             draftOrder: localPool!.draftOrder,
+            ownerId: null,
             draftType: localPool!.draftType,
             scheduledDraftAt: localPool!.scheduledDraftAt,
             timeZone: localPool!.timeZone,
@@ -96,7 +103,10 @@ export default function PoolPage() {
 
       setPool(formattedPool);
       const savedTeam = window.sessionStorage.getItem(`dwf-golf-team-${formattedPool.id}`) || "";
-      if (formattedPool.teamNames.includes(savedTeam)) setSelectedTeam(savedTeam);
+      if (formattedPool.teamNames.includes(savedTeam)) {
+        setSelectedTeam(savedTeam);
+        setTeamName(savedTeam);
+      }
 
       const picks = savedPool
         ? await getDraftPicks(formattedPool.id)
@@ -123,6 +133,38 @@ export default function PoolPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
+  }, []);
+
+  async function renameSelectedTeam() {
+    if (!pool || !selectedTeam || !teamName.trim()) return;
+    setIsRenaming(true);
+    setTeamError("");
+    try {
+      const response = await fetch("/api/pools", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ poolId: pool.id, currentName: selectedTeam, newName: teamName }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Could not rename this team.");
+      const nextName = teamName.trim();
+      setPool((current) => current ? {
+        ...current,
+        teamNames: current.teamNames.map((name) => name === selectedTeam ? nextName : name),
+        draftOrder: current.draftOrder.map((name) => name === selectedTeam ? nextName : name),
+      } : current);
+      setSelectedTeam(nextName);
+      setTeamName(nextName);
+      window.sessionStorage.setItem(`dwf-golf-team-${pool.id}`, nextName);
+    } catch (error) {
+      setTeamError(error instanceof Error ? error.message : "Could not rename this team.");
+    } finally {
+      setIsRenaming(false);
+    }
+  }
 
   useEffect(() => {
     if (copyStatus === "idle") {
@@ -241,6 +283,8 @@ export default function PoolPage() {
                   type="button"
                   onClick={() => {
                     setSelectedTeam(team);
+                    setTeamName(team);
+                    setTeamError("");
                     window.sessionStorage.setItem(`dwf-golf-team-${pool.id}`, team);
                   }}
                   className={`rounded-xl border px-4 py-3 text-left font-black transition ${selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
@@ -249,6 +293,18 @@ export default function PoolPage() {
                 </button>
               ))}
             </div>
+            {selectedTeam && (
+              <div className="mt-5 max-w-xl">
+                <label className="mb-2 block text-sm font-bold text-slate-300">Rename your team</label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input value={teamName} onChange={(event) => setTeamName(event.target.value)} maxLength={40} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#030712] px-4 py-3 font-bold text-white outline-none focus:border-emerald-300" />
+                  <button type="button" onClick={renameSelectedTeam} disabled={isRenaming || !teamName.trim()} className="rounded-xl bg-white px-5 py-3 font-black text-slate-950 transition hover:bg-slate-200 disabled:opacity-50">
+                    {isRenaming ? "Saving…" : "Save Name"}
+                  </button>
+                </div>
+                {teamError && <p className="mt-2 text-sm font-bold text-red-300">{teamError}</p>}
+              </div>
+            )}
           </section>
         )}
 
@@ -302,6 +358,14 @@ export default function PoolPage() {
             </div>
           </div>
         </section>
+
+        {organizerId && organizerId === pool.ownerId && !draftComplete && (
+          <section className="mt-10 rounded-3xl border border-emerald-400/20 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <h2 className="text-2xl font-black">Commissioner Controls</h2>
+            <p className="mt-2 text-sm text-slate-400">Manage team names, settings, and the draft as the pool organizer.</p>
+            <Link href={`/organizer/manage?id=${pool.id}`} className="mt-5 inline-flex rounded-xl bg-emerald-400 px-6 py-3 font-black text-slate-950 hover:bg-emerald-300">Open Commissioner Controls</Link>
+          </section>
+        )}
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
           <div className="flex items-center justify-between gap-4">

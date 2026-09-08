@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   formatPickClock,
   getDraftStartsIn,
@@ -42,6 +43,10 @@ export default function FootballPoolPage() {
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [teamError, setTeamError] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [organizerId, setOrganizerId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   );
@@ -64,7 +69,10 @@ export default function FootballPoolPage() {
         const savedPicks = loadFootballDraftPicks(savedPool.id);
         setPool(savedPool);
         const savedTeam = window.sessionStorage.getItem(`dwf-football-team-${savedPool.id}`) || "";
-        if (savedPool.teamNames.includes(savedTeam)) setSelectedTeam(savedTeam);
+        if (savedPool.teamNames.includes(savedTeam)) {
+          setSelectedTeam(savedTeam);
+          setTeamName(savedTeam);
+        }
         setPicks(savedPicks);
         setIsLoading(false);
         persistFootballHistory(savedPool, savedPicks).catch(console.error);
@@ -78,7 +86,10 @@ export default function FootballPoolPage() {
         saveFootballDraftPicks(history.pool.id, history.picks);
         setPool(history.pool);
         const savedTeam = window.sessionStorage.getItem(`dwf-football-team-${history.pool.id}`) || "";
-        if (history.pool.teamNames.includes(savedTeam)) setSelectedTeam(savedTeam);
+        if (history.pool.teamNames.includes(savedTeam)) {
+          setSelectedTeam(savedTeam);
+          setTeamName(savedTeam);
+        }
         setPicks(history.picks);
       }
       setIsLoading(false);
@@ -89,6 +100,40 @@ export default function FootballPoolPage() {
 
     return () => window.clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
+  }, []);
+
+  async function renameSelectedTeam() {
+    if (!pool || !selectedTeam || !teamName.trim()) return;
+    setIsRenaming(true);
+    setTeamError("");
+    try {
+      const response = await fetch("/api/football/pools", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ poolId: pool.id, currentName: selectedTeam, newName: teamName }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Could not rename this team.");
+      const nextName = teamName.trim();
+      const nextPool = {
+        ...pool,
+        teamNames: pool.teamNames.map((name) => name === selectedTeam ? nextName : name),
+        draftOrder: pool.draftOrder.map((name) => name === selectedTeam ? nextName : name),
+      };
+      saveFootballPool(nextPool);
+      setPool(nextPool);
+      setSelectedTeam(nextName);
+      setTeamName(nextName);
+      window.sessionStorage.setItem(`dwf-football-team-${pool.id}`, nextName);
+    } catch (error) {
+      setTeamError(error instanceof Error ? error.message : "Could not rename this team.");
+    } finally {
+      setIsRenaming(false);
+    }
+  }
 
   useEffect(() => {
     if (copyStatus === "idle") return;
@@ -218,6 +263,8 @@ export default function FootballPoolPage() {
                   type="button"
                   onClick={() => {
                     setSelectedTeam(team);
+                    setTeamName(team);
+                    setTeamError("");
                     window.sessionStorage.setItem(`dwf-football-team-${pool.id}`, team);
                   }}
                   className={`rounded-xl border px-4 py-3 text-left font-black transition ${selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
@@ -226,6 +273,18 @@ export default function FootballPoolPage() {
                 </button>
               ))}
             </div>
+            {selectedTeam && (
+              <div className="mt-5 max-w-xl">
+                <label className="mb-2 block text-sm font-bold text-slate-300">Rename your team</label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input value={teamName} onChange={(event) => setTeamName(event.target.value)} maxLength={40} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#030712] px-4 py-3 font-bold text-white outline-none focus:border-emerald-300" />
+                  <button type="button" onClick={renameSelectedTeam} disabled={isRenaming || !teamName.trim()} className="rounded-xl bg-white px-5 py-3 font-black text-slate-950 transition hover:bg-slate-200 disabled:opacity-50">
+                    {isRenaming ? "Saving…" : "Save Name"}
+                  </button>
+                </div>
+                {teamError && <p className="mt-2 text-sm font-bold text-red-300">{teamError}</p>}
+              </div>
+            )}
           </section>
         )}
 
@@ -280,6 +339,17 @@ export default function FootballPoolPage() {
             </div>
           </div>
         </section>
+
+        {organizerId && organizerId === pool.ownerId && !lobbyStats.draftComplete && (
+          <section className="mt-10 rounded-3xl border border-emerald-400/20 bg-[#111827] p-6 shadow-xl shadow-black/40">
+            <h2 className="text-2xl font-black">Commissioner Controls</h2>
+            <p className="mt-2 text-sm font-semibold text-slate-400">Manage scoring, team names, and draft settings as the pool organizer.</p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Link href={`/football/scoring?id=${pool.id}`} className="rounded-xl bg-emerald-400 px-6 py-3 text-center font-black text-slate-950 hover:bg-emerald-300">Roster + Scoring</Link>
+              <Link href={`/football/commissioner?id=${pool.id}`} className="rounded-xl border border-white/10 bg-[#1F2937] px-6 py-3 text-center font-black hover:border-emerald-300/60">Team Names + Draft Picks</Link>
+            </div>
+          </section>
+        )}
 
         <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40 sm:p-8">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
