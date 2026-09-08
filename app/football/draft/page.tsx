@@ -117,9 +117,9 @@ function hasScheduledOpponent(player: FootballPlayer) {
 }
 
 const eligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(150px,1fr)_64px_minmax(126px,0.78fr)_82px]";
+  "grid-cols-[minmax(0,1fr)_48px] md:grid-cols-[minmax(190px,1fr)_48px_minmax(90px,0.55fr)_64px]";
 const compactEligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_72px] xl:grid-cols-[minmax(0,1fr)_72px_88px]";
+  "grid-cols-[minmax(0,1fr)_48px] xl:grid-cols-[minmax(0,1fr)_48px_64px]";
 
 function gameLogColumnsForPosition(
   position: FootballPlayer["position"],
@@ -1018,7 +1018,7 @@ export default function FootballDraftPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
-      <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-[1500px] px-2 py-4 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <Link href="/" aria-label="Draft With Friends home">
@@ -1078,7 +1078,7 @@ export default function FootballDraftPage() {
         )}
 
         <div className={`mt-8 grid gap-5 sm:mt-10 sm:gap-4 ${draftRoomGridClass}`}>
-          <section className={`order-2 min-w-0 rounded-3xl border border-slate-600/35 bg-[#111827] p-4 shadow-xl shadow-black/40 lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden ${
+          <section className={`order-2 min-w-0 rounded-2xl border border-slate-600/35 bg-[#111827] p-2 shadow-xl shadow-black/40 sm:rounded-3xl lg:sticky lg:top-6 lg:order-1 lg:h-[calc(100vh-48px)] lg:overflow-hidden ${
             compactDraftLayout ? "sm:p-4" : "sm:p-6"
           }`}>
             <h2 className={compactDraftLayout ? "text-2xl font-black" : "text-3xl font-black"}>Eligible Players</h2>
@@ -1115,8 +1115,8 @@ export default function FootballDraftPage() {
               <div className={`max-h-[620px] overflow-y-auto lg:max-h-none ${
                 compactDraftLayout ? "lg:h-[calc(100vh-330px)]" : "lg:h-[calc(100vh-380px)]"
               }`}>
-                <div className="sticky top-0 z-10 w-full border-b border-slate-600/35 bg-[#172235] px-4 py-3">
-                  <div className={`grid ${playerGridClass} items-center gap-x-3 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
+                <div className="sticky top-0 z-10 w-full border-b border-slate-600/35 bg-[#172235] px-2 py-3 sm:px-4">
+                  <div className={`grid ${playerGridClass} items-center gap-x-1.5 text-center text-xs font-black uppercase tracking-wide text-slate-500 sm:gap-x-3`}>
                     <div className="text-left">Player</div>
                     <div className="text-right text-emerald-300 md:text-center">PPG</div>
                     <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Game</div>
@@ -1133,7 +1133,7 @@ export default function FootballDraftPage() {
                 return (
                   <div
                     key={player.id}
-                    className={`grid ${playerGridClass} items-center gap-x-3 border-b border-slate-700/45 px-4 text-center text-sm font-black text-slate-300 last:border-b-0 ${
+                    className={`grid ${playerGridClass} items-center gap-x-1.5 border-b border-slate-700/45 px-2 text-center text-sm font-black text-slate-300 last:border-b-0 sm:gap-x-3 sm:px-4 ${
                       drafted
                         ? "bg-[#050a13] opacity-45"
                         : selected
@@ -1146,8 +1146,8 @@ export default function FootballDraftPage() {
                       onClick={() => setDetailsPlayer(player)}
                       className="min-w-0 text-left"
                     >
-                      <div className="flex items-center gap-3">
-                        <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <span className={`shrink-0 rounded-full border px-2 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${styles.badge}`}>
                           {player.position}
                         </span>
                         <div className="min-w-0">
@@ -1175,7 +1175,7 @@ export default function FootballDraftPage() {
                       type="button"
                       onClick={() => draftPlayer(player)}
                       disabled={drafted || !draftOpen || draftComplete || (!isCommissioner && selectedTeam !== currentTeam)}
-                      className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-xl bg-emerald-400 px-3 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
+                      className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-lg bg-emerald-400 px-2 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
                     </button>
