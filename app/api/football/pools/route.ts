@@ -103,6 +103,9 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isRecord(pool.settings)) return NextResponse.json({ error: "Invalid pool settings." }, { status: 500 });
+  if (pool.settings.draftPaused === true) {
+    return NextResponse.json({ error: "The commissioner has paused the draft." }, { status: 409 });
+  }
   const draftOrder = Array.isArray(pool.settings.draftOrder)
     ? pool.settings.draftOrder.filter((name): name is string => typeof name === "string")
     : [];
@@ -137,6 +140,12 @@ export async function POST(request: NextRequest) {
   }).select("created_at").single();
 
   if (insertError) {
+    console.error("Football pick insert failed", {
+      poolId,
+      expectedPickIndex,
+      code: insertError.code,
+      message: insertError.message,
+    });
     const { data: latestPicks } = await client.from("platform_draft_picks")
       .select("pick_index,selection_id,selection_snapshot,created_at")
       .eq("pool_id", poolId)

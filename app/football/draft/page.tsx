@@ -441,6 +441,7 @@ export default function FootballDraftPage() {
   const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState("");
   const [isCommissioner, setIsCommissioner] = useState(false);
+  const [draftIdentityReady, setDraftIdentityReady] = useState(false);
   const [pickError, setPickError] = useState("");
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
@@ -509,9 +510,12 @@ export default function FootballDraftPage() {
       const organizer = await getCurrentOrganizerUser();
       const commissioner = Boolean(organizer?.id && organizer.id === savedPool.ownerId);
       setIsCommissioner(commissioner);
-      if (!commissioner) {
+      if (commissioner) {
+        setDraftIdentityReady(true);
+      } else {
         try {
           await claimTeam(savedPool.id, chosenTeam);
+          setDraftIdentityReady(true);
         } catch (error) {
           window.sessionStorage.removeItem(`dwf-football-team-${savedPool.id}`);
           window.location.replace(`/football/pool?id=${savedPool.id}#choose-team`);
@@ -872,8 +876,10 @@ export default function FootballDraftPage() {
   function draftPlayer(player: FootballPlayer) {
     if (
       !pool ||
+      !draftIdentityReady ||
       draftedIds.has(player.id) ||
       !draftOpen ||
+      isPickClockPaused ||
       draftComplete ||
       (!isCommissioner && selectedTeam !== currentTeam) ||
       !canTeamDraftPosition({
@@ -902,10 +908,12 @@ export default function FootballDraftPage() {
     const pickKey = pool ? `${pool.id}-${picks.length}` : "";
     if (
       !pool ||
+      !draftIdentityReady ||
       pickSubmissionInFlightRef.current ||
       committedPickKeyRef.current === pickKey ||
       draftedIds.has(player.id) ||
       !draftOpen ||
+      isPickClockPaused ||
       draftComplete ||
       (!isCommissioner && selectedTeam !== currentTeam) ||
       !canTeamDraftPosition({
@@ -979,6 +987,7 @@ export default function FootballDraftPage() {
   useEffect(() => {
     if (
       !pool ||
+      !draftIdentityReady ||
       pickClockRemaining !== 0 ||
       activePickClockSeconds <= 0 ||
       !draftOpen ||
@@ -1025,6 +1034,7 @@ export default function FootballDraftPage() {
     currentTeam,
     displayedPlayers,
     draftComplete,
+    draftIdentityReady,
     draftOpen,
     draftOpeningBufferActive,
     draftedIds,
@@ -1258,7 +1268,7 @@ export default function FootballDraftPage() {
                     <button
                       type="button"
                       onClick={() => draftPlayer(player)}
-                      disabled={drafted || !draftOpen || draftComplete || (!isCommissioner && selectedTeam !== currentTeam)}
+                      disabled={drafted || !draftIdentityReady || !draftOpen || isPickClockPaused || draftComplete || (!isCommissioner && selectedTeam !== currentTeam)}
                       className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-lg bg-emerald-400 px-2 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
@@ -1464,7 +1474,7 @@ export default function FootballDraftPage() {
           scoring={pool.scoring}
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
-          canDraft={draftOpen && !draftComplete && !draftedIds.has(detailsPlayer.id) && (isCommissioner || selectedTeam === currentTeam)}
+          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && (isCommissioner || selectedTeam === currentTeam)}
         />
       )}
 
