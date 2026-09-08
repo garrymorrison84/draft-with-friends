@@ -1,5 +1,6 @@
 import type { FootballDraftPick, FootballPool } from "./storage";
 import { supabase } from "../../lib/supabase";
+import { getParticipantId } from "../../lib/teamClaims";
 
 type PlatformPoolRow = {
   id: string;
@@ -92,8 +93,8 @@ export async function persistFootballHistory(
   pool: FootballPool,
   picks: FootballDraftPick[]
 ) {
-  const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
   const response = await fetch("/api/football/pools", {
     method: "PUT",
     headers: {
@@ -121,10 +122,15 @@ export async function submitFootballPick({
   team: string;
   expectedPickIndex: number;
 }) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
   const response = await fetch("/api/football/pools", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex }),
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex, participantId: getParticipantId() }),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {

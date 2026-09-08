@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { getParticipantId } from "./teamClaims";
 
 export type SupabasePool = {
   id: string;
@@ -200,15 +201,18 @@ export async function deleteOwnedPool(poolId: string, ownerId: string) {
 }
 
 export async function saveDraftPick(pick: DraftPickRow) {
-  const { data, error } = await supabase.from("draft_picks").insert([pick]);
-
-  if (error) {
-    console.error("SAVE DRAFT PICK ERROR:", JSON.stringify(error, null, 2));
-    alert(`Save draft pick failed: ${error.message}`);
-    throw new Error(error.message);
-  }
-
-  return data;
+  const { data } = await supabase.auth.getSession();
+  const response = await fetch("/api/pools", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+    },
+    body: JSON.stringify({ ...pick, participant_id: getParticipantId() }),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.error || "Save draft pick failed.");
+  return result.pick;
 }
 
 export async function deleteLastDraftPick(poolId: string, pickNumber: number) {

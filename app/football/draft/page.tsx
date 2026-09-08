@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import FormSelect from "../../components/FormSelect";
 import {
   formatDraftStart,
@@ -438,6 +439,8 @@ export default function FootballDraftPage() {
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [isPickClockPaused, setIsPickClockPaused] = useState(false);
   const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [isCommissioner, setIsCommissioner] = useState(false);
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
   const committedPickKeyRef = useRef("");
@@ -463,6 +466,7 @@ export default function FootballDraftPage() {
         return false;
       }
       window.sessionStorage.setItem(`dwf-football-team-${candidatePool.id}`, selectedTeam);
+      setSelectedTeam(selectedTeam);
       return true;
     }
 
@@ -476,6 +480,8 @@ export default function FootballDraftPage() {
       saveFootballDraftPicks(savedPool.id, savedPicks);
       setPool(savedPool);
       setPicks(savedPicks);
+      const organizer = await getCurrentOrganizerUser();
+      setIsCommissioner(Boolean(organizer?.id && organizer.id === savedPool.ownerId));
     }
 
     loadDraft();
@@ -806,6 +812,7 @@ export default function FootballDraftPage() {
       draftedIds.has(player.id) ||
       !draftOpen ||
       draftComplete ||
+      (!isCommissioner && selectedTeam !== currentTeam) ||
       !canTeamDraftPosition({
         team: currentTeam,
         position: player.position,
@@ -837,6 +844,7 @@ export default function FootballDraftPage() {
       draftedIds.has(player.id) ||
       !draftOpen ||
       draftComplete ||
+      (!isCommissioner && selectedTeam !== currentTeam) ||
       !canTeamDraftPosition({
         team: currentTeam,
         position: player.position,
@@ -1166,7 +1174,7 @@ export default function FootballDraftPage() {
                     <button
                       type="button"
                       onClick={() => draftPlayer(player)}
-                      disabled={drafted || !draftOpen || draftComplete}
+                      disabled={drafted || !draftOpen || draftComplete || (!isCommissioner && selectedTeam !== currentTeam)}
                       className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-xl bg-emerald-400 px-3 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
@@ -1372,7 +1380,7 @@ export default function FootballDraftPage() {
           scoring={pool.scoring}
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
-          canDraft={draftOpen && !draftComplete && !draftedIds.has(detailsPlayer.id)}
+          canDraft={draftOpen && !draftComplete && !draftedIds.has(detailsPlayer.id) && (isCommissioner || selectedTeam === currentTeam)}
         />
       )}
 

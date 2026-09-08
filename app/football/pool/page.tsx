@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
+import { claimTeam, getParticipantId, loadTeamClaims } from "../../lib/teamClaims";
 import {
   formatPickClock,
   getDraftStartsIn,
@@ -47,6 +48,7 @@ export default function FootballPoolPage() {
   const [teamError, setTeamError] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
+  const [claims, setClaims] = useState<Record<string, string>>({});
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
   );
@@ -74,6 +76,7 @@ export default function FootballPoolPage() {
           setTeamName(savedTeam);
         }
         setPicks(savedPicks);
+        setClaims(await loadTeamClaims(savedPool.id));
         setIsLoading(false);
         persistFootballHistory(savedPool, savedPicks).catch(console.error);
         return;
@@ -91,6 +94,7 @@ export default function FootballPoolPage() {
           setTeamName(savedTeam);
         }
         setPicks(history.picks);
+        setClaims(await loadTeamClaims(history.pool.id));
       }
       setIsLoading(false);
     }
@@ -118,6 +122,7 @@ export default function FootballPoolPage() {
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error || "Could not rename this team.");
       const nextName = teamName.trim();
+      setClaims(await claimTeam(pool.id, nextName));
       const nextPool = {
         ...pool,
         teamNames: pool.teamNames.map((name) => name === selectedTeam ? nextName : name),
@@ -257,21 +262,29 @@ export default function FootballPoolPage() {
               Select the team you control before entering the draft.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {pool.teamNames.map((team) => (
+              {pool.teamNames.map((team) => {
+                const claimedByOther = Boolean(claims[team] && claims[team] !== getParticipantId());
+                return (
                 <button
                   key={team}
                   type="button"
-                  onClick={() => {
-                    setSelectedTeam(team);
-                    setTeamName(team);
-                    setTeamError("");
-                    window.sessionStorage.setItem(`dwf-football-team-${pool.id}`, team);
+                  disabled={claimedByOther}
+                  onClick={async () => {
+                    try {
+                      setClaims(await claimTeam(pool.id, team));
+                      setSelectedTeam(team);
+                      setTeamName(team);
+                      setTeamError("");
+                      window.sessionStorage.setItem(`dwf-football-team-${pool.id}`, team);
+                    } catch (error) {
+                      setTeamError(error instanceof Error ? error.message : "Could not claim this team.");
+                    }
                   }}
-                  className={`rounded-xl border px-4 py-3 text-left font-black transition ${selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
+                  className={`rounded-xl border px-4 py-3 text-left font-black transition ${claimedByOther ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
                 >
-                  {team}
+                  {team}{claimedByOther ? " · Claimed" : ""}
                 </button>
-              ))}
+              )})}
             </div>
             {selectedTeam && (
               <div className="mt-5 max-w-xl">

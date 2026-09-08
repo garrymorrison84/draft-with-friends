@@ -5,6 +5,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function teamForPick(draftOrder: string[], pickIndex: number) {
+  const round = Math.floor(pickIndex / draftOrder.length);
+  const slot = pickIndex % draftOrder.length;
+  return draftOrder[round % 2 === 0 ? slot : draftOrder.length - 1 - slot];
+}
+
 async function getAuthenticatedOrganizerId(
   request: NextRequest,
   client: NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>
@@ -67,6 +73,7 @@ export async function POST(request: NextRequest) {
   const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
   const playerId = typeof body.playerId === "string" ? body.playerId.trim() : "";
   const team = typeof body.team === "string" ? body.team.trim() : "";
+  const participantId = typeof body.participantId === "string" ? body.participantId.trim() : "";
   const expectedPickIndex = Number(body.expectedPickIndex);
   if (!poolId || !playerId || !team || !Number.isInteger(expectedPickIndex) || expectedPickIndex < 0) {
     return NextResponse.json({ error: "Incomplete draft pick payload." }, { status: 400 });
@@ -77,7 +84,7 @@ export async function POST(request: NextRequest) {
 
   const [{ data: pool, error: poolError }, { data: currentPicks, error: picksError }] =
     await Promise.all([
-      client.from("platform_pools").select("id").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
+      client.from("platform_pools").select("id,owner_id,settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
       client.from("platform_draft_picks")
         .select("pick_index,selection_id,selection_snapshot")
         .eq("pool_id", poolId)
@@ -92,6 +99,25 @@ export async function POST(request: NextRequest) {
   const picks = currentPicks || [];
   if (picks.length !== expectedPickIndex || picks.some((pick) => pick.selection_id === playerId)) {
     return NextResponse.json({ error: "Draft board changed. Syncing the latest pick.", picks }, { status: 409 });
+  }
+
+  if (!isRecord(pool.settings)) return NextResponse.json({ error: "Invalid pool settings." }, { status: 500 });
+  const draftOrder = Array.isArray(pool.settings.draftOrder)
+    ? pool.settings.draftOrder.filter((name): name is string => typeof name === "string")
+    : [];
+  const expectedTeam = draftOrder.length ? teamForPick(draftOrder, expectedPickIndex) : "";
+  if (!expectedTeam || team !== expectedTeam) {
+    return NextResponse.json({ error: "It is not that team's turn." }, { status: 403 });
+  }
+  const organizerId = await getAuthenticatedOrganizerId(request, client);
+  const isCommissioner = Boolean(organizerId && organizerId === pool.owner_id);
+  if (!isCommissioner) {
+    const { data: claimRow } = await client.from("platform_pools").select("settings").eq("id", `TEAM_CLAIMS_${poolId}`).maybeSingle();
+    const claimSettings = isRecord(claimRow?.settings) ? claimRow.settings : {};
+    const claims = isRecord(claimSettings.claims) ? claimSettings.claims : {};
+    if (!participantId || claims[expectedTeam] !== participantId) {
+      return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
+    }
   }
 
   const { error: insertError } = await client.from("platform_draft_picks").insert({

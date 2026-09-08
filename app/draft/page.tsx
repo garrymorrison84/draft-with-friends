@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getPool,
   getDraftPicks,
+  getCurrentOrganizerUser,
   saveDraftPick,
   deleteLastDraftPick,
   loadGolfers,
@@ -64,6 +65,7 @@ type Pool = {
   teamNames: string[];
   draftOrder: string[];
   draftLocked: boolean;
+  ownerId?: string | null;
 } & DraftTiming;
 
 type DraftPick = {
@@ -302,6 +304,8 @@ export default function DraftPage() {
   const [recentFinishesError, setRecentFinishesError] = useState("");
   const [isSavingPick, setIsSavingPick] = useState(false);
   const [isLocalPool, setIsLocalPool] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [isCommissioner, setIsCommissioner] = useState(false);
   const [showDraftCompletedModal, setShowDraftCompletedModal] = useState(false);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [now, setNow] = useState(() => new Date());
@@ -356,6 +360,7 @@ export default function DraftPage() {
               savedPool.draft_locked ||
                 getOrganizerPoolMeta(savedPool.id).draftLocked
             ),
+            ownerId: savedPool.owner_id,
             draftType: savedPool.draft_type || localTiming?.draftType,
             scheduledDraftAt:
               savedPool.scheduled_draft_at || localTiming?.scheduledDraftAt,
@@ -376,6 +381,7 @@ export default function DraftPage() {
             teamNames: localPool!.teamNames || [],
             draftOrder: localPool!.draftOrder || localPool!.teamNames || [],
             draftLocked: false,
+            ownerId: null,
             draftType: localPool!.draftType,
             scheduledDraftAt: localPool!.scheduledDraftAt,
             timeZone: localPool!.timeZone,
@@ -392,6 +398,9 @@ export default function DraftPage() {
         return;
       }
       window.sessionStorage.setItem(`dwf-golf-team-${formattedPool.id}`, selectedTeam);
+      setSelectedTeam(selectedTeam);
+      const organizer = await getCurrentOrganizerUser();
+      setIsCommissioner(Boolean(organizer?.id && organizer.id === formattedPool.ownerId));
 
       setIsLocalPool(!savedPool);
       setPool(formattedPool);
@@ -868,6 +877,7 @@ export default function DraftPage() {
 
   const currentTeam =
     currentTeamIndex === null ? "Draft Complete" : teams[currentTeamIndex];
+  const canControlCurrentPick = isCommissioner || selectedTeam === currentTeam;
   const draftOpen = isDraftOpen(activePool, now);
   const draftStartsIn = getDraftStartsIn(activePool, now);
   const activePickClockSeconds = Math.max(
@@ -920,6 +930,7 @@ export default function DraftPage() {
     if (activePool.draftLocked) return;
     if (!draftOpen) return;
     if (draftComplete) return;
+    if (!canControlCurrentPick) return;
     if (isSavingPick) return;
     if (isGolferTaken(golfer)) return;
 
@@ -937,7 +948,7 @@ export default function DraftPage() {
   }
 
   async function saveGolferPick(golfer: Golfer) {
-    if (draftComplete || savePickInFlightRef.current || !draftOpen) return false;
+    if (draftComplete || savePickInFlightRef.current || !draftOpen || !canControlCurrentPick) return false;
 
     if (isGolferTaken(golfer)) {
       setPendingGolfer(null);
@@ -1172,7 +1183,8 @@ export default function DraftPage() {
                           activePool.draftLocked ||
                           !draftOpen ||
                           draftComplete ||
-                          isSavingPick
+                          isSavingPick ||
+                          !canControlCurrentPick
                         }
                         className="rounded-xl bg-emerald-400 px-3 py-2 text-sm font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
                       >
@@ -1382,6 +1394,7 @@ export default function DraftPage() {
             draftOpen &&
             !draftComplete &&
             !isSavingPick &&
+            canControlCurrentPick &&
             !isGolferTaken(detailsGolfer)
           }
           onClose={() => setDetailsGolfer(null)}

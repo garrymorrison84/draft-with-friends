@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
 
+async function authenticatedUserId(request: NextRequest, client: NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>) {
+  const token = request.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return null;
+  const { data } = await client.auth.getUser(token);
+  return data.user?.id || null;
+}
+
+function teamForPick(draftOrder: string[], pickIndex: number) {
+  const round = Math.floor(pickIndex / draftOrder.length);
+  const slot = pickIndex % draftOrder.length;
+  return draftOrder[round % 2 === 0 ? slot : draftOrder.length - 1 - slot];
+}
+
 function getStringArray(value: unknown) {
   if (!Array.isArray(value)) {
     return [];
@@ -139,4 +152,44 @@ export async function PATCH(request: NextRequest) {
   }).eq("id", poolId).select().single();
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   return NextResponse.json({ success: true, pool: data });
+}
+
+export async function PUT(request: NextRequest) {
+  const { client, error: adminError } = getSupabaseAdmin();
+  if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+  const body = await request.json();
+  const poolId = String(body.pool_id || "").trim();
+  const team = String(body.team || "").trim();
+  const participantId = String(body.participant_id || "").trim();
+  const pickIndex = Number(body.pick_index);
+  if (!poolId || !team || !Number.isInteger(pickIndex)) return NextResponse.json({ error: "Invalid pick." }, { status: 400 });
+
+  const [{ data: pool, error: poolError }, { data: picks, error: picksError }] = await Promise.all([
+    client.from("pools").select("owner_id,draft_order,draft_locked").eq("id", poolId).maybeSingle(),
+    client.from("draft_picks").select("pick_index,golfer_name").eq("pool_id", poolId).order("pick_index"),
+  ]);
+  if (poolError || picksError) return NextResponse.json({ error: poolError?.message || picksError?.message }, { status: 500 });
+  if (!pool) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  if (pool.draft_locked) return NextResponse.json({ error: "Draft is locked." }, { status: 409 });
+  if ((picks || []).length !== pickIndex) return NextResponse.json({ error: "Draft board changed. Refreshing the latest pick." }, { status: 409 });
+  const draftOrder = getStringArray(pool.draft_order);
+  const expectedTeam = draftOrder.length ? teamForPick(draftOrder, pickIndex) : "";
+  if (!expectedTeam || expectedTeam !== team) return NextResponse.json({ error: "It is not that team's turn." }, { status: 403 });
+  const userId = await authenticatedUserId(request, client);
+  if (!userId || userId !== pool.owner_id) {
+    const { data: claimRow } = await client.from("platform_pools").select("settings").eq("id", `TEAM_CLAIMS_${poolId}`).maybeSingle();
+    const settings = claimRow?.settings && typeof claimRow.settings === "object" ? claimRow.settings as Record<string, unknown> : {};
+    const claims = settings.claims && typeof settings.claims === "object" ? settings.claims as Record<string, unknown> : {};
+    if (!participantId || claims[expectedTeam] !== participantId) return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
+  }
+  if ((picks || []).some((pick) => pick.golfer_name === String(body.golfer_name))) return NextResponse.json({ error: "That golfer was already drafted." }, { status: 409 });
+  const { data, error } = await client.from("draft_picks").insert({
+    pool_id: poolId,
+    team,
+    golfer_name: String(body.golfer_name || "").trim(),
+    golfer_rank: Number(body.golfer_rank) || 999999,
+    pick_index: pickIndex,
+  }).select().single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+  return NextResponse.json({ success: true, pick: data });
 }
