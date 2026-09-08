@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { footballPlayers } from "../../../football/lib/storage";
 import type { FootballGameLog, FootballPlayer } from "../../../football/lib/storage";
 import type { FootballStatLine } from "../../../football/lib/scoringEngine";
+import { getOpticOddsFootball } from "./optic";
 
 const REPLAY_BASE_URL =
   process.env.SPORTS_DATA_CFB_REPLAY_BASE_URL ||
@@ -494,6 +495,34 @@ async function getReplayMetadata() {
 }
 
 export async function GET() {
+  const opticOddsKey = process.env.OPTICODDS_API_KEY;
+  if (opticOddsKey) {
+    try {
+      return NextResponse.json(await getOpticOddsFootball(opticOddsKey));
+    } catch (error) {
+      return NextResponse.json(
+        {
+          mode: "fallback",
+          replay: {
+            season: String(new Date().getFullYear()),
+            seasonType: "reg",
+            week: 0,
+            metadata: null,
+            endpoints: {},
+            hasReplayKey: true,
+            error: error instanceof Error ? error.message : "OpticOdds request failed.",
+          },
+          playerPool: {
+            source: "Static fallback data",
+            count: footballPlayers.length,
+            conferences: [...new Set(footballPlayers.map((player) => player.conference))],
+            players: footballPlayers,
+          },
+        },
+        { status: 502 }
+      );
+    }
+  }
   const key = process.env.SPORTS_DATA_CFB_REPLAY_KEY;
   if (
     globalForReplay.__draftWithFriendsCfbReplayCache &&
