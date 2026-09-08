@@ -76,6 +76,7 @@ export type FootballPlayer = {
   id: string;
   name: string;
   school: string;
+  schoolAbbreviation?: string;
   conference: string;
   position: "QB" | "RB" | "WR" | "TE" | "DST" | "K";
   rank: number;

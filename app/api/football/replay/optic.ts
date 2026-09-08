@@ -6,7 +6,7 @@ const fantasyPositions = new Set(["QB", "RB", "WR", "TE", "K", "PK"]);
 const powerConferences = new Set(["ACC", "Big 10", "Big 12", "Pac-12", "SEC", "IndFBS"]);
 
 type Page<T> = { data?: T[]; has_more?: boolean };
-type Team = { id: string; name: string; division?: string; conference?: string | null };
+type Team = { id: string; name: string; abbreviation?: string; division?: string; conference?: string | null };
 type Player = { id: string; name: string; position: string; team?: { id: string; name: string } };
 type Competitor = { id: string; name: string };
 type Fixture = {
@@ -186,6 +186,7 @@ export async function getOpticOddsFootball(key: string) {
       const next = schedule(upcoming, team.id);
       return {
         id: `oo-${player.id}`, name: player.name, school: team.name,
+        schoolAbbreviation: team.abbreviation || team.name,
         conference: conferenceName(team.conference),
         position: (player.position === "PK" ? "K" : player.position) as FootballPlayer["position"],
         rank: 9999, projected: projectedPoints(projectedStats),
@@ -197,6 +198,7 @@ export async function getOpticOddsFootball(key: string) {
     const next = schedule(upcoming, team.id);
     return {
       id: `oo-dst-${team.id}`, name: `${team.name} D/ST`, school: team.name,
+      schoolAbbreviation: team.abbreviation || team.name,
       conference: conferenceName(team.conference), position: "DST", rank: 9999,
       projected: 0, opponent: next.opponent, gameTime: next.gameTime,
       averageStats: {}, projectedStats: {}, gameLogs: [],

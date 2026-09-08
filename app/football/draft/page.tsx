@@ -641,6 +641,7 @@ export default function FootballDraftPage() {
       const matchesSearch =
         player.name.toLowerCase().includes(search.toLowerCase()) ||
         player.school.toLowerCase().includes(search.toLowerCase()) ||
+        player.schoolAbbreviation?.toLowerCase().includes(search.toLowerCase()) ||
         player.conference.toLowerCase().includes(search.toLowerCase());
       return (
         isAvailable &&
@@ -1095,10 +1096,10 @@ export default function FootballDraftPage() {
                             {player.name}
                           </p>
                           <p className="truncate text-xs font-bold text-slate-500">
-                            {player.school} • {player.conference}
+                            {player.schoolAbbreviation || player.school} • {player.gameTime} {player.opponent}
                           </p>
                           <p className="mt-1 truncate text-xs font-bold text-slate-600 md:hidden">
-                            PPG {formatPoints(ppg)} • {player.gameTime} {player.opponent}
+                            PPG {formatPoints(ppg)}
                           </p>
                         </div>
                       </div>
