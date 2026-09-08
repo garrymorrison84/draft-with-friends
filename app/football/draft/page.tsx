@@ -118,9 +118,9 @@ function hasScheduledOpponent(player: FootballPlayer) {
 }
 
 const eligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_48px] md:grid-cols-[minmax(190px,1fr)_48px_minmax(90px,0.55fr)_64px]";
+  "grid-cols-[minmax(0,1fr)_48px_20px] md:grid-cols-[minmax(190px,1fr)_48px_minmax(90px,0.55fr)_64px]";
 const compactEligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_48px] xl:grid-cols-[minmax(0,1fr)_48px_64px]";
+  "grid-cols-[minmax(0,1fr)_48px_20px] xl:grid-cols-[minmax(0,1fr)_48px_64px]";
 
 function gameLogColumnsForPosition(
   position: FootballPlayer["position"],
