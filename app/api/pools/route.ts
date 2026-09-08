@@ -52,15 +52,18 @@ export async function POST(request: NextRequest) {
     draft_locked: Boolean(body.draft_locked),
     archived: Boolean(body.archived),
   };
+  const isScheduled = body.draft_type === "scheduled";
   const poolWithTiming = {
     ...basePool,
-    draft_type: body.draft_type === "scheduled" ? "scheduled" : "unscheduled",
+    draft_type: isScheduled ? "scheduled" : "unscheduled",
     scheduled_draft_at: body.scheduled_draft_at
       ? String(body.scheduled_draft_at)
       : null,
     time_zone: body.time_zone ? String(body.time_zone) : "America/New_York",
-    pick_clock_seconds: Math.max(0, Number(body.pick_clock_seconds) || 0),
-    auto_pick_on_timeout: Boolean(body.auto_pick_on_timeout),
+    pick_clock_seconds: isScheduled
+      ? Math.max(30, Number(body.pick_clock_seconds) || 0)
+      : 0,
+    auto_pick_on_timeout: isScheduled,
   };
 
   let { data, error } = await client

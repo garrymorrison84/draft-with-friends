@@ -109,7 +109,7 @@ export default function CreatePoolPage() {
   const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
   const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
     useState<DraftTimeZone>(defaultDraftTimeZone);
-  const [pickClockSeconds, setPickClockSeconds] = useState(0);
+  const [pickClockSeconds, setPickClockSeconds] = useState(30);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -273,8 +273,8 @@ export default function CreatePoolPage() {
         draftType === "scheduled" ? scheduledStart : untimedDraftTiming.scheduledDraftAt,
       timeZone:
         draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
-      pickClockSeconds: draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
-      autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
+      pickClockSeconds: draftType === "scheduled" ? Math.max(30, pickClockSeconds) : untimedDraftTiming.pickClockSeconds,
+      autoPickOnTimeout: draftType === "scheduled",
     };
 
     try {
@@ -591,7 +591,7 @@ export default function CreatePoolPage() {
             <div className="rounded-3xl border border-slate-700/60 bg-[#1F2937] p-6">
               <h2 className="text-2xl font-bold">Draft Timing</h2>
               <p className="mt-2 text-sm text-slate-400">
-                Choose an open-ended draft or schedule a live draft with an optional pick clock.
+                Choose an open-ended draft or schedule a live draft with a timed pick clock.
               </p>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -632,7 +632,10 @@ export default function CreatePoolPage() {
                     type="radio"
                     name="draftType"
                     checked={draftType === "scheduled"}
-                    onChange={() => setDraftType("scheduled")}
+                    onChange={() => {
+                      setDraftType("scheduled");
+                      setPickClockSeconds((current) => current || 30);
+                    }}
                     className="mr-3"
                   />
                   <span
@@ -709,7 +712,7 @@ export default function CreatePoolPage() {
                         ariaLabel="Pick clock"
                         value={pickClockSeconds}
                         onChange={(value) => setPickClockSeconds(Number(value))}
-                        options={pickClockOptions}
+                        options={pickClockOptions.filter((option) => Number(option.value) > 0)}
                         buttonClassName="border-white/5 bg-[#030712] font-normal"
                       />
                     </div>

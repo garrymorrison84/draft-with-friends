@@ -37,7 +37,7 @@ export default function CreateWinsPoolPage() {
   const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
   const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
     useState<DraftTimeZone>(defaultDraftTimeZone);
-  const [pickClockSeconds, setPickClockSeconds] = useState(0);
+  const [pickClockSeconds, setPickClockSeconds] = useState(30);
   const [poolMode, setPoolMode] = useState<WinsPoolMode>("power");
   const [selectedConferences, setSelectedConferences] = useState(defaultWinsConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -141,8 +141,8 @@ export default function CreateWinsPoolPage() {
       timeZone:
         draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
       pickClockSeconds:
-        draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
-      autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
+        draftType === "scheduled" ? Math.max(30, pickClockSeconds) : untimedDraftTiming.pickClockSeconds,
+      autoPickOnTimeout: draftType === "scheduled",
       createdAt: new Date().toISOString(),
     });
 
@@ -401,7 +401,7 @@ export default function CreateWinsPoolPage() {
 
           <Panel
             title="Draft Timing"
-            body="Choose an open-ended draft or schedule a live draft with an optional pick clock."
+            body="Choose an open-ended draft or schedule a live draft with a timed pick clock."
           >
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <ChoiceButton
@@ -414,7 +414,10 @@ export default function CreateWinsPoolPage() {
                 active={draftType === "scheduled"}
                 title="Schedule Draft"
                 body="Set a draft time and choose how long each member has to make a pick."
-                onClick={() => setDraftType("scheduled")}
+                onClick={() => {
+                  setDraftType("scheduled");
+                  setPickClockSeconds((current) => current || 30);
+                }}
               />
             </div>
 
@@ -455,7 +458,7 @@ export default function CreateWinsPoolPage() {
                     label="Pick Clock"
                     value={pickClockSeconds}
                     onChange={(value) => setPickClockSeconds(Number(value))}
-                    options={pickClockOptions}
+                    options={pickClockOptions.filter((option) => Number(option.value) > 0)}
                   />
                 </div>
               </>

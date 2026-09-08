@@ -169,6 +169,14 @@ export async function PUT(request: NextRequest) {
     );
   }
   ownerId ||= organizerId;
+  const isScheduled = pool.draftType === "scheduled";
+  const normalizedPool = {
+    ...pool,
+    pickClockSeconds: isScheduled
+      ? Math.max(30, Number(pool.pickClockSeconds) || 0)
+      : 0,
+    autoPickOnTimeout: isScheduled,
+  };
   const { error: poolError } = await client.from("platform_pools").upsert(
     {
       id: poolId,
@@ -178,7 +186,7 @@ export async function PUT(request: NextRequest) {
           ? pool.poolName.trim()
           : "College Football Pool",
       pool_type: "college_fantasy",
-      settings: pool,
+      settings: normalizedPool,
     },
     { onConflict: "id" }
   );
