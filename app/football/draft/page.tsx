@@ -42,7 +42,6 @@ import {
 } from "../lib/platformStorage";
 import {
   getPlayerPpg,
-  getProjectedScore,
   scoreFootballStats,
 } from "../lib/scoringEngine";
 import type { FootballStatLine } from "../lib/scoringEngine";
@@ -116,7 +115,7 @@ function hasScheduledOpponent(player: FootballPlayer) {
 }
 
 const eligiblePlayerGrid =
-  "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(150px,1fr)_54px_64px_minmax(126px,0.78fr)_82px]";
+  "grid-cols-[minmax(0,1fr)_86px] md:grid-cols-[minmax(150px,1fr)_64px_minmax(126px,0.78fr)_82px]";
 const compactEligiblePlayerGrid =
   "grid-cols-[minmax(0,1fr)_72px] xl:grid-cols-[minmax(0,1fr)_72px_88px]";
 
@@ -252,12 +251,6 @@ function playerGameRows(player: FootballPlayer, scoring: FootballPool["scoring"]
 
   return [
     {
-      label: "Proj",
-      opponent: player.opponent,
-      statLine: player.projectedStats,
-      points: getProjectedScore(player, scoring).total,
-    },
-    {
       label: "Avg",
       opponent: "Season avg",
       statLine: player.averageStats,
@@ -275,16 +268,12 @@ function PlayerStatColumns({
   scoring: FootballPool["scoring"];
   compact?: boolean;
 }) {
-  const projectedScore = getProjectedScore(player, scoring);
   const ppg = getPlayerPpg(player, scoring);
 
   return (
     <>
-      <div className={compact ? "hidden" : "hidden text-center text-slate-300 md:block"}>
-        {formatPoints(ppg)}
-      </div>
       <div className="text-right text-emerald-300 md:text-center">
-        {formatPoints(projectedScore.total)}
+        {formatPoints(ppg)}
       </div>
       <div className={compact ? "hidden" : "hidden text-center text-slate-400 md:block"}>
         {player.gameTime} {player.opponent}
@@ -307,7 +296,7 @@ function PlayerDetailsModal({
   canDraft: boolean;
 }) {
   const styles = positionStyles[player.position];
-  const projection = getProjectedScore(player, scoring);
+  const ppg = getPlayerPpg(player, scoring);
   const rows = playerGameRows(player, scoring);
   const hasReplayGameLogs = Boolean(player.gameLogs?.length);
   const gameLogColumns = gameLogColumnsForPosition(player.position, scoring);
@@ -336,8 +325,8 @@ function PlayerDetailsModal({
 
             <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
               <div className="rounded-2xl bg-[#030712] p-4">
-                <p className="text-xs font-black uppercase tracking-wide text-slate-500">Projected</p>
-                <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(projection.total)}</p>
+                <p className="text-xs font-black uppercase tracking-wide text-slate-500">PPG</p>
+                <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(ppg)}</p>
               </div>
               <button
                 type="button"
@@ -358,7 +347,7 @@ function PlayerDetailsModal({
           </p>
           {!hasReplayGameLogs && (
             <p className="mt-2 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm font-bold text-amber-100">
-              SportsData did not return game-by-game rows for this replay package yet, so this view is showing projected and season-average stat lines.
+              No completed game log is available for this player yet. PPG will populate after game data is available.
             </p>
           )}
 
@@ -665,8 +654,8 @@ export default function FootballDraftPage() {
     })
     .sort(
       (a, b) =>
-        getProjectedScore(b, pool?.scoring).total -
-        getProjectedScore(a, pool?.scoring).total
+        getPlayerPpg(b, pool?.scoring) -
+        getPlayerPpg(a, pool?.scoring)
     );
   const displayedPlayers = filteredPlayers.slice(0, 300);
 
@@ -1069,8 +1058,7 @@ export default function FootballDraftPage() {
                 <div className="sticky top-0 z-10 w-full border-b border-slate-600/35 bg-[#172235] px-4 py-3">
                   <div className={`grid ${playerGridClass} items-center gap-x-3 text-center text-xs font-black uppercase tracking-wide text-slate-500`}>
                     <div className="text-left">Player</div>
-                    <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Avg PPG</div>
-                    <div className="text-right text-emerald-300 md:text-center">Proj Pts</div>
+                    <div className="text-right text-emerald-300 md:text-center">PPG</div>
                     <div className={compactDraftLayout ? "hidden" : "hidden md:block"}>Game</div>
                     <div className={compactDraftLayout ? "hidden xl:block" : "hidden md:block"}>Action</div>
                   </div>
@@ -1110,7 +1098,7 @@ export default function FootballDraftPage() {
                             {player.school} • {player.conference}
                           </p>
                           <p className="mt-1 truncate text-xs font-bold text-slate-600 md:hidden">
-                            Avg {formatPoints(ppg)} • {player.gameTime} {player.opponent}
+                            PPG {formatPoints(ppg)} • {player.gameTime} {player.opponent}
                           </p>
                         </div>
                       </div>

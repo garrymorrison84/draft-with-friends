@@ -96,6 +96,25 @@ function schedule(fixtures: Fixture[], teamId: string) {
   };
 }
 
+function opponentForFixture(fixture: Fixture, teamId: string) {
+  const home = fixture.home_competitors[0];
+  const away = fixture.away_competitors[0];
+  const atHome = home?.id === teamId;
+  return `${atHome ? "vs" : "@"} ${atHome ? away?.name : home?.name}`;
+}
+
+function currentCollegeWeek(date = new Date()) {
+  const year = date.getFullYear();
+  const firstOfSeptember = new Date(year, 8, 1);
+  const firstThursday = new Date(year, 8, 1 + ((4 - firstOfSeptember.getDay() + 7) % 7));
+  const monday = (value: Date) => {
+    const result = new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    result.setDate(result.getDate() - ((result.getDay() + 6) % 7));
+    return result.getTime();
+  };
+  return Math.max(1, Math.floor((monday(date) - monday(firstThursday)) / 604800000) + 1);
+}
+
 const propMap: Record<string, keyof FootballStatLine> = {
   player_passing_attempts: "passingAttempts", player_passing_completions: "completions",
   player_passing_yards: "passingYards", player_passing_touchdowns: "passingTds",
@@ -159,7 +178,7 @@ export async function getOpticOddsFootball(key: string) {
       const history = (results.get(player.id) || []).sort((a, b) => Date.parse(a.fixture.start_date) - Date.parse(b.fixture.start_date));
       const logs = history.map(({ fixture, result }) => ({
         id: `${fixture.id}-${player.id}`, week: `W${fixture.season_week || "-"}`,
-        opponent: schedule([fixture], team.id).opponent,
+        opponent: opponentForFixture(fixture, team.id),
         statLine: statLine(result.stats?.find((row) => row.period === "all")?.stats),
       }));
       const recent = logs.at(-1)?.statLine || {};
@@ -192,7 +211,7 @@ export async function getOpticOddsFootball(key: string) {
     mode: "live",
     replay: {
       season: sample?.season_year || String(new Date().getFullYear()), seasonType: "reg",
-      week: Number(sample?.season_week || 0), hasReplayKey: true, error: null,
+      week: currentCollegeWeek(), hasReplayKey: true, error: null,
       endpoints: { teams: `${baseUrl}/teams`, players: `${baseUrl}/players`, fixtures: `${baseUrl}/fixtures`, odds: `${baseUrl}/fixtures/odds`, playerResults: `${baseUrl}/fixtures/player-results` },
       metadata: { provider: "OpticOdds", teams: teams.length, fixtures: games.length, completedFixtures: completed.length, upcomingFixtures: upcoming.length, playersWithPropProjections: props.size },
     },

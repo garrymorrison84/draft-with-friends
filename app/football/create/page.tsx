@@ -52,7 +52,7 @@ export default function CreateFootballPoolPage() {
   const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
   const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
     useState<DraftTimeZone>(defaultDraftTimeZone);
-  const [pickClockSeconds, setPickClockSeconds] = useState(0);
+  const [pickClockSeconds, setPickClockSeconds] = useState(30);
   const [playerPoolMode, setPlayerPoolMode] = useState<"power" | "custom">("power");
   const [selectedConferences, setSelectedConferences] = useState(powerPoolConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -73,7 +73,19 @@ export default function CreateFootballPoolPage() {
       setIsCheckingAuth(false);
     }
 
+    async function loadCurrentWeek() {
+      try {
+        const response = await fetch("/api/football/replay", { cache: "no-store" });
+        const data = await response.json();
+        const currentWeek = Number(data?.replay?.week);
+        if (response.ok && currentWeek > 0) setWeek(`Week ${currentWeek}`);
+      } catch (error) {
+        console.error("Could not load the current college football week", error);
+      }
+    }
+
     loadOrganizer();
+    loadCurrentWeek();
   }, []);
 
   function finalTeamNames() {
@@ -185,8 +197,8 @@ export default function CreateFootballPoolPage() {
         draftType === "scheduled" ? scheduledStart : untimedDraftTiming.scheduledDraftAt,
       timeZone:
         draftType === "scheduled" ? scheduledDraftTimeZone : untimedDraftTiming.timeZone,
-      pickClockSeconds: draftType === "scheduled" ? pickClockSeconds : untimedDraftTiming.pickClockSeconds,
-      autoPickOnTimeout: draftType === "scheduled" && pickClockSeconds > 0,
+      pickClockSeconds: draftType === "scheduled" ? Math.max(30, pickClockSeconds) : untimedDraftTiming.pickClockSeconds,
+      autoPickOnTimeout: draftType === "scheduled",
       ownerId: organizer.id,
       createdAt: new Date().toISOString(),
     };
@@ -502,7 +514,7 @@ export default function CreateFootballPoolPage() {
 
             <Panel
               title="Draft Timing"
-              body="Choose an open-ended draft or schedule a live draft with an optional pick clock."
+              body="Choose an open-ended anytime draft or schedule a timed live draft."
             >
               <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 md:grid-cols-2">
                 <label
@@ -542,7 +554,10 @@ export default function CreateFootballPoolPage() {
                     type="radio"
                     name="draftType"
                     checked={draftType === "scheduled"}
-                    onChange={() => setDraftType("scheduled")}
+                    onChange={() => {
+                      setDraftType("scheduled");
+                      setPickClockSeconds((current) => current || 30);
+                    }}
                     className="mr-3"
                   />
                   <span
@@ -619,7 +634,7 @@ export default function CreateFootballPoolPage() {
                         ariaLabel="Pick clock"
                         value={pickClockSeconds}
                         onChange={(value) => setPickClockSeconds(Number(value))}
-                        options={pickClockOptions}
+                        options={pickClockOptions.filter((option) => Number(option.value) > 0)}
                         buttonClassName="border-white/5 bg-[#030712] font-normal"
                       />
                     </div>
