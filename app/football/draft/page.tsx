@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
+import { claimTeam } from "../../lib/teamClaims";
 import FormSelect from "../../components/FormSelect";
 import {
   formatDraftStart,
@@ -444,6 +445,7 @@ export default function FootballDraftPage() {
   const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState("");
   const [isCommissioner, setIsCommissioner] = useState(false);
+  const [pickError, setPickError] = useState("");
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
   const committedPickKeyRef = useRef("");
@@ -460,24 +462,26 @@ export default function FootballDraftPage() {
     if (!id) return;
 
     function hasSelectedTeam(candidatePool: FootballPool) {
-      const selectedTeam =
+      const chosenTeam =
         params.get("team") ||
         window.sessionStorage.getItem(`dwf-football-team-${candidatePool.id}`) ||
         "";
-      if (!candidatePool.teamNames.includes(selectedTeam)) {
+      if (!candidatePool.teamNames.includes(chosenTeam)) {
         window.location.replace(`/football/pool?id=${candidatePool.id}#choose-team`);
-        return false;
+        return "";
       }
-      window.sessionStorage.setItem(`dwf-football-team-${candidatePool.id}`, selectedTeam);
-      setSelectedTeam(selectedTeam);
-      return true;
+      window.sessionStorage.setItem(`dwf-football-team-${candidatePool.id}`, chosenTeam);
+      setSelectedTeam(chosenTeam);
+      return chosenTeam;
     }
 
     async function loadDraft() {
       const history = await loadPersistedFootballHistory(id!);
       const localPool = loadFootballPool(id!);
       const savedPool = history?.pool || localPool;
-      if (!savedPool || !hasSelectedTeam(savedPool)) return;
+      if (!savedPool) return;
+      const chosenTeam = hasSelectedTeam(savedPool);
+      if (!chosenTeam) return;
       const savedPicks = history?.picks || loadFootballDraftPicks(savedPool.id);
       saveFootballPool(savedPool);
       saveFootballDraftPicks(savedPool.id, savedPicks);
@@ -493,7 +497,17 @@ export default function FootballDraftPage() {
         ]);
       }
       const organizer = await getCurrentOrganizerUser();
-      setIsCommissioner(Boolean(organizer?.id && organizer.id === savedPool.ownerId));
+      const commissioner = Boolean(organizer?.id && organizer.id === savedPool.ownerId);
+      setIsCommissioner(commissioner);
+      if (!commissioner) {
+        try {
+          await claimTeam(savedPool.id, chosenTeam);
+        } catch (error) {
+          window.sessionStorage.removeItem(`dwf-football-team-${savedPool.id}`);
+          window.location.replace(`/football/pool?id=${savedPool.id}#choose-team`);
+          return;
+        }
+      }
     }
 
     loadDraft();
@@ -879,6 +893,7 @@ export default function FootballDraftPage() {
 
     committedPickKeyRef.current = pickKey;
     pickSubmissionInFlightRef.current = true;
+    setPickError("");
     try {
       const result = await submitFootballPick({
         poolId: pool.id,
@@ -912,6 +927,7 @@ export default function FootballDraftPage() {
       return true;
     } catch (error) {
       console.error(error);
+      setPickError(error instanceof Error ? error.message : "This pick could not be saved. Please try again.");
       committedPickKeyRef.current = "";
       const history = await loadPersistedFootballHistory(pool.id);
       if (history) {
@@ -1084,6 +1100,15 @@ export default function FootballDraftPage() {
             </Link>
           </div>
         </div>
+
+        {pickError && (
+          <div role="alert" className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-red-400/40 bg-red-400/10 px-4 py-3 text-sm font-bold text-red-200">
+            <span>{pickError}</span>
+            <button type="button" onClick={() => setPickError("")} className="shrink-0 rounded-lg border border-red-300/30 px-3 py-1.5 text-xs font-black hover:bg-red-300/10">
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {draftOpen && !draftComplete && pool.draftType === "scheduled" && (
           <div className="fixed bottom-5 right-4 z-50 flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-2xl border border-emerald-400/30 bg-[#06261f]/95 px-3.5 py-3 text-sm font-black shadow-2xl shadow-black/50 backdrop-blur sm:right-6 sm:gap-3 sm:px-4 sm:py-3.5 sm:text-base">
