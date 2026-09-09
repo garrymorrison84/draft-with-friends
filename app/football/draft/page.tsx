@@ -997,16 +997,21 @@ export default function FootballDraftPage() {
         expectedPickIndex: picks.length,
         playerSnapshot: player,
       });
+      const pickedAt = result?.pickedAt || new Date().toISOString();
       const nextPicks = [
         ...picks,
         {
           playerId: player.id,
           team: currentTeam,
           pickNumber: picks.length + 1,
-          pickedAt: result?.pickedAt || new Date().toISOString(),
+          pickedAt,
           playerSnapshot: player,
         },
       ];
+      const nextTurnStartedAt = Date.parse(pickedAt);
+      setPickTimerStartedAt(
+        Number.isFinite(nextTurnStartedAt) ? nextTurnStartedAt : Date.now()
+      );
       setPicks(nextPicks);
       const acceptedPickSoundKey = getPickSoundKey(pool.id, nextPicks.at(-1));
       announcedPickSoundKeyRef.current = acceptedPickSoundKey;
