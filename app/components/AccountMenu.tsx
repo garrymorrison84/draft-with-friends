@@ -54,7 +54,7 @@ export default function AccountMenu() {
   if (!authReady || (!user && isMemberPoolRoute)) return null;
 
   return (
-    <div ref={menuRef} className="fixed right-3 top-3 z-[100] sm:right-6 sm:top-6">
+    <div ref={menuRef} className="absolute right-3 top-3 z-[100] sm:right-6 sm:top-6">
       {user ? (
         <div className="relative">
           <button
