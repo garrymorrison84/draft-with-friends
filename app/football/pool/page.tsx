@@ -49,6 +49,7 @@ export default function FootballPoolPage() {
   const [isRenaming, setIsRenaming] = useState(false);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
   const [organizerEmail, setOrganizerEmail] = useState("");
+  const [organizerChecked, setOrganizerChecked] = useState(false);
   const [claims, setClaims] = useState<Record<string, string>>({});
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle"
@@ -110,6 +111,7 @@ export default function FootballPoolPage() {
     getCurrentOrganizerUser().then((user) => {
       setOrganizerId(user?.id || null);
       setOrganizerEmail(user?.email || "");
+      setOrganizerChecked(true);
     });
   }, []);
 
@@ -305,7 +307,7 @@ export default function FootballPoolPage() {
                 </button>
               )})}
             </div>
-            {selectedTeam && (
+            {selectedTeam && organizerChecked && organizerId !== pool.ownerId && (
               <div className="mt-5 max-w-xl">
                 <label className="mb-2 block text-sm font-bold text-slate-300">Rename your team</label>
                 <div className="flex flex-col gap-3 sm:flex-row">
