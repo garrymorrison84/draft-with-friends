@@ -426,7 +426,6 @@ export default function FootballDraftPage() {
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [position, setPosition] = useState("ALL");
   const [search, setSearch] = useState("");
-  const [showCompleted, setShowCompleted] = useState(false);
   const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
   const [detailsPlayer, setDetailsPlayer] = useState<FootballPlayer | null>(null);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
@@ -693,11 +692,15 @@ export default function FootballDraftPage() {
         draftCompleteSoundPlayedRef.current = true;
         playDraftCompleteSound();
       }
-      return;
+      if (!pool) return;
+      const redirect = window.setTimeout(() => {
+        window.location.replace(`/football/leaderboard?id=${pool.id}`);
+      }, 900);
+      return () => window.clearTimeout(redirect);
     }
 
     draftCompleteSoundPlayedRef.current = false;
-  }, [draftComplete]);
+  }, [draftComplete, pool]);
   const draftablePositions = new Set(
     positions.filter((item) => {
       if (item === "ALL") return true;
@@ -948,7 +951,6 @@ export default function FootballDraftPage() {
 
       const isFinalPick = nextPicks.length >= totalPicks;
       if (isFinalPick) {
-        setShowCompleted(true);
         stopCountdownTickSound();
       } else {
         playPickMadeSound(pickKey);
@@ -1047,7 +1049,6 @@ export default function FootballDraftPage() {
         setPicks(history.picks);
         saveFootballDraftPicks(pool.id, history.picks);
       }
-      setShowCompleted(false);
       setPendingPlayer(null);
       setDetailsPlayer(null);
     } catch (error) {
@@ -1509,25 +1510,6 @@ export default function FootballDraftPage() {
         </div>
       )}
 
-      {showCompleted && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
-          <div className="max-h-[calc(100dvh-3rem)] w-full max-w-lg overflow-y-auto rounded-3xl border border-emerald-400/30 bg-[#111827] p-6 text-center shadow-2xl shadow-black/60">
-            <h2 className="text-4xl font-black">
-              <span className="block">Congratulations!</span>
-              <span className="block">Draft Complete</span>
-            </h2>
-            <p className="mt-4 text-slate-300">
-              Your college football pool is ready for live tracking.
-            </p>
-            <Link
-              href={`/football/leaderboard?id=${pool.id}`}
-              className="mt-8 inline-flex w-full max-w-sm items-center justify-center rounded-2xl bg-emerald-400 px-8 py-4 text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/25 transition hover:bg-emerald-300"
-            >
-              Live Leaderboard
-            </Link>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
