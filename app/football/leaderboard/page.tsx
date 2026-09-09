@@ -56,13 +56,8 @@ const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   K: "bg-slate-400/45 border-slate-100 text-white shadow-slate-400/20",
 };
 
-function hasStatLine(stats?: FootballStatLine) {
-  if (!stats) return false;
-  return Object.values(stats).some((value) => typeof value === "number" && value !== 0);
-}
-
 function scoringStatLine(player: FootballPlayer) {
-  return hasStatLine(player.liveStats) ? player.liveStats! : player.projectedStats;
+  return player.liveStats || {};
 }
 
 function scoringTotal(player: FootballPlayer, scoring: FootballScoring) {
@@ -618,10 +613,6 @@ export default function FootballLeaderboardPage() {
   const standings = useMemo(() => {
     if (!pool) return [];
     const scoring = pool.scoring ?? defaultScoring;
-    const hasLiveScores = picks.some((pick) => {
-      const player = players.find((item) => item.id === pick.playerId);
-      return player ? hasStatLine(player.liveStats) : false;
-    });
 
     return pool.teamNames
       .map((team) => {
@@ -644,7 +635,7 @@ export default function FootballLeaderboardPage() {
           players: assignRosterSlots(draftedPlayers, scoring),
           projected,
           live,
-          displayScore: hasLiveScores ? live : projected,
+          displayScore: live,
         };
       })
       .sort((a, b) => b.displayScore - a.displayScore);
@@ -659,19 +650,13 @@ export default function FootballLeaderboardPage() {
     }
 
     const scoring = pool.scoring ?? defaultScoring;
-    const hasLiveScores = picks.some((pick) => {
-      const player = players.find((item) => item.id === pick.playerId);
-      return player ? hasStatLine(player.liveStats) : false;
-    });
     const draftedIds = new Set(picks.map((pick) => pick.playerId));
     const draftedPlayers: DraftedFootballPlayer[] = picks
       .map((pick) => {
         const player = players.find((item) => item.id === pick.playerId);
         if (!player) return null;
 
-        const points = hasLiveScores
-          ? scoringTotal(player, scoring)
-          : projectedTotal(player, scoring);
+        const points = scoringTotal(player, scoring);
 
         return {
           player,
@@ -716,7 +701,7 @@ export default function FootballLeaderboardPage() {
         player,
         team: "Undrafted",
         pickNumber: 0,
-        points: hasLiveScores ? scoringTotal(player, scoring) : projectedTotal(player, scoring),
+        points: scoringTotal(player, scoring),
         projected: projectedTotal(player, scoring),
       }))
       .sort((a, b) => b.points - a.points)

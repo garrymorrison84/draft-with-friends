@@ -198,9 +198,12 @@ export async function getOpticOddsFootball(key: string) {
     return teamIds.has(home) || teamIds.has(away);
   });
   const completed = games.filter((game) => game.status === "completed");
+  const scoringGames = games.filter(
+    (game) => game.status === "completed" || game.is_live
+  );
   const upcoming = games.filter((game) => game.status === "unplayed" || game.is_live);
   const [resultCalls, oddsCalls] = await Promise.all([
-    Promise.all(completed.map((game) => get<{ data?: ResultEnvelope[] }>(`/fixtures/player-results?fixture_id=${game.id}`, key).catch(() => ({ data: [] })))),
+    Promise.all(scoringGames.map((game) => get<{ data?: ResultEnvelope[] }>(`/fixtures/player-results?fixture_id=${game.id}`, key).catch(() => ({ data: [] })))),
     Promise.all(upcoming.map((game) => get<{ data?: OddsEnvelope[] }>(`/fixtures/odds?fixture_id=${game.id}&sportsbook=DraftKings&is_main=true`, key).catch(() => ({ data: [] })))),
   ]);
   const results = new Map<string, { fixture: Fixture; result: PlayerResult }[]>();
@@ -235,6 +238,7 @@ export async function getOpticOddsFootball(key: string) {
     if (projection[field] == null) projection[field] = odd.points;
     props.set(odd.player_id, projection);
   });
+  const currentWeek = currentCollegeWeek();
   const normalized: FootballPlayer[] = players
     .filter((player) => fantasyPositions.has(player.position) && player.team && teamIds.has(player.team.id))
     .map((player) => {
@@ -246,6 +250,9 @@ export async function getOpticOddsFootball(key: string) {
         statLine: statLine(result.stats?.find((row) => row.period === "all")?.stats),
       }));
       const recent = logs.at(-1)?.statLine || {};
+      const currentResult = history.find(
+        ({ fixture }) => Number(fixture.season_week) === currentWeek
+      );
       const projectedStats = { ...recent, ...(props.get(player.id) || {}) };
       const next = schedule(upcoming, team.id);
       return {
@@ -255,14 +262,25 @@ export async function getOpticOddsFootball(key: string) {
         position: (player.position === "PK" ? "K" : player.position) as FootballPlayer["position"],
         rank: 9999, projected: projectedPoints(projectedStats),
         opponent: next.opponent, gameTime: next.gameTime,
-        averageStats: recent, projectedStats, gameLogs: logs,
+        averageStats: recent, projectedStats,
+        liveStats: currentResult
+          ? statLine(
+              currentResult.result.stats?.find((row) => row.period === "all")
+                ?.stats
+            )
+          : undefined,
+        gameLogs: logs,
       };
     });
   const defenses: FootballPlayer[] = teams.map((team) => {
     const next = schedule(upcoming, team.id);
-    const logs = (defenseResults.get(team.id) || [])
-      .sort((a, b) => Date.parse(a.fixture.start_date) - Date.parse(b.fixture.start_date))
-      .map(({ fixture, statLine: gameStats }) => ({
+    const teamResults = (defenseResults.get(team.id) || []).sort(
+      (a, b) => Date.parse(a.fixture.start_date) - Date.parse(b.fixture.start_date)
+    );
+    const currentResult = teamResults.find(
+      ({ fixture }) => Number(fixture.season_week) === currentWeek
+    );
+    const logs = teamResults.map(({ fixture, statLine: gameStats }) => ({
         id: `${fixture.id}-dst-${team.id}`,
         week: `W${fixture.season_week || "-"}`,
         opponent: opponentForFixture(fixture, team.id),
@@ -274,7 +292,11 @@ export async function getOpticOddsFootball(key: string) {
       schoolAbbreviation: team.abbreviation || team.name,
       conference: conferenceName(team.conference), position: "DST", rank: 9999,
       projected: projectedPoints(averageStats), opponent: next.opponent, gameTime: next.gameTime,
-      averageStats, projectedStats: averageStats, gameLogs: logs,
+      averageStats, projectedStats: averageStats,
+      liveStats: currentResult
+        ? normalizeDefenseTouchdowns(currentResult.statLine)
+        : undefined,
+      gameLogs: logs,
     };
   });
   const eligible = [...normalized, ...defenses]
@@ -286,7 +308,7 @@ export async function getOpticOddsFootball(key: string) {
     mode: "live",
     replay: {
       season: sample?.season_year || String(new Date().getFullYear()), seasonType: "reg",
-      week: currentCollegeWeek(), hasReplayKey: true, error: null,
+      week: currentWeek, hasReplayKey: true, error: null,
       endpoints: { teams: `${baseUrl}/teams`, players: `${baseUrl}/players`, fixtures: `${baseUrl}/fixtures`, odds: `${baseUrl}/fixtures/odds`, playerResults: `${baseUrl}/fixtures/player-results` },
       metadata: { provider: "OpticOdds", teams: teams.length, fixtures: games.length, completedFixtures: completed.length, upcomingFixtures: upcoming.length, playersWithPropProjections: props.size },
     },
