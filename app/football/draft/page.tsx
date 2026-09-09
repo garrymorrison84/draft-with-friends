@@ -1302,9 +1302,6 @@ export default function FootballDraftPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-2xl font-black sm:text-3xl">Draft Board</h2>
-                <p className="mt-1 text-sm text-slate-400 sm:mt-2 sm:text-base">
-                  Snake draft order reverses each round.
-                </p>
               </div>
               <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
                 {isCommissioner && <button
@@ -1365,9 +1362,6 @@ export default function FootballDraftPage() {
                     {soundsEnabled ? "On" : "Off"}
                   </span>
                 </button>
-                <span className="flex min-h-10 flex-1 items-center justify-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 sm:flex-none sm:px-4 sm:py-3">
-                  Snake Draft
-                </span>
               </div>
             </div>
 
