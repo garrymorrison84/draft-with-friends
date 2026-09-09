@@ -486,6 +486,112 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, pool: nextSettings });
   }
+  if (body.action === "commissioner-update-draft-pick") {
+    const pickNumber = Number(body.pickNumber);
+    const playerId = typeof body.playerId === "string" ? body.playerId.trim() : "";
+    const playerSnapshot = isRecord(body.playerSnapshot) ? body.playerSnapshot : null;
+    if (
+      !poolId ||
+      !Number.isInteger(pickNumber) ||
+      pickNumber < 1 ||
+      !playerId ||
+      !playerSnapshot ||
+      playerSnapshot.id !== playerId
+    ) {
+      return NextResponse.json({ error: "Invalid replacement player." }, { status: 400 });
+    }
+
+    const { client, error: adminError } = getSupabaseAdmin();
+    if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+    const organizerId = await getAuthenticatedOrganizerId(request, client);
+    if (!organizerId) {
+      return NextResponse.json(
+        { error: "Organizer sign-in is required to update a draft pick." },
+        { status: 401 }
+      );
+    }
+
+    const pickIndex = pickNumber - 1;
+    const [poolResult, pickResult, duplicateResult] = await Promise.all([
+      client
+        .from("platform_pools")
+        .select("owner_id")
+        .eq("id", poolId)
+        .eq("pool_type", "college_fantasy")
+        .maybeSingle(),
+      client
+        .from("platform_draft_picks")
+        .select("pick_index,selection_snapshot")
+        .eq("pool_id", poolId)
+        .eq("pick_index", pickIndex)
+        .maybeSingle(),
+      client
+        .from("platform_draft_picks")
+        .select("pick_index")
+        .eq("pool_id", poolId)
+        .eq("selection_id", playerId)
+        .neq("pick_index", pickIndex)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (poolResult.error || pickResult.error || duplicateResult.error) {
+      return NextResponse.json(
+        {
+          error:
+            poolResult.error?.message ||
+            pickResult.error?.message ||
+            duplicateResult.error?.message,
+        },
+        { status: 500 }
+      );
+    }
+    if (!poolResult.data) {
+      return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    }
+    if (organizerId !== poolResult.data.owner_id) {
+      return NextResponse.json(
+        { error: "Only the commissioner can update a draft pick." },
+        { status: 403 }
+      );
+    }
+    if (!pickResult.data || !isRecord(pickResult.data.selection_snapshot)) {
+      return NextResponse.json({ error: "Draft pick not found." }, { status: 404 });
+    }
+    if (duplicateResult.data) {
+      return NextResponse.json(
+        { error: "That player is already drafted by another team." },
+        { status: 409 }
+      );
+    }
+
+    const currentSnapshot = pickResult.data.selection_snapshot;
+    const nextSnapshot = {
+      ...currentSnapshot,
+      playerId,
+      pickNumber,
+      playerSnapshot,
+    };
+    const selectionName =
+      typeof playerSnapshot.name === "string" && playerSnapshot.name.trim()
+        ? playerSnapshot.name.trim()
+        : playerId;
+    const { data: updatedPick, error: updateError } = await client
+      .from("platform_draft_picks")
+      .update({
+        selection_id: playerId,
+        selection_name: selectionName,
+        selection_snapshot: nextSnapshot,
+      })
+      .eq("pool_id", poolId)
+      .eq("pick_index", pickIndex)
+      .select("pick_index,selection_id,selection_snapshot,created_at")
+      .single();
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, pick: updatedPick });
+  }
   if (body.action === "undo-last-pick") {
     if (!poolId) return NextResponse.json({ error: "Missing pool id." }, { status: 400 });
     const { client, error: adminError } = getSupabaseAdmin();

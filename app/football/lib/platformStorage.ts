@@ -1,4 +1,4 @@
-import type { FootballDraftPick, FootballPool } from "./storage";
+import type { FootballDraftPick, FootballPlayer, FootballPool } from "./storage";
 import { supabase } from "../../lib/supabase";
 import { getParticipantId } from "../../lib/teamClaims";
 
@@ -171,6 +171,38 @@ export async function updateCommissionerFootballTeamNames({
     throw new Error(data?.error || "Could not update the shared team names.");
   }
   return data.pool as FootballPool;
+}
+
+export async function updateCommissionerFootballDraftPick({
+  poolId,
+  pickNumber,
+  player,
+}: {
+  poolId: string;
+  pickNumber: number;
+  player: FootballPlayer;
+}) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  const response = await fetch("/api/football/pools", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({
+      action: "commissioner-update-draft-pick",
+      poolId,
+      pickNumber,
+      playerId: player.id,
+      playerSnapshot: player,
+    }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.error || "Could not update the shared draft pick.");
+  }
+  return data;
 }
 
 export async function submitFootballPick({

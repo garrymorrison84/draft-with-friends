@@ -14,7 +14,10 @@ import {
   saveFootballDraftPicks,
   saveFootballPool,
 } from "../lib/storage";
-import { updateCommissionerFootballTeamNames } from "../lib/platformStorage";
+import {
+  updateCommissionerFootballDraftPick,
+  updateCommissionerFootballTeamNames,
+} from "../lib/platformStorage";
 
 function hasScheduledOpponent(player: FootballPlayer) {
   return /^(vs|@)\s+\S+/.test(player.opponent.trim());
@@ -165,7 +168,11 @@ export default function FootballCommissionerPage() {
   const [pickSearch, setPickSearch] = useState<Record<number, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
-  const [pickSaveStatus, setPickSaveStatus] = useState<number | null>(null);
+  const [pickSaveStatus, setPickSaveStatus] = useState<{
+    pickNumber: number;
+    status: "saving" | "saved" | "error";
+    message?: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -215,9 +222,9 @@ export default function FootballCommissionerPage() {
   }, [saveStatus]);
 
   useEffect(() => {
-    if (pickSaveStatus === null) return;
+    if (pickSaveStatus === null || pickSaveStatus.status === "saving") return;
 
-    const timeout = window.setTimeout(() => setPickSaveStatus(null), 1800);
+    const timeout = window.setTimeout(() => setPickSaveStatus(null), 3000);
 
     return () => window.clearTimeout(timeout);
   }, [pickSaveStatus]);
@@ -337,7 +344,7 @@ export default function FootballCommissionerPage() {
       .slice(0, 6);
   }
 
-  function saveDraftPickOverride(pick: FootballDraftPick, player: FootballPlayer) {
+  async function saveDraftPickOverride(pick: FootballDraftPick, player: FootballPlayer) {
     if (!pool) return;
 
     const currentPlayer = playerById.get(pick.playerId);
@@ -351,10 +358,30 @@ export default function FootballCommissionerPage() {
 
     if (!teamRosterIsValid({ team: pick.team, picks: nextPicks, players, pool })) return;
 
-    saveFootballDraftPicks(pool.id, nextPicks);
-    setPicks(nextPicks);
-    setPickSearch((current) => ({ ...current, [pick.pickNumber]: "" }));
-    setPickSaveStatus(pick.pickNumber);
+    setPickSaveStatus({ pickNumber: pick.pickNumber, status: "saving" });
+
+    try {
+      await updateCommissionerFootballDraftPick({
+        poolId: pool.id,
+        pickNumber: pick.pickNumber,
+        player,
+      });
+      const sharedPicks = nextPicks.map((item) =>
+        item.pickNumber === pick.pickNumber
+          ? { ...item, playerId: player.id, playerSnapshot: player }
+          : item
+      );
+      saveFootballDraftPicks(pool.id, sharedPicks);
+      setPicks(sharedPicks);
+      setPickSearch((current) => ({ ...current, [pick.pickNumber]: "" }));
+      setPickSaveStatus({ pickNumber: pick.pickNumber, status: "saved" });
+    } catch (error) {
+      setPickSaveStatus({
+        pickNumber: pick.pickNumber,
+        status: "error",
+        message: error instanceof Error ? error.message : "Draft pick could not be updated.",
+      });
+    }
   }
 
   if (isLoading) {
@@ -542,7 +569,8 @@ export default function FootballCommissionerPage() {
                             key={player.id}
                             type="button"
                             onClick={() => saveDraftPickOverride(pick, player)}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2.5 text-left transition hover:bg-emerald-400/15"
+                            disabled={pickSaveStatus?.status === "saving"}
+                            className="flex items-center justify-between gap-3 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2.5 text-left transition hover:bg-emerald-400/15 disabled:cursor-wait disabled:opacity-60"
                           >
                             <span className="min-w-0">
                               <span className="block truncate font-black text-white">
@@ -560,11 +588,21 @@ export default function FootballCommissionerPage() {
                       </div>
                     )}
 
-                    {pickSaveStatus === pick.pickNumber && (
-                      <p className="mt-3 text-sm font-black text-emerald-300">
-                        Pick updated.
+                    {pickSaveStatus?.pickNumber === pick.pickNumber ? (
+                      <p
+                        className={`mt-3 text-sm font-black ${
+                          pickSaveStatus.status === "error"
+                            ? "text-rose-300"
+                            : "text-emerald-300"
+                        }`}
+                      >
+                        {pickSaveStatus.status === "saving"
+                          ? "Updating live pool..."
+                          : pickSaveStatus.status === "saved"
+                            ? "Pick updated in live pool."
+                            : pickSaveStatus.message}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}

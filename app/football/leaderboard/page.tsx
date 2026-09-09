@@ -645,7 +645,10 @@ export default function FootballLeaderboardPage() {
       .map((team) => {
         const draftedPlayers = picks
           .filter((pick) => pick.team === team)
-          .map((pick) => players.find((player) => player.id === pick.playerId))
+          .map(
+            (pick) =>
+              players.find((player) => player.id === pick.playerId) || pick.playerSnapshot
+          )
           .filter(Boolean) as FootballPlayer[];
 
         const projected = draftedPlayers.reduce(
@@ -681,7 +684,8 @@ export default function FootballLeaderboardPage() {
     const draftedIds = new Set(picks.map((pick) => pick.playerId));
     const draftedPlayers: DraftedFootballPlayer[] = picks
       .map((pick) => {
-        const player = players.find((item) => item.id === pick.playerId);
+        const player =
+          players.find((item) => item.id === pick.playerId) || pick.playerSnapshot;
         if (!player) return null;
 
         const points = scoringTotal(player, scoring);
