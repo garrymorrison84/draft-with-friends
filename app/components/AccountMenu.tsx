@@ -2,10 +2,12 @@
 
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function AccountMenu() {
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [open, setOpen] = useState(false);
@@ -46,7 +48,10 @@ export default function AccountMenu() {
     window.location.href = "/";
   }
 
-  if (!authReady) return null;
+  const isMemberPoolRoute = ["/football/pool", "/football/draft", "/pool", "/draft"]
+    .some((route) => pathname === route || pathname.startsWith(`${route}/`));
+
+  if (!authReady || (!user && isMemberPoolRoute)) return null;
 
   return (
     <div ref={menuRef} className="fixed right-3 top-3 z-[100] sm:right-6 sm:top-6">

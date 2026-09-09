@@ -99,12 +99,17 @@ export default function FootballPoolPage() {
       const response = await fetch("/api/football/pools", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ poolId: pool.id, currentName: selectedTeam, newName: teamName }),
+        body: JSON.stringify({
+          poolId: pool.id,
+          currentName: selectedTeam,
+          newName: teamName,
+          participantId: getParticipantId(),
+        }),
       });
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error || "Could not rename this team.");
       const nextName = teamName.trim();
-      setClaims(await claimTeam(pool.id, nextName));
+      setClaims(result.claims || {});
       const nextPool = {
         ...pool,
         teamNames: pool.teamNames.map((name) => name === selectedTeam ? nextName : name),
@@ -200,20 +205,13 @@ export default function FootballPoolPage() {
           <BrandMark size="lg" />
         </Link>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          {organizerId && organizerId === pool.ownerId ? (
+        {organizerId && organizerId === pool.ownerId && (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-black text-emerald-300">
               Commissioner signed in{organizerEmail ? ` · ${organizerEmail}` : ""}
             </span>
-          ) : (
-            <Link
-              href={`/organizer/sign-in?redirect=${encodeURIComponent(`/football/pool?id=${pool.id}`)}`}
-              className="rounded-xl border border-white/10 bg-[#111827] px-4 py-2 text-sm font-black text-white hover:border-emerald-300/60"
-            >
-              Organizer Sign In
-            </Link>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="min-w-0">

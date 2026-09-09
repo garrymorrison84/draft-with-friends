@@ -333,7 +333,8 @@ export async function PATCH(request: NextRequest) {
   }
   const currentName = typeof body.currentName === "string" ? body.currentName.trim() : "";
   const newName = typeof body.newName === "string" ? body.newName.trim().slice(0, 40) : "";
-  if (!poolId || !currentName || !newName) {
+  const participantId = typeof body.participantId === "string" ? body.participantId.trim() : "";
+  if (!poolId || !currentName || !newName || !participantId) {
     return NextResponse.json({ error: "Choose a team and enter a name." }, { status: 400 });
   }
 
@@ -354,15 +355,33 @@ export async function PATCH(request: NextRequest) {
   const draftOrder = Array.isArray(settings.draftOrder)
     ? settings.draftOrder.filter((name): name is string => typeof name === "string")
     : [];
+  const teamClaims = isRecord(settings.teamClaims) ? { ...settings.teamClaims } : {};
   if (!teamNames.includes(currentName)) return NextResponse.json({ error: "That team is no longer available." }, { status: 409 });
+  if (teamClaims[currentName] !== participantId) {
+    return NextResponse.json({ error: "You can only rename the team you claimed." }, { status: 403 });
+  }
   if (teamNames.some((name) => name !== currentName && name.toLowerCase() === newName.toLowerCase())) {
     return NextResponse.json({ error: "That team name is already in use." }, { status: 409 });
   }
   const rename = (name: string) => (name === currentName ? newName : name);
-  const nextSettings = { ...settings, teamNames: teamNames.map(rename), draftOrder: draftOrder.map(rename) };
+  delete teamClaims[currentName];
+  teamClaims[newName] = participantId;
+  const nextSettings = {
+    ...settings,
+    teamNames: teamNames.map(rename),
+    draftOrder: draftOrder.map(rename),
+    teamClaims,
+  };
   const { error } = await client.from("platform_pools").update({ settings: nextSettings }).eq("id", poolId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ success: true, pool: nextSettings });
+  const { error: entryError } = await client
+    .from("pool_entries")
+    .update({ team_name: newName })
+    .eq("pool_id", poolId)
+    .eq("team_name", currentName)
+    .is("revoked_at", null);
+  if (entryError) console.error("Football pool entry rename failed", entryError);
+  return NextResponse.json({ success: true, pool: nextSettings, claims: teamClaims });
 }
 
 export async function PUT(request: NextRequest) {
