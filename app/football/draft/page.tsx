@@ -430,7 +430,6 @@ export default function FootballDraftPage() {
   const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
   const [detailsPlayer, setDetailsPlayer] = useState<FootballPlayer | null>(null);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
-  const [playerSource, setPlayerSource] = useState("Loading replay player pool...");
   const [now, setNow] = useState(() => new Date());
   const [pickTimerStartedAt, setPickTimerStartedAt] = useState(() => Date.now());
   const [draftOpeningStartedAt, setDraftOpeningStartedAt] = useState<number | null>(null);
@@ -580,14 +579,10 @@ export default function FootballDraftPage() {
 
         if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
           setPlayers(replayPlayers);
-          setPlayerSource(
-            `${data.playerPool.source} • ${replayPlayers.length.toLocaleString()} eligible players`
-          );
         }
       } catch {
         if (!cancelled) {
           setPlayers(footballPlayers);
-          setPlayerSource("Static trial player pool");
         }
       }
     }
@@ -1184,17 +1179,13 @@ export default function FootballDraftPage() {
             compactDraftLayout ? "sm:p-4" : "sm:p-6"
           }`}>
             <h2 className={compactDraftLayout ? "text-2xl font-black" : "text-3xl font-black"}>Eligible Players</h2>
-            <p className={`mt-3 text-slate-400 ${compactDraftLayout ? "text-sm leading-6" : ""}`}>
-              Filter by position, search player or school, then draft from the list.
-            </p>
-            <p className="mt-2 text-xs font-bold text-slate-500">{playerSource}</p>
 
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search players..."
-              className={`mt-6 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60 ${
+              className={`mt-4 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60 ${
                 compactDraftLayout ? "py-3" : "py-4"
               }`}
             />
