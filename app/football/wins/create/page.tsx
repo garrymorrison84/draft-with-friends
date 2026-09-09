@@ -37,7 +37,7 @@ export default function CreateWinsPoolPage() {
   const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
   const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
     useState<DraftTimeZone>(defaultDraftTimeZone);
-  const [pickClockSeconds, setPickClockSeconds] = useState(30);
+  const [pickClockSeconds, setPickClockSeconds] = useState(60);
   const [poolMode, setPoolMode] = useState<WinsPoolMode>("power");
   const [selectedConferences, setSelectedConferences] = useState(defaultWinsConferences);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -416,7 +416,7 @@ export default function CreateWinsPoolPage() {
                 body="Set a draft time and choose how long each member has to make a pick."
                 onClick={() => {
                   setDraftType("scheduled");
-                  setPickClockSeconds((current) => current || 30);
+                  setPickClockSeconds((current) => current || 60);
                 }}
               />
             </div>

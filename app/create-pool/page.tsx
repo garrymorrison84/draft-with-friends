@@ -109,7 +109,7 @@ export default function CreatePoolPage() {
   const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
   const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
     useState<DraftTimeZone>(defaultDraftTimeZone);
-  const [pickClockSeconds, setPickClockSeconds] = useState(30);
+  const [pickClockSeconds, setPickClockSeconds] = useState(60);
   const [isCreating, setIsCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -653,7 +653,7 @@ export default function CreatePoolPage() {
                     checked={draftType === "scheduled"}
                     onChange={() => {
                       setDraftType("scheduled");
-                      setPickClockSeconds((current) => current || 30);
+                      setPickClockSeconds((current) => current || 60);
                     }}
                     className="mr-3"
                   />

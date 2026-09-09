@@ -504,7 +504,7 @@ export async function PUT(request: NextRequest) {
   const normalizedPool = {
     ...pool,
     pickClockSeconds: isScheduled
-      ? Math.max(30, Number(pool.pickClockSeconds) || 0)
+      ? Math.max(30, Number(pool.pickClockSeconds) || 60)
       : 0,
     autoPickOnTimeout: isScheduled,
   };
