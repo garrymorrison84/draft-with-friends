@@ -12,6 +12,8 @@ import {
   footballPlayers,
   loadFootballDraftPicks,
   loadFootballPool,
+  saveFootballDraftPicks,
+  saveFootballPool,
 } from "../lib/storage";
 import { loadPersistedFootballHistory } from "../lib/platformStorage";
 import {
@@ -533,6 +535,8 @@ export default function FootballLeaderboardPage() {
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
   const [isLoadingPool, setIsLoadingPool] = useState(true);
+  const [isLoadingSharedPicks, setIsLoadingSharedPicks] = useState(true);
+  const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
   const [liveDataProvider, setLiveDataProvider] = useState<string | null>(null);
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
@@ -541,6 +545,7 @@ export default function FootballLeaderboardPage() {
     const id = new URLSearchParams(window.location.search).get("id");
     if (!id) {
       setIsLoadingPool(false);
+      setIsLoadingSharedPicks(false);
       return;
     }
 
@@ -553,7 +558,6 @@ export default function FootballLeaderboardPage() {
           "true"
       );
       setIsLoadingPool(false);
-      return;
     }
 
     let cancelled = false;
@@ -562,6 +566,8 @@ export default function FootballLeaderboardPage() {
       .then((history) => {
         if (cancelled || !history) return;
 
+        saveFootballPool(history.pool);
+        saveFootballDraftPicks(history.pool.id, history.picks);
         setPool(history.pool);
         setPicks(history.picks);
         setRecapDismissed(
@@ -571,7 +577,10 @@ export default function FootballLeaderboardPage() {
         );
       })
       .finally(() => {
-        if (!cancelled) setIsLoadingPool(false);
+        if (!cancelled) {
+          setIsLoadingPool(false);
+          setIsLoadingSharedPicks(false);
+        }
       });
 
     return () => {
@@ -600,6 +609,8 @@ export default function FootballLeaderboardPage() {
         if (!cancelled) {
           setPlayers(footballPlayers);
         }
+      } finally {
+        if (!cancelled) setIsLoadingPlayers(false);
       }
     }
 
@@ -633,6 +644,7 @@ export default function FootballLeaderboardPage() {
         return {
           team,
           players: assignRosterSlots(draftedPlayers, scoring),
+          draftedPickCount: picks.filter((pick) => pick.team === team).length,
           projected,
           live,
           displayScore: live,
@@ -780,7 +792,7 @@ export default function FootballLeaderboardPage() {
       <main className="min-h-screen bg-[#030712] text-white">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <BrandMark size="md" />
-          <p className="mt-8 text-slate-400">Loading historical leaderboard...</p>
+          <p className="mt-8 text-slate-400">Loading live leaderboard...</p>
         </div>
       </main>
     );
@@ -883,7 +895,13 @@ export default function FootballLeaderboardPage() {
                   </span>
                 </div>
 
-                {team.players.length === 0 ? (
+                {isLoadingSharedPicks || isLoadingPlayers ? (
+                  <p className="mt-5 text-slate-500">Loading live leaderboard...</p>
+                ) : team.players.length === 0 && team.draftedPickCount > 0 ? (
+                  <p className="mt-5 text-slate-500">
+                    Live player data is temporarily unavailable.
+                  </p>
+                ) : team.players.length === 0 ? (
                   <p className="mt-5 text-slate-500">No players drafted yet.</p>
                 ) : (
                   <>
