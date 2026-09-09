@@ -120,7 +120,7 @@ export async function persistFootballHistory(
 }
 
 export async function updatePersistedFootballScoring(
-  poolId: string,
+  pool: FootballPool,
   scoring: NonNullable<FootballPool["scoring"]>
 ) {
   const { data: sessionData } = await supabase.auth.getSession();
@@ -131,7 +131,12 @@ export async function updatePersistedFootballScoring(
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    body: JSON.stringify({ action: "update-scoring", poolId, scoring }),
+    body: JSON.stringify({
+      action: "update-scoring",
+      poolId: pool.id,
+      pool,
+      scoring,
+    }),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {

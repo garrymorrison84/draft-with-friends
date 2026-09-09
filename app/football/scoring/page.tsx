@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
@@ -94,6 +94,7 @@ export default function FootballScoringPage() {
   const [activeTab, setActiveTab] = useState<ScoringCategory>("passing");
   const [isFinalizing, setIsFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState("");
+  const autoFinalizeAttemptedRef = useRef(false);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -113,6 +114,19 @@ export default function FootballScoringPage() {
       setScoring(mergeScoring(history.pool.scoring));
     });
   }, []);
+
+  useEffect(() => {
+    if (
+      !pool ||
+      autoFinalizeAttemptedRef.current ||
+      new URLSearchParams(window.location.search).get("finalize") !== "1"
+    ) {
+      return;
+    }
+
+    autoFinalizeAttemptedRef.current = true;
+    void finalizePool(pool, mergeScoring(pool.scoring));
+  }, [pool]);
 
   const rosterTotal = useMemo(
     () => Object.values(scoring.roster).reduce((sum, value) => sum + value, 0),
@@ -377,28 +391,40 @@ export default function FootballScoringPage() {
     ];
   }
 
+  async function finalizePool(activePool: FootballPool, activeScoring: FootballScoring) {
+    const organizer = await getCurrentOrganizerUser();
+    if (!organizer) return false;
+
+    setIsFinalizing(true);
+    setFinalizeError("");
+    const nextPool = { ...activePool, scoring: activeScoring, ownerId: organizer.id };
+    try {
+      const persistedPool = await updatePersistedFootballScoring(nextPool, activeScoring);
+      saveFootballPool({ ...nextPool, ...persistedPool, scoring: activeScoring });
+      window.location.href = `/football/pool?id=${activePool.id}`;
+      return true;
+    } catch (error) {
+      console.error(error);
+      setFinalizeError(error instanceof Error ? error.message : "Could not finalize this pool.");
+      setIsFinalizing(false);
+      return false;
+    }
+  }
+
   async function saveAndContinue() {
     if (!pool) return;
 
     const organizer = await getCurrentOrganizerUser();
     if (!organizer) {
-      const redirect = encodeURIComponent(`/football/scoring?id=${pool.id}`);
+      saveFootballPool({ ...pool, scoring });
+      const redirect = encodeURIComponent(
+        `/football/scoring?id=${pool.id}&finalize=1`
+      );
       window.location.href = `/organizer/sign-in?redirect=${redirect}`;
       return;
     }
 
-    setIsFinalizing(true);
-    setFinalizeError("");
-    const nextPool = { ...pool, scoring, ownerId: organizer.id };
-    try {
-      const persistedPool = await updatePersistedFootballScoring(nextPool.id, scoring);
-      saveFootballPool({ ...nextPool, ...persistedPool, scoring });
-      window.location.href = `/football/pool?id=${pool.id}`;
-    } catch (error) {
-      console.error(error);
-      setFinalizeError(error instanceof Error ? error.message : "Could not finalize this pool.");
-      setIsFinalizing(false);
-    }
+    await finalizePool(pool, scoring);
   }
 
   if (!pool) {

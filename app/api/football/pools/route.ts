@@ -282,29 +282,77 @@ export async function PATCH(request: NextRequest) {
     }
     const { client, error: adminError } = getSupabaseAdmin();
     if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+    const organizerId = await getAuthenticatedOrganizerId(request, client);
+    if (!organizerId) {
+      return NextResponse.json(
+        { error: "Organizer sign-in is required to save scoring." },
+        { status: 401 }
+      );
+    }
     const { data: row, error: poolError } = await client
       .from("platform_pools")
-      .select("owner_id,settings")
+      .select("owner_id,pool_type,settings")
       .eq("id", poolId)
-      .eq("pool_type", "college_fantasy")
       .maybeSingle();
     if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
-    if (!row || !isRecord(row.settings)) {
-      return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    if (row && row.pool_type !== "college_fantasy") {
+      return NextResponse.json({ error: "That pool id belongs to another pool type." }, { status: 409 });
     }
-    const organizerId = await getAuthenticatedOrganizerId(request, client);
-    if (!organizerId || organizerId !== row.owner_id) {
+    if (row && organizerId !== row.owner_id) {
       return NextResponse.json(
         { error: "Only the commissioner can update scoring." },
         { status: 403 }
       );
     }
-    const nextSettings = { ...row.settings, scoring: body.scoring };
-    const { error: updateError } = await client
-      .from("platform_pools")
-      .update({ settings: nextSettings })
-      .eq("id", poolId)
-      .eq("pool_type", "college_fantasy");
+    if (row && !isRecord(row.settings)) {
+      return NextResponse.json({ error: "Invalid pool settings." }, { status: 500 });
+    }
+
+    let nextSettings: Record<string, unknown>;
+    if (row) {
+      nextSettings = { ...row.settings, scoring: body.scoring };
+    } else {
+      if (!isRecord(body.pool)) {
+        return NextResponse.json({ error: "Pool setup could not be restored." }, { status: 400 });
+      }
+      const submittedPool = body.pool;
+      const teamNames = Array.isArray(submittedPool.teamNames)
+        ? submittedPool.teamNames.filter((name): name is string => typeof name === "string")
+        : [];
+      const draftOrder = Array.isArray(submittedPool.draftOrder)
+        ? submittedPool.draftOrder.filter((name): name is string => typeof name === "string")
+        : [];
+      if (teamNames.length === 0 || draftOrder.length === 0) {
+        return NextResponse.json({ error: "Incomplete football pool." }, { status: 400 });
+      }
+      const isScheduled = submittedPool.draftType === "scheduled";
+      nextSettings = {
+        ...submittedPool,
+        id: poolId,
+        teamNames,
+        draftOrder,
+        scoring: body.scoring,
+        pickClockSeconds: isScheduled
+          ? Math.max(30, Number(submittedPool.pickClockSeconds) || 60)
+          : 0,
+        autoPickOnTimeout: isScheduled,
+      };
+    }
+
+    const poolName =
+      typeof nextSettings.poolName === "string" && nextSettings.poolName.trim()
+        ? nextSettings.poolName.trim()
+        : "College Football Pool";
+    const { error: updateError } = await client.from("platform_pools").upsert(
+      {
+        id: poolId,
+        owner_id: organizerId,
+        name: poolName,
+        pool_type: "college_fantasy",
+        settings: nextSettings,
+      },
+      { onConflict: "id" }
+    );
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
