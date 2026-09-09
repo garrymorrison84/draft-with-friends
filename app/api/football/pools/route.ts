@@ -358,6 +358,134 @@ export async function PATCH(request: NextRequest) {
     }
     return NextResponse.json({ success: true, pool: nextSettings });
   }
+  if (body.action === "commissioner-update-team-names") {
+    const submittedNames = Array.isArray(body.teamNames)
+      ? body.teamNames.map((name) =>
+          typeof name === "string" ? name.trim().slice(0, 40) : ""
+        )
+      : [];
+    if (!poolId || submittedNames.length === 0 || submittedNames.some((name) => !name)) {
+      return NextResponse.json({ error: "Every team needs a name." }, { status: 400 });
+    }
+    if (new Set(submittedNames.map((name) => name.toLowerCase())).size !== submittedNames.length) {
+      return NextResponse.json({ error: "Every team name must be unique." }, { status: 409 });
+    }
+
+    const { client, error: adminError } = getSupabaseAdmin();
+    if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+    const organizerId = await getAuthenticatedOrganizerId(request, client);
+    if (!organizerId) {
+      return NextResponse.json(
+        { error: "Organizer sign-in is required to update team names." },
+        { status: 401 }
+      );
+    }
+
+    const { data: row, error: poolError } = await client
+      .from("platform_pools")
+      .select("owner_id,settings")
+      .eq("id", poolId)
+      .eq("pool_type", "college_fantasy")
+      .maybeSingle();
+    if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
+    if (!row || !isRecord(row.settings)) {
+      return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    }
+    if (organizerId !== row.owner_id) {
+      return NextResponse.json(
+        { error: "Only the commissioner can update team names." },
+        { status: 403 }
+      );
+    }
+
+    const previousNames = Array.isArray(row.settings.teamNames)
+      ? row.settings.teamNames.filter((name): name is string => typeof name === "string")
+      : [];
+    if (previousNames.length === 0 || submittedNames.length !== previousNames.length) {
+      return NextResponse.json(
+        { error: "The number of teams cannot be changed here." },
+        { status: 400 }
+      );
+    }
+
+    const renameByName = new Map(
+      previousNames.map((name, index) => [name, submittedNames[index]])
+    );
+    const rename = (name: string) => renameByName.get(name) || name;
+    const draftOrder = Array.isArray(row.settings.draftOrder)
+      ? row.settings.draftOrder.filter((name): name is string => typeof name === "string")
+      : previousNames;
+    const previousClaims = isRecord(row.settings.teamClaims) ? row.settings.teamClaims : {};
+    const nextClaims = Object.fromEntries(
+      Object.entries(previousClaims).map(([name, claimant]) => [rename(name), claimant])
+    );
+    const nextSettings = {
+      ...row.settings,
+      teamNames: submittedNames,
+      draftOrder: draftOrder.map(rename),
+      teamClaims: nextClaims,
+    };
+
+    const [picksResult, entriesResult] = await Promise.all([
+      client
+        .from("platform_draft_picks")
+        .select("pick_index,selection_snapshot")
+        .eq("pool_id", poolId),
+      client
+        .from("pool_entries")
+        .select("id,team_name")
+        .eq("pool_id", poolId),
+    ]);
+    if (picksResult.error || entriesResult.error) {
+      return NextResponse.json(
+        { error: picksResult.error?.message || entriesResult.error?.message },
+        { status: 500 }
+      );
+    }
+
+    const pickUpdates = (picksResult.data || []).flatMap((pick) => {
+      if (!isRecord(pick.selection_snapshot)) return [];
+      const previousTeam =
+        typeof pick.selection_snapshot.team === "string"
+          ? pick.selection_snapshot.team
+          : "";
+      const nextTeam = rename(previousTeam);
+      if (!previousTeam || nextTeam === previousTeam) return [];
+      return [
+        client
+          .from("platform_draft_picks")
+          .update({
+            selection_snapshot: { ...pick.selection_snapshot, team: nextTeam },
+          })
+          .eq("pool_id", poolId)
+          .eq("pick_index", pick.pick_index),
+      ];
+    });
+    const entryUpdates = (entriesResult.data || []).flatMap((entry) => {
+      const previousTeam = typeof entry.team_name === "string" ? entry.team_name : "";
+      const nextTeam = rename(previousTeam);
+      if (!previousTeam || nextTeam === previousTeam) return [];
+      return [
+        client.from("pool_entries").update({ team_name: nextTeam }).eq("id", entry.id),
+      ];
+    });
+    const relatedUpdates = await Promise.all([...pickUpdates, ...entryUpdates]);
+    const relatedError = relatedUpdates.find((result) => result.error)?.error;
+    if (relatedError) {
+      return NextResponse.json({ error: relatedError.message }, { status: 500 });
+    }
+
+    const { error: updateError } = await client
+      .from("platform_pools")
+      .update({ settings: nextSettings })
+      .eq("id", poolId)
+      .eq("owner_id", organizerId);
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, pool: nextSettings });
+  }
   if (body.action === "undo-last-pick") {
     if (!poolId) return NextResponse.json({ error: "Missing pool id." }, { status: 400 });
     const { client, error: adminError } = getSupabaseAdmin();

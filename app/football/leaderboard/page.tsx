@@ -554,8 +554,9 @@ export default function FootballLeaderboardPage() {
       setIsLoadingSharedPicks(false);
       return;
     }
+    const poolId = id;
 
-    const savedPool = loadFootballPool(id);
+    const savedPool = loadFootballPool(poolId);
     if (savedPool) {
       setPool(savedPool);
       setPicks(loadFootballDraftPicks(savedPool.id));
@@ -568,8 +569,9 @@ export default function FootballLeaderboardPage() {
 
     let cancelled = false;
 
-    loadPersistedFootballHistory(id)
-      .then((history) => {
+    async function syncSharedHistory() {
+      try {
+        const history = await loadPersistedFootballHistory(poolId);
         if (cancelled || !history) return;
 
         saveFootballPool(history.pool);
@@ -581,16 +583,24 @@ export default function FootballLeaderboardPage() {
             `dWf:footballRecapDismissed:${history.pool.id}`
           ) === "true"
         );
-      })
-      .finally(() => {
+      } catch {
+        // Keep the last shared snapshot visible during a temporary connection issue.
+      }
+    }
+
+    syncSharedHistory().finally(() => {
         if (!cancelled) {
           setIsLoadingPool(false);
           setIsLoadingSharedPicks(false);
         }
       });
+    const syncInterval = window.setInterval(() => {
+      void syncSharedHistory();
+    }, 3000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(syncInterval);
     };
   }, []);
 

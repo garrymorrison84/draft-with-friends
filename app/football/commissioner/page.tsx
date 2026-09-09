@@ -14,6 +14,7 @@ import {
   saveFootballDraftPicks,
   saveFootballPool,
 } from "../lib/storage";
+import { updateCommissionerFootballTeamNames } from "../lib/platformStorage";
 
 function hasScheduledOpponent(player: FootballPlayer) {
   return /^(vs|@)\s+\S+/.test(player.opponent.trim());
@@ -162,7 +163,8 @@ export default function FootballCommissionerPage() {
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
   const [teamNames, setTeamNames] = useState<string[]>([]);
   const [pickSearch, setPickSearch] = useState<Record<number, string>>({});
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveError, setSaveError] = useState("");
   const [pickSaveStatus, setPickSaveStatus] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -205,9 +207,9 @@ export default function FootballCommissionerPage() {
   }, []);
 
   useEffect(() => {
-    if (saveStatus === "idle") return;
+    if (saveStatus === "idle" || saveStatus === "saving") return;
 
-    const timeout = window.setTimeout(() => setSaveStatus("idle"), 1800);
+    const timeout = window.setTimeout(() => setSaveStatus("idle"), 3000);
 
     return () => window.clearTimeout(timeout);
   }, [saveStatus]);
@@ -266,7 +268,7 @@ export default function FootballCommissionerPage() {
     });
   }
 
-  function saveTeamNames() {
+  async function saveTeamNames() {
     if (!pool) return;
 
     const nextNames = teamNames.map(
@@ -277,22 +279,35 @@ export default function FootballCommissionerPage() {
       return previousIndex >= 0 ? nextNames[previousIndex] : team;
     });
 
-    const nextPool = {
-      ...pool,
-      teamNames: nextNames,
-      draftOrder: renamedDraftOrder,
-    };
-    const renamedPicks = picks.map((pick) => {
-      const previousIndex = pool.teamNames.indexOf(pick.team);
-      return previousIndex >= 0 ? { ...pick, team: nextNames[previousIndex] } : pick;
-    });
+    setSaveStatus("saving");
+    setSaveError("");
 
-    saveFootballPool(nextPool);
-    saveFootballDraftPicks(pool.id, renamedPicks);
-    setPool(nextPool);
-    setPicks(renamedPicks);
-    setTeamNames(nextNames);
-    setSaveStatus("saved");
+    try {
+      const sharedPool = await updateCommissionerFootballTeamNames({
+        poolId: pool.id,
+        teamNames: nextNames,
+      });
+      const nextPool = {
+        ...pool,
+        ...sharedPool,
+        teamNames: nextNames,
+        draftOrder: sharedPool.draftOrder || renamedDraftOrder,
+      };
+      const renamedPicks = picks.map((pick) => {
+        const previousIndex = pool.teamNames.indexOf(pick.team);
+        return previousIndex >= 0 ? { ...pick, team: nextNames[previousIndex] } : pick;
+      });
+
+      saveFootballPool(nextPool);
+      saveFootballDraftPicks(pool.id, renamedPicks);
+      setPool(nextPool);
+      setPicks(renamedPicks);
+      setTeamNames(nextNames);
+      setSaveStatus("saved");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Team names could not be saved.");
+      setSaveStatus("error");
+    }
   }
 
   function draftPickOptions(pick: FootballDraftPick) {
@@ -428,10 +443,18 @@ export default function FootballCommissionerPage() {
           <button
             type="button"
             onClick={saveTeamNames}
-            className="mt-6 rounded-xl bg-emerald-400 px-7 py-4 text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300"
+            disabled={saveStatus === "saving"}
+            className="mt-6 rounded-xl bg-emerald-400 px-7 py-4 text-base font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition hover:bg-emerald-300 disabled:cursor-wait disabled:opacity-60"
           >
-            {saveStatus === "saved" ? "Saved" : "Save Team Names"}
+            {saveStatus === "saving"
+              ? "Saving..."
+              : saveStatus === "saved"
+                ? "Saved to Live Pool"
+                : "Save Team Names"}
           </button>
+          {saveStatus === "error" && saveError ? (
+            <p className="mt-3 text-sm font-bold text-rose-300">{saveError}</p>
+          ) : null}
         </section>
 
         <section id="draft-picks" className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40 sm:p-8">
