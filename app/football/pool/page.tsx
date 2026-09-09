@@ -295,29 +295,12 @@ export default function FootballPoolPage() {
                 {teamError && <p className="mt-2 text-sm font-bold text-red-300">{teamError}</p>}
               </div>
             )}
-          </section>
-        )}
-
-        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
-          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">
-            <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
-            <StatBlock label="Week" value={pool.season.replace("College Football ", "")} />
-            <StatBlock label="Roster Spots" value={String(lobbyStats.rosterSlots)} />
-            <StatBlock
-              label="Draft Time"
-              value={
-                lobbyStats.draftTiming.draftType === "scheduled"
-                  ? formatLobbyDraftStart(pool)
-                  : "Anytime"
-              }
-            />
-            <StatBlock label="Pick Clock" value={formatPickClock(pool.pickClockSeconds)} />
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-emerald-300">Invite Link</p>
+                  <p className="text-sm font-black text-emerald-300 sm:text-base">
+                    Use this link to invite your friends to your pool!
+                  </p>
                   <p className="mt-1 truncate text-sm text-slate-200">
                     {`draftwithfriends.com/football/pool?id=${pool.id}`}
                   </p>
@@ -346,8 +329,27 @@ export default function FootballPoolPage() {
                       ? "Try Again"
                       : "Copy & Share Link"}
                 </button>
+              </div>
             </div>
+          </section>
+        )}
+
+        <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-5 shadow-xl shadow-black/40 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-[minmax(0,0.7fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(230px,1.45fr)_minmax(190px,1fr)]">
+            <StatBlock label="Teams" value={String(pool.numberOfTeams)} />
+            <StatBlock label="Week" value={pool.season.replace("College Football ", "")} />
+            <StatBlock label="Roster Spots" value={String(lobbyStats.rosterSlots)} />
+            <StatBlock
+              label="Draft Time"
+              value={
+                lobbyStats.draftTiming.draftType === "scheduled"
+                  ? formatLobbyDraftStart(pool)
+                  : "Anytime"
+              }
+            />
+            <StatBlock label="Pick Clock" value={formatPickClock(pool.pickClockSeconds)} />
           </div>
+
         </section>
 
         {organizerId && organizerId === pool.ownerId && !lobbyStats.draftComplete && (
