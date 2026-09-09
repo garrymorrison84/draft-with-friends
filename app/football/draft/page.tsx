@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import { claimTeam } from "../../lib/teamClaims";
@@ -473,6 +473,25 @@ export default function FootballDraftPage() {
   const pauseSubmissionInFlightRef = useRef(false);
   const activePoolId = pool?.id || "";
 
+  const syncServerClock = useCallback(
+    (serverNow: string | undefined, requestStartedAt = Date.now()) => {
+      if (!serverNow) return;
+
+      const serverNowMs = Date.parse(serverNow);
+      if (!Number.isFinite(serverNowMs)) return;
+
+      const responseReceivedAt = Date.now();
+      const estimatedNetworkDelay = Math.max(
+        0,
+        (responseReceivedAt - requestStartedAt) / 2
+      );
+      const estimatedServerNow = serverNowMs + estimatedNetworkDelay;
+      serverTimeOffsetRef.current = estimatedServerNow - responseReceivedAt;
+      setNow(new Date(estimatedServerNow));
+    },
+    []
+  );
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -493,13 +512,11 @@ export default function FootballDraftPage() {
     }
 
     async function loadDraft() {
+      const requestStartedAt = Date.now();
       const history = await loadPersistedFootballHistory(id!);
       if (!history) return;
       const savedPool = history.pool;
-      if (history?.serverNow) {
-        const serverNowMs = Date.parse(history.serverNow);
-        if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
-      }
+      syncServerClock(history.serverNow, requestStartedAt);
       const chosenTeam = hasSelectedTeam(savedPool);
       if (!chosenTeam) return;
       const savedPicks = history.picks;
@@ -548,7 +565,7 @@ export default function FootballDraftPage() {
     }
 
     loadDraft();
-  }, []);
+  }, [syncServerClock]);
 
   useEffect(() => {
     if (!activePoolId) return;
@@ -559,12 +576,10 @@ export default function FootballDraftPage() {
       if (syncInFlight || pickSubmissionInFlightRef.current) return;
       syncInFlight = true;
       try {
+        const requestStartedAt = Date.now();
         const history = await loadPersistedFootballHistory(activePoolId);
         if (!history || cancelled) return;
-        if (history.serverNow) {
-          const serverNowMs = Date.parse(history.serverNow);
-          if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
-        }
+        syncServerClock(history.serverNow, requestStartedAt);
         setPool((current) =>
           current && JSON.stringify(current) === JSON.stringify(history.pool)
             ? current
@@ -638,17 +653,21 @@ export default function FootballDraftPage() {
     syncDraftBoard();
     const interval = window.setInterval(syncDraftBoard, 1000);
     const syncWhenVisible = () => {
-      if (document.visibilityState === "visible") void syncDraftBoard();
+      if (document.visibilityState !== "visible") return;
+      setNow(new Date(Date.now() + serverTimeOffsetRef.current));
+      void syncDraftBoard();
     };
     window.addEventListener("focus", syncWhenVisible);
+    window.addEventListener("pageshow", syncWhenVisible);
     document.addEventListener("visibilitychange", syncWhenVisible);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
       window.removeEventListener("focus", syncWhenVisible);
+      window.removeEventListener("pageshow", syncWhenVisible);
       document.removeEventListener("visibilitychange", syncWhenVisible);
     };
-  }, [activePoolId]);
+  }, [activePoolId, syncServerClock]);
 
   useEffect(() => {
     let cancelled = false;
@@ -678,12 +697,40 @@ export default function FootballDraftPage() {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(
-      () => setNow(new Date(Date.now() + serverTimeOffsetRef.current)),
-      1000
-    );
+    let animationFrame = 0;
+    let renderedSecond = -1;
 
-    return () => window.clearInterval(interval);
+    const updateVisibleClock = () => {
+      const authoritativeNow = Date.now() + serverTimeOffsetRef.current;
+      const authoritativeSecond = Math.floor(authoritativeNow / 1000);
+      if (authoritativeSecond !== renderedSecond) {
+        renderedSecond = authoritativeSecond;
+        setNow(new Date(authoritativeNow));
+      }
+    };
+
+    const tick = () => {
+      updateVisibleClock();
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    const catchUpClock = () => {
+      renderedSecond = -1;
+      updateVisibleClock();
+    };
+
+    catchUpClock();
+    animationFrame = window.requestAnimationFrame(tick);
+    window.addEventListener("focus", catchUpClock);
+    window.addEventListener("pageshow", catchUpClock);
+    document.addEventListener("visibilitychange", catchUpClock);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("focus", catchUpClock);
+      window.removeEventListener("pageshow", catchUpClock);
+      document.removeEventListener("visibilitychange", catchUpClock);
+    };
   }, []);
 
   useEffect(() => {

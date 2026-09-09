@@ -146,7 +146,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Pool not found." }, { status: 404 });
   }
 
-  return NextResponse.json({ pool, picks: picks || [], serverNow: new Date().toISOString() });
+  return NextResponse.json(
+    { pool, picks: picks || [], serverNow: new Date().toISOString() },
+    {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+      },
+    }
+  );
 }
 
 export async function POST(request: NextRequest) {
