@@ -449,6 +449,7 @@ export default function FootballDraftPage() {
   const tickKeyRef = useRef("");
   const pickSubmissionInFlightRef = useRef(false);
   const serverTimeOffsetRef = useRef(0);
+  const activePoolId = pool?.id || "";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -523,48 +524,65 @@ export default function FootballDraftPage() {
   }, []);
 
   useEffect(() => {
-    if (!pool) return;
+    if (!activePoolId) return;
     let cancelled = false;
+    let syncInFlight = false;
 
     async function syncDraftBoard() {
-      if (!pool || pickSubmissionInFlightRef.current) return;
-      const history = await loadPersistedFootballHistory(pool.id);
-      if (!history || cancelled) return;
-      if (history.serverNow) {
-        const serverNowMs = Date.parse(history.serverNow);
-        if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
-      }
-      setPool((current) => current ? { ...current, ...history.pool } : history.pool);
-      const sharedPaused = history.pool.draftPaused === true;
-      setIsPickClockPaused(sharedPaused);
-      setPausedPickClockRemaining(sharedPaused ? history.pool.draftPausedRemaining ?? null : null);
-      if (!sharedPaused) {
-        const latestPickStartedAt = history.picks.at(-1)?.pickedAt ? Date.parse(history.picks.at(-1)!.pickedAt!) : Number.NaN;
-        const resumeStartedAt = history.pool.draftTimerStartedAt ? Date.parse(history.pool.draftTimerStartedAt) : Number.NaN;
-        const authoritativeStartedAt = Math.max(
-          Number.isFinite(latestPickStartedAt) ? latestPickStartedAt : 0,
-          Number.isFinite(resumeStartedAt) ? resumeStartedAt : 0
+      if (syncInFlight || pickSubmissionInFlightRef.current) return;
+      syncInFlight = true;
+      try {
+        const history = await loadPersistedFootballHistory(activePoolId);
+        if (!history || cancelled) return;
+        if (history.serverNow) {
+          const serverNowMs = Date.parse(history.serverNow);
+          if (Number.isFinite(serverNowMs)) serverTimeOffsetRef.current = serverNowMs - Date.now();
+        }
+        setPool((current) =>
+          current && JSON.stringify(current) === JSON.stringify(history.pool)
+            ? current
+            : history.pool
         );
-        if (authoritativeStartedAt > 0) setPickTimerStartedAt(authoritativeStartedAt);
+        const sharedPaused = history.pool.draftPaused === true;
+        setIsPickClockPaused(sharedPaused);
+        setPausedPickClockRemaining(sharedPaused ? history.pool.draftPausedRemaining ?? null : null);
+        if (!sharedPaused) {
+          const latestPickStartedAt = history.picks.at(-1)?.pickedAt ? Date.parse(history.picks.at(-1)!.pickedAt!) : Number.NaN;
+          const resumeStartedAt = history.pool.draftTimerStartedAt ? Date.parse(history.pool.draftTimerStartedAt) : Number.NaN;
+          const authoritativeStartedAt = Math.max(
+            Number.isFinite(latestPickStartedAt) ? latestPickStartedAt : 0,
+            Number.isFinite(resumeStartedAt) ? resumeStartedAt : 0
+          );
+          if (authoritativeStartedAt > 0) setPickTimerStartedAt(authoritativeStartedAt);
+        }
+        setPicks((current) => {
+          const keyFor = (list: FootballDraftPick[]) =>
+            list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}:${pick.pickedAt || ""}`).join("|");
+          if (keyFor(current) === keyFor(history.picks)) return current;
+          saveFootballDraftPicks(activePoolId, history.picks);
+          setPendingPlayer(null);
+          committedPickKeyRef.current = "";
+          return history.picks;
+        });
+      } finally {
+        syncInFlight = false;
       }
-      setPicks((current) => {
-        const keyFor = (list: FootballDraftPick[]) =>
-          list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}:${pick.pickedAt || ""}`).join("|");
-        if (keyFor(current) === keyFor(history.picks)) return current;
-        saveFootballDraftPicks(pool.id, history.picks);
-        setPendingPlayer(null);
-        committedPickKeyRef.current = "";
-        return history.picks;
-      });
     }
 
     syncDraftBoard();
     const interval = window.setInterval(syncDraftBoard, 1000);
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") void syncDraftBoard();
+    };
+    window.addEventListener("focus", syncWhenVisible);
+    document.addEventListener("visibilitychange", syncWhenVisible);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      window.removeEventListener("focus", syncWhenVisible);
+      document.removeEventListener("visibilitychange", syncWhenVisible);
     };
-  }, [pool]);
+  }, [activePoolId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -692,15 +710,15 @@ export default function FootballDraftPage() {
         draftCompleteSoundPlayedRef.current = true;
         playDraftCompleteSound();
       }
-      if (!pool) return;
+      if (!activePoolId) return;
       const redirect = window.setTimeout(() => {
-        window.location.replace(`/football/leaderboard?id=${pool.id}`);
+        window.location.replace(`/football/leaderboard?id=${activePoolId}`);
       }, 900);
       return () => window.clearTimeout(redirect);
     }
 
     draftCompleteSoundPlayedRef.current = false;
-  }, [draftComplete, pool]);
+  }, [activePoolId, draftComplete]);
   const draftablePositions = new Set(
     positions.filter((item) => {
       if (item === "ALL") return true;
