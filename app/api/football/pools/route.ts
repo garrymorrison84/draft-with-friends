@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+
+type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -13,7 +16,7 @@ function teamForPick(draftOrder: string[], pickIndex: number) {
 
 async function getAuthenticatedOrganizerId(
   request: NextRequest,
-  client: NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>
+  client: AdminClient
 ) {
   const authorization = request.headers.get("authorization");
   const accessToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -22,6 +25,69 @@ async function getAuthenticatedOrganizerId(
   const { data, error } = await client.auth.getUser(accessToken);
   if (error || !data.user) return null;
   return data.user.id;
+}
+
+async function ensureDraftEntry({
+  client,
+  poolId,
+  team,
+  seatNumber,
+  organizerId,
+  participantId,
+}: {
+  client: AdminClient;
+  poolId: string;
+  team: string;
+  seatNumber: number;
+  organizerId: string | null;
+  participantId: string;
+}) {
+  if (organizerId) {
+    const { data: existing, error } = await client
+      .from("pool_entries")
+      .select("id")
+      .eq("pool_id", poolId)
+      .eq("user_id", organizerId)
+      .is("revoked_at", null)
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (existing) return existing.id as string;
+
+    const { data, error: insertError } = await client.from("pool_entries").insert({
+      pool_id: poolId,
+      user_id: organizerId,
+      team_name: team,
+      seat_number: seatNumber,
+      role: "commissioner",
+      claimed_at: new Date().toISOString(),
+    }).select("id").single();
+    if (insertError) throw insertError;
+    return data.id as string;
+  }
+
+  const guestTokenHash = createHash("sha256").update(`${poolId}:${participantId}`).digest("hex");
+  const { data: existing, error } = await client
+    .from("pool_entries")
+    .select("id")
+    .eq("pool_id", poolId)
+    .eq("guest_token_hash", guestTokenHash)
+    .is("revoked_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (existing) return existing.id as string;
+
+  const { data, error: insertError } = await client.from("pool_entries").insert({
+    pool_id: poolId,
+    team_name: team,
+    seat_number: seatNumber,
+    role: "participant",
+    guest_token_hash: guestTokenHash,
+    claimed_at: new Date().toISOString(),
+  }).select("id").single();
+  if (insertError) throw insertError;
+  return data.id as string;
 }
 
 export async function GET(request: NextRequest) {
@@ -131,17 +197,34 @@ export async function POST(request: NextRequest) {
       if (claimError) return NextResponse.json({ error: "Could not verify your team before saving the pick." }, { status: 500 });
     }
   }
-  const entryId = participantId || organizerId;
-  if (!entryId) {
+  if (!participantId && !organizerId) {
     return NextResponse.json({ error: "Your draft identity could not be verified." }, { status: 403 });
+  }
+  let entryId: string;
+  try {
+    entryId = await ensureDraftEntry({
+      client,
+      poolId,
+      team,
+      seatNumber: Math.max(0, draftOrder.indexOf(team)),
+      organizerId: isCommissioner ? organizerId : null,
+      participantId,
+    });
+  } catch (entryError) {
+    console.error("Football draft entry resolution failed", entryError);
+    return NextResponse.json({ error: "Your pool entry could not be saved." }, { status: 500 });
   }
 
   const { data: insertedPick, error: insertError } = await client.from("platform_draft_picks").insert({
     pool_id: poolId,
     entry_id: entryId,
     pick_index: expectedPickIndex,
-    selection_type: "football_player",
+    selection_type: "college_player",
     selection_id: playerId,
+    selection_name:
+      playerSnapshot && typeof playerSnapshot.name === "string"
+        ? playerSnapshot.name
+        : playerId,
     selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1, playerSnapshot },
   }).select("created_at").single();
 
@@ -297,12 +380,17 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Incomplete football pool." }, { status: 400 });
   }
 
-  const picks = body.picks.filter(isRecord).map((pick, index) => ({
+  const rawPicks = body.picks.filter(isRecord);
+  const picks = rawPicks.map((pick, index) => ({
     pool_id: poolId,
-    entry_id: crypto.randomUUID(),
+    entry_id: "",
     pick_index: index,
-    selection_type: "football_player",
+    selection_type: "college_player",
     selection_id: String(pick.playerId || ""),
+    selection_name:
+      isRecord(pick.playerSnapshot) && typeof pick.playerSnapshot.name === "string"
+        ? pick.playerSnapshot.name
+        : String(pick.playerId || ""),
     selection_snapshot: {
       playerId: String(pick.playerId || ""),
       team: String(pick.team || ""),
@@ -364,6 +452,27 @@ export async function PUT(request: NextRequest) {
 
   if (poolError) {
     return NextResponse.json({ error: poolError.message }, { status: 500 });
+  }
+
+  if (picks.length > 0) {
+    if (!organizerId || organizerId !== ownerId) {
+      return NextResponse.json({ error: "Only the commissioner can replace saved draft picks." }, { status: 403 });
+    }
+    let commissionerEntryId: string;
+    try {
+      commissionerEntryId = await ensureDraftEntry({
+        client,
+        poolId,
+        team: String(picks[0].selection_snapshot.team),
+        seatNumber: Math.max(0, draftOrder.indexOf(picks[0].selection_snapshot.team)),
+        organizerId,
+        participantId: "",
+      });
+    } catch (entryError) {
+      console.error("Football commissioner entry resolution failed", entryError);
+      return NextResponse.json({ error: "The commissioner pool entry could not be saved." }, { status: 500 });
+    }
+    for (const pick of picks) pick.entry_id = commissionerEntryId;
   }
 
   if (picks.length > 0) {
