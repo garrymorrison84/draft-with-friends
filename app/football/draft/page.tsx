@@ -103,6 +103,11 @@ function formatClockTime(seconds: number) {
   return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
+function getPickSoundKey(poolId: string, pick: FootballDraftPick | undefined) {
+  if (!pick) return "";
+  return `${poolId}:${pick.pickNumber}:${pick.playerId}:${pick.pickedAt || ""}`;
+}
+
 
 function formatDraftOpeningMessage(secondsRemaining: number) {
   if (secondsRemaining >= 45 && secondsRemaining <= 75) {
@@ -449,6 +454,10 @@ export default function FootballDraftPage() {
   const tickKeyRef = useRef("");
   const pickSubmissionInFlightRef = useRef(false);
   const serverTimeOffsetRef = useRef(0);
+  const announcedPickSoundKeyRef = useRef("");
+  const pickSoundBaselineReadyRef = useRef(false);
+  const announcedPauseStateRef = useRef<boolean | null>(null);
+  const pauseSubmissionInFlightRef = useRef(false);
   const activePoolId = pool?.id || "";
 
   useEffect(() => {
@@ -481,11 +490,14 @@ export default function FootballDraftPage() {
       const chosenTeam = hasSelectedTeam(savedPool);
       if (!chosenTeam) return;
       const savedPicks = history.picks;
+      announcedPickSoundKeyRef.current = getPickSoundKey(savedPool.id, savedPicks.at(-1));
+      pickSoundBaselineReadyRef.current = true;
       saveFootballPool(savedPool);
       saveFootballDraftPicks(savedPool.id, savedPicks);
       setPool(savedPool);
       setPicks(savedPicks);
       setIsPickClockPaused(savedPool.draftPaused === true);
+      announcedPauseStateRef.current = savedPool.draftPaused === true;
       setPausedPickClockRemaining(savedPool.draftPaused ? savedPool.draftPausedRemaining ?? null : null);
       const savedPickStartedAt = savedPicks.at(-1)?.pickedAt ? Date.parse(savedPicks.at(-1)!.pickedAt!) : Number.NaN;
       const savedResumeStartedAt = savedPool.draftTimerStartedAt ? Date.parse(savedPool.draftTimerStartedAt) : Number.NaN;
@@ -544,6 +556,14 @@ export default function FootballDraftPage() {
             : history.pool
         );
         const sharedPaused = history.pool.draftPaused === true;
+        if (
+          !pauseSubmissionInFlightRef.current &&
+          announcedPauseStateRef.current !== null &&
+          sharedPaused !== announcedPauseStateRef.current
+        ) {
+          playPauseResumeWhistleSound();
+        }
+        announcedPauseStateRef.current = sharedPaused;
         setIsPickClockPaused(sharedPaused);
         setPausedPickClockRemaining(sharedPaused ? history.pool.draftPausedRemaining ?? null : null);
         if (!sharedPaused) {
@@ -555,6 +575,21 @@ export default function FootballDraftPage() {
           );
           if (authoritativeStartedAt > 0) setPickTimerStartedAt(authoritativeStartedAt);
         }
+        const latestPickSoundKey = getPickSoundKey(activePoolId, history.picks.at(-1));
+        const historyTotalPicks =
+          history.pool.numberOfTeams * getTotalRosterSlots(history.pool.scoring);
+        const historyDraftComplete =
+          historyTotalPicks > 0 && history.picks.length >= historyTotalPicks;
+        if (
+          !historyDraftComplete &&
+          latestPickSoundKey &&
+          pickSoundBaselineReadyRef.current &&
+          latestPickSoundKey !== announcedPickSoundKeyRef.current
+        ) {
+          playPickMadeSound(latestPickSoundKey);
+        }
+        announcedPickSoundKeyRef.current = latestPickSoundKey;
+        pickSoundBaselineReadyRef.current = true;
         setPicks((current) => {
           const keyFor = (list: FootballDraftPick[]) =>
             list.map((pick) => `${pick.pickNumber}:${pick.playerId}:${pick.team}:${pick.pickedAt || ""}`).join("|");
@@ -963,6 +998,9 @@ export default function FootballDraftPage() {
         },
       ];
       setPicks(nextPicks);
+      const acceptedPickSoundKey = getPickSoundKey(pool.id, nextPicks.at(-1));
+      announcedPickSoundKeyRef.current = acceptedPickSoundKey;
+      pickSoundBaselineReadyRef.current = true;
       saveFootballDraftPicks(pool.id, nextPicks);
       setPendingPlayer(null);
       setDetailsPlayer(null);
@@ -971,7 +1009,7 @@ export default function FootballDraftPage() {
       if (isFinalPick) {
         stopCountdownTickSound();
       } else {
-        playPickMadeSound(pickKey);
+        playPickMadeSound(acceptedPickSoundKey);
       }
       return true;
     } catch (error) {
@@ -980,6 +1018,21 @@ export default function FootballDraftPage() {
       committedPickKeyRef.current = "";
       const history = await loadPersistedFootballHistory(pool.id);
       if (history) {
+        const latestPickSoundKey = getPickSoundKey(pool.id, history.picks.at(-1));
+        const historyTotalPicks =
+          history.pool.numberOfTeams * getTotalRosterSlots(history.pool.scoring);
+        const historyDraftComplete =
+          historyTotalPicks > 0 && history.picks.length >= historyTotalPicks;
+        if (
+          !historyDraftComplete &&
+          latestPickSoundKey &&
+          pickSoundBaselineReadyRef.current &&
+          latestPickSoundKey !== announcedPickSoundKeyRef.current
+        ) {
+          playPickMadeSound(latestPickSoundKey);
+        }
+        announcedPickSoundKeyRef.current = latestPickSoundKey;
+        pickSoundBaselineReadyRef.current = true;
         setPicks(history.picks);
         saveFootballDraftPicks(pool.id, history.picks);
       }
@@ -1082,9 +1135,11 @@ export default function FootballDraftPage() {
       ? pausedPickClockRemaining ?? pickClockRemaining
       : pickClockRemaining;
     setPickError("");
+    pauseSubmissionInFlightRef.current = true;
     try {
       const sharedPool = await setFootballDraftPause({ poolId: pool.id, paused: nextPaused, remaining });
       setPool(sharedPool);
+      announcedPauseStateRef.current = nextPaused;
       setIsPickClockPaused(nextPaused);
       setPausedPickClockRemaining(nextPaused ? remaining : null);
       if (!nextPaused && sharedPool.draftTimerStartedAt) {
@@ -1096,6 +1151,8 @@ export default function FootballDraftPage() {
       playPauseResumeWhistleSound();
     } catch (error) {
       setPickError(error instanceof Error ? error.message : "Could not update the shared draft clock.");
+    } finally {
+      pauseSubmissionInFlightRef.current = false;
     }
   }
 
