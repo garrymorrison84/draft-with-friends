@@ -1252,14 +1252,14 @@ export default function FootballDraftPage() {
             </p>
           </div>
 
-          <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
+          {isCommissioner && <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
             <Link
               href={`/football/pool?id=${pool.id}&view=lobby`}
               className="rounded-2xl border border-slate-700 px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#111827] sm:px-8 sm:text-lg"
             >
               Return to Lobby
             </Link>
-          </div>
+          </div>}
         </div>
 
         {pickError && (

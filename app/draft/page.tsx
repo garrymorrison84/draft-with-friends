@@ -1139,14 +1139,14 @@ export default function DraftPage() {
             </p>
           </div>
 
-          <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
+          {isCommissioner && <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
             <a
               href={`/pool?id=${activePool.id}&view=lobby`}
               className="rounded-2xl border border-slate-700 px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#111827] sm:px-8 sm:text-lg"
             >
               Return to Lobby
             </a>
-          </div>
+          </div>}
         </div>
 
         {draftOpen && !draftComplete && (

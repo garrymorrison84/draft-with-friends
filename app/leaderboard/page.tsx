@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getPool, getDraftPicks, getGolferScores } from "../lib/poolApi";
+import {
+  getCurrentOrganizerUser,
+  getPool,
+  getDraftPicks,
+  getGolferScores,
+} from "../lib/poolApi";
 import {
   loadPool as loadLocalPool,
   loadDraftPicks as loadLocalDraftPicks,
@@ -19,6 +24,7 @@ type Pool = {
   scoresToCount: number;
   teamNames: string[];
   draftOrder: string[];
+  ownerId?: string | null;
 };
 
 type DraftPickRow = {
@@ -374,6 +380,11 @@ export default function LeaderboardPage() {
   const [tournamentIsOver, setTournamentIsOver] = useState(false);
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
+  const [organizerId, setOrganizerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
+  }, []);
 
   async function loadLeaderboard() {
     const params = new URLSearchParams(window.location.search);
@@ -403,6 +414,7 @@ export default function LeaderboardPage() {
           scoresToCount: savedPool.scores_to_count,
           teamNames: savedPool.team_names || [],
           draftOrder: savedPool.draft_order || [],
+          ownerId: savedPool.owner_id,
         }
       : {
           id: localPool!.id,
@@ -414,6 +426,7 @@ export default function LeaderboardPage() {
           scoresToCount: localPool!.scoresToCount,
           teamNames: localPool!.teamNames || [],
           draftOrder: localPool!.draftOrder || [],
+          ownerId: null,
         };
 
     setPool(formattedPool);
@@ -825,12 +838,12 @@ export default function LeaderboardPage() {
               {isSyncing ? "Refreshing..." : "Refresh"}
             </button>
 
-            <a
+            {organizerId === pool.ownerId && pool.ownerId && <a
               href={`/pool?id=${pool.id}&view=lobby`}
               className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 text-base font-black text-emerald-300 transition hover:bg-emerald-400/20"
             >
               {pool.poolName} Lobby
-            </a>
+            </a>}
 
             {RECAP_FEATURE_ENABLED && recapAwards.length > 0 && (
               <button

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   FootballDraftPick,
   FootballPlayer,
@@ -540,6 +541,11 @@ export default function FootballLeaderboardPage() {
   const [liveDataProvider, setLiveDataProvider] = useState<string | null>(null);
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
+  const [organizerId, setOrganizerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
+  }, []);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("id");
@@ -838,12 +844,12 @@ export default function FootballLeaderboardPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
+            {organizerId === pool.ownerId && pool.ownerId && <Link
               href={`/football/pool?id=${pool.id}`}
               className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 px-6 py-3 text-center text-base font-black text-emerald-300 transition hover:bg-emerald-400/15"
             >
               {pool.poolName} Lobby
-            </Link>
+            </Link>}
 
             {RECAP_FEATURE_ENABLED && recap.awards.length > 0 && (
               <button
