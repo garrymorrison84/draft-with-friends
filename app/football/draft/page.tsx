@@ -17,6 +17,7 @@ import {
 import {
   draftCompleteSoundDurationMs,
   isDraftSoundEnabled,
+  pickMadeSoundDurationMs,
   playCountdownTickSound,
   playDraftCompleteSound,
   playDraftStartSound,
@@ -25,6 +26,7 @@ import {
   preloadDraftSounds,
   setDraftSoundEnabled,
   stopCountdownTickSound,
+  unlockDraftSounds,
 } from "../../lib/draftSounds";
 import {
   FootballDraftPick,
@@ -106,7 +108,7 @@ function formatClockTime(seconds: number) {
 
 function getPickSoundKey(poolId: string, pick: FootballDraftPick | undefined) {
   if (!pick) return "";
-  return `${poolId}:${pick.pickNumber}:${pick.playerId}:${pick.pickedAt || ""}`;
+  return `${poolId}:${pick.pickNumber}:${pick.pickedAt || ""}`;
 }
 
 
@@ -464,7 +466,9 @@ export default function FootballDraftPage() {
   const pickSubmissionInFlightRef = useRef(false);
   const serverTimeOffsetRef = useRef(0);
   const announcedPickSoundKeyRef = useRef("");
+  const announcedPickCountRef = useRef(0);
   const pickSoundBaselineReadyRef = useRef(false);
+  const draftCompleteAfterPickSoundRef = useRef(0);
   const announcedPauseStateRef = useRef<boolean | null>(null);
   const pauseSubmissionInFlightRef = useRef(false);
   const activePoolId = pool?.id || "";
@@ -500,6 +504,7 @@ export default function FootballDraftPage() {
       if (!chosenTeam) return;
       const savedPicks = history.picks;
       announcedPickSoundKeyRef.current = getPickSoundKey(savedPool.id, savedPicks.at(-1));
+      announcedPickCountRef.current = savedPicks.length;
       pickSoundBaselineReadyRef.current = true;
       saveFootballPool(savedPool);
       saveFootballDraftPicks(savedPool.id, savedPicks);
@@ -593,15 +598,28 @@ export default function FootballDraftPage() {
           history.pool.numberOfTeams * getTotalRosterSlots(history.pool.scoring);
         const historyDraftComplete =
           historyTotalPicks > 0 && history.picks.length >= historyTotalPicks;
-        if (
-          !historyDraftComplete &&
-          latestPickSoundKey &&
-          pickSoundBaselineReadyRef.current &&
-          latestPickSoundKey !== announcedPickSoundKeyRef.current
-        ) {
-          playPickMadeSound(latestPickSoundKey);
+        const previousPickCount = announcedPickCountRef.current;
+        const newSharedPicks = pickSoundBaselineReadyRef.current
+          ? history.picks.length > previousPickCount
+            ? history.picks.slice(previousPickCount)
+            : history.picks.length === previousPickCount &&
+                latestPickSoundKey &&
+                latestPickSoundKey !== announcedPickSoundKeyRef.current
+              ? [history.picks.at(-1)!]
+              : []
+          : [];
+        let queuedPickSounds = 0;
+        newSharedPicks.forEach((pick) => {
+          if (playPickMadeSound(getPickSoundKey(activePoolId, pick))) {
+            queuedPickSounds += 1;
+          }
+        });
+        if (historyDraftComplete && queuedPickSounds > 0) {
+          draftCompleteAfterPickSoundRef.current =
+            Date.now() + queuedPickSounds * pickMadeSoundDurationMs;
         }
         announcedPickSoundKeyRef.current = latestPickSoundKey;
+        announcedPickCountRef.current = history.picks.length;
         pickSoundBaselineReadyRef.current = true;
         setPicks((current) => {
           const keyFor = (list: FootballDraftPick[]) =>
@@ -671,6 +689,14 @@ export default function FootballDraftPage() {
   useEffect(() => {
     setSoundsEnabled(isDraftSoundEnabled());
     preloadDraftSounds();
+    const unlockAudio = () => unlockDraftSounds();
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
   }, []);
 
   const rosterSlots = getTotalRosterSlots(pool?.scoring);
@@ -756,18 +782,32 @@ export default function FootballDraftPage() {
 
   useEffect(() => {
     if (draftComplete) {
+      const completionDelay = Math.max(
+        0,
+        draftCompleteAfterPickSoundRef.current - Date.now()
+      );
+      let completionSoundTimer: number | undefined;
       if (!draftCompleteSoundPlayedRef.current) {
         draftCompleteSoundPlayedRef.current = true;
-        playDraftCompleteSound();
+        completionSoundTimer = window.setTimeout(
+          playDraftCompleteSound,
+          completionDelay
+        );
       }
       if (!activePoolId) return;
       const redirect = window.setTimeout(() => {
         window.location.replace(`/football/leaderboard?id=${activePoolId}`);
-      }, draftCompleteSoundDurationMs);
-      return () => window.clearTimeout(redirect);
+      }, completionDelay + draftCompleteSoundDurationMs);
+      return () => {
+        if (completionSoundTimer !== undefined) {
+          window.clearTimeout(completionSoundTimer);
+        }
+        window.clearTimeout(redirect);
+      };
     }
 
     draftCompleteSoundPlayedRef.current = false;
+    draftCompleteAfterPickSoundRef.current = 0;
   }, [activePoolId, draftComplete]);
   const draftablePositions = new Set(
     positions.filter((item) => {
@@ -1037,16 +1077,17 @@ export default function FootballDraftPage() {
       setPicks(nextPicks);
       const acceptedPickSoundKey = getPickSoundKey(pool.id, nextPicks.at(-1));
       announcedPickSoundKeyRef.current = acceptedPickSoundKey;
+      announcedPickCountRef.current = nextPicks.length;
       pickSoundBaselineReadyRef.current = true;
       saveFootballDraftPicks(pool.id, nextPicks);
       setPendingPlayer(null);
       setDetailsPlayer(null);
 
       const isFinalPick = nextPicks.length >= totalPicks;
-      if (isFinalPick) {
-        stopCountdownTickSound();
-      } else {
-        playPickMadeSound(acceptedPickSoundKey);
+      const pickSoundQueued = playPickMadeSound(acceptedPickSoundKey);
+      if (isFinalPick && pickSoundQueued) {
+        draftCompleteAfterPickSoundRef.current =
+          Date.now() + pickMadeSoundDurationMs;
       }
       return true;
     } catch (error) {
@@ -1060,15 +1101,28 @@ export default function FootballDraftPage() {
           history.pool.numberOfTeams * getTotalRosterSlots(history.pool.scoring);
         const historyDraftComplete =
           historyTotalPicks > 0 && history.picks.length >= historyTotalPicks;
-        if (
-          !historyDraftComplete &&
-          latestPickSoundKey &&
-          pickSoundBaselineReadyRef.current &&
-          latestPickSoundKey !== announcedPickSoundKeyRef.current
-        ) {
-          playPickMadeSound(latestPickSoundKey);
+        const previousPickCount = announcedPickCountRef.current;
+        const newSharedPicks = pickSoundBaselineReadyRef.current
+          ? history.picks.length > previousPickCount
+            ? history.picks.slice(previousPickCount)
+            : history.picks.length === previousPickCount &&
+                latestPickSoundKey &&
+                latestPickSoundKey !== announcedPickSoundKeyRef.current
+              ? [history.picks.at(-1)!]
+              : []
+          : [];
+        let queuedPickSounds = 0;
+        newSharedPicks.forEach((pick) => {
+          if (playPickMadeSound(getPickSoundKey(pool.id, pick))) {
+            queuedPickSounds += 1;
+          }
+        });
+        if (historyDraftComplete && queuedPickSounds > 0) {
+          draftCompleteAfterPickSoundRef.current =
+            Date.now() + queuedPickSounds * pickMadeSoundDurationMs;
         }
         announcedPickSoundKeyRef.current = latestPickSoundKey;
+        announcedPickCountRef.current = history.picks.length;
         pickSoundBaselineReadyRef.current = true;
         setPicks(history.picks);
         saveFootballDraftPicks(pool.id, history.picks);
@@ -1166,6 +1220,11 @@ export default function FootballDraftPage() {
         setPickTimerPickIndex(history.picks.length);
         setPool(history.pool);
         setPicks(history.picks);
+        announcedPickSoundKeyRef.current = getPickSoundKey(
+          pool.id,
+          history.picks.at(-1)
+        );
+        announcedPickCountRef.current = history.picks.length;
         saveFootballDraftPicks(pool.id, history.picks);
       }
       autoPickInFlightRef.current = false;
@@ -1215,6 +1274,10 @@ export default function FootballDraftPage() {
     const nextSoundsEnabled = !soundsEnabled;
     setSoundsEnabled(nextSoundsEnabled);
     setDraftSoundEnabled(nextSoundsEnabled);
+    if (nextSoundsEnabled) {
+      preloadDraftSounds();
+      unlockDraftSounds();
+    }
   }
 
   if (!pool) {
