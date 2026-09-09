@@ -15,6 +15,7 @@ import {
   scheduledDraftOpeningBufferSeconds,
 } from "../../lib/draftTiming";
 import {
+  draftCompleteSoundDurationMs,
   isDraftSoundEnabled,
   playCountdownTickSound,
   playDraftCompleteSound,
@@ -748,7 +749,7 @@ export default function FootballDraftPage() {
       if (!activePoolId) return;
       const redirect = window.setTimeout(() => {
         window.location.replace(`/football/leaderboard?id=${activePoolId}`);
-      }, 900);
+      }, draftCompleteSoundDurationMs);
       return () => window.clearTimeout(redirect);
     }
 

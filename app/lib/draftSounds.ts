@@ -1,5 +1,9 @@
 const draftSoundStorageKey = "dwf:draft-sounds-enabled";
 
+// The completion clip is 3.504 seconds long. Keep the destination visible until
+// the full clip has played, with a small buffer for browser audio startup.
+export const draftCompleteSoundDurationMs = 3_700;
+
 const draftSounds = {
   countdownTick: "/sounds/countdown-tick.mp3",
   draftGoodResult: "/sounds/draft-good-result.mp3",
