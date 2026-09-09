@@ -18,6 +18,7 @@ import {
 } from "../lib/storage";
 import { loadPersistedFootballHistory } from "../lib/platformStorage";
 import {
+  getPlayerPpg,
   getProjectedScore,
   scoreFootballStats,
 } from "../lib/scoringEngine";
@@ -28,6 +29,8 @@ type TeamScoringColumn = {
   label: string;
   value: (stats: FootballStatLine) => number | undefined;
 };
+
+type PlayerDetailColumn = Omit<TeamScoringColumn, "group">;
 
 type TeamRosterEntry = {
   player: FootballPlayer;
@@ -69,6 +72,131 @@ function scoringTotal(player: FootballPlayer, scoring: FootballScoring) {
 
 function projectedTotal(player: FootballPlayer, scoring: FootballScoring) {
   return getProjectedScore(player, scoring).total;
+}
+
+function gameLogColumnsForPosition(
+  position: FootballPlayer["position"],
+  scoring: FootballScoring
+) {
+  if (position === "QB") {
+    return [
+      { label: "Cmp", value: (stats: FootballStatLine) => stats.completions },
+      { label: "Pass Att", value: (stats: FootballStatLine) => stats.passingAttempts },
+      { label: "Pass Yd", value: (stats: FootballStatLine) => stats.passingYards },
+      { label: "Pass TD", value: (stats: FootballStatLine) => stats.passingTds },
+      { label: "INT", value: (stats: FootballStatLine) => stats.interceptionsThrown },
+      { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
+      { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
+      { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
+      scoring.passing.twoPointConversion !== 0 && {
+        label: "2PT",
+        value: (stats: FootballStatLine) => stats.twoPointConversions,
+      },
+    ].filter(Boolean) as PlayerDetailColumn[];
+  }
+
+  if (position === "RB") {
+    return [
+      { label: "Rush Att", value: (stats: FootballStatLine) => stats.rushingAttempts },
+      { label: "Rush Yd", value: (stats: FootballStatLine) => stats.rushingYards },
+      { label: "Rush TD", value: (stats: FootballStatLine) => stats.rushingTds },
+      { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
+      { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
+      { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
+      scoring.rushing.twoPointConversion !== 0 && {
+        label: "2PT",
+        value: (stats: FootballStatLine) => stats.twoPointConversions,
+      },
+    ].filter(Boolean) as PlayerDetailColumn[];
+  }
+
+  if (position === "WR" || position === "TE") {
+    return [
+      { label: "Rec", value: (stats: FootballStatLine) => stats.receptions },
+      { label: "Rec Yd", value: (stats: FootballStatLine) => stats.receivingYards },
+      { label: "Rec TD", value: (stats: FootballStatLine) => stats.receivingTds },
+      scoring.receiving.twoPointConversion !== 0 && {
+        label: "2PT",
+        value: (stats: FootballStatLine) => stats.twoPointConversions,
+      },
+    ].filter(Boolean) as PlayerDetailColumn[];
+  }
+
+  if (position === "DST") {
+    return [
+      scoring.defense.sack !== 0 && {
+        label: "Sacks",
+        value: (stats: FootballStatLine) => stats.sacks,
+      },
+      scoring.defense.interception !== 0 && {
+        label: "INT",
+        value: (stats: FootballStatLine) => stats.defenseInterceptions,
+      },
+      scoring.defense.fumbleRecovery !== 0 && {
+        label: "Fum Rec",
+        value: (stats: FootballStatLine) => stats.fumbleRecoveries,
+      },
+      scoring.defense.touchdown !== 0 && {
+        label: "TD",
+        value: (stats: FootballStatLine) => stats.defenseTds,
+      },
+      scoring.defense.safety !== 0 && {
+        label: "Safety",
+        value: (stats: FootballStatLine) => stats.safeties,
+      },
+      scoring.defense.blockedKick !== 0 && {
+        label: "Blk Kick",
+        value: (stats: FootballStatLine) => stats.blockedKicks,
+      },
+      scoring.defense.returnTouchdown !== 0 && {
+        label: "Ret TD",
+        value: (stats: FootballStatLine) => stats.returnTds,
+      },
+    ].filter(Boolean) as PlayerDetailColumn[];
+  }
+
+  return [
+    scoring.kicking.extraPoint !== 0 && {
+      label: "XP Made",
+      value: (stats: FootballStatLine) => stats.extraPointsMade,
+    },
+    scoring.kicking.missedExtraPoint !== 0 && {
+      label: "XP Miss",
+      value: (stats: FootballStatLine) => stats.extraPointsMissed,
+    },
+    scoring.kicking.fieldGoal !== 0 && {
+      label: "FG Made",
+      value: (stats: FootballStatLine) => stats.fieldGoalsMade,
+    },
+    scoring.kicking.missedFieldGoal !== 0 && {
+      label: "FG Miss",
+      value: (stats: FootballStatLine) => stats.fieldGoalsMissed,
+    },
+    scoring.kicking.fieldGoal50Bonus !== 0 && {
+      label: "50+ FG",
+      value: (stats: FootballStatLine) => stats.fieldGoals50Plus,
+    },
+  ].filter(Boolean) as PlayerDetailColumn[];
+}
+
+function playerGameRows(player: FootballPlayer, scoring: FootballScoring) {
+  if (player.gameLogs && player.gameLogs.length > 0) {
+    return player.gameLogs.map((log) => ({
+      label: log.week,
+      opponent: log.opponent,
+      statLine: log.statLine,
+      points: scoreFootballStats(log.statLine, scoring).total,
+    }));
+  }
+
+  return [
+    {
+      label: "Avg",
+      opponent: "Season avg",
+      statLine: player.averageStats,
+      points: getPlayerPpg(player, scoring),
+    },
+  ];
 }
 
 function formatNumber(value: number | undefined) {
@@ -279,18 +407,144 @@ function PositionBadge({ entry }: { entry: TeamRosterEntry }) {
   );
 }
 
+function LeaderboardPlayerDetailsModal({
+  player,
+  scoring,
+  onClose,
+}: {
+  player: FootballPlayer;
+  scoring: FootballScoring;
+  onClose: () => void;
+}) {
+  const ppg = getPlayerPpg(player, scoring);
+  const rows = playerGameRows(player, scoring);
+  const hasGameLogs = Boolean(player.gameLogs?.length);
+  const columns = gameLogColumnsForPosition(player.position, scoring);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${player.name} details`}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/80 px-2 pb-3 backdrop-blur-sm md:items-center md:p-6"
+    >
+      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-black ${positionBadgeClasses[player.position]}`}
+                >
+                  {player.position}
+                </span>
+                <span className="text-sm font-black uppercase tracking-wide text-slate-400">
+                  {player.school}
+                </span>
+              </div>
+              <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
+                {player.name}
+              </h2>
+              <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
+                {player.conference} • {player.gameTime} {player.opponent}
+              </p>
+            </div>
+
+            <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl bg-[#030712] px-4 py-3 text-center sm:min-w-28 sm:p-4">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">PPG</p>
+              <p className="mt-1 text-2xl font-black text-emerald-300">
+                {formatNumber(ppg)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-7">
+          <h3 className="text-xl font-black">Game Log</h3>
+          <p className="mt-2 text-sm font-semibold text-slate-400">
+            Fantasy points reflect your pool&apos;s scoring rules.
+          </p>
+          {!hasGameLogs ? (
+            <p className="mt-3 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm font-bold text-amber-100">
+              No completed game log is available yet. PPG will populate as game data becomes available.
+            </p>
+          ) : null}
+
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
+            <table className="w-full min-w-[760px] text-right text-sm font-black text-slate-200">
+              <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">Week</th>
+                  <th className="px-4 py-3 text-left">Opp</th>
+                  <th className="px-4 py-3 text-emerald-300">Pts</th>
+                  {columns.map((column) => (
+                    <th key={column.label} className="px-4 py-3">
+                      {column.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={`${row.label}-${row.opponent}`}
+                    className="border-b border-white/5 last:border-b-0"
+                  >
+                    <td className="px-4 py-4 text-left text-slate-400">{row.label}</td>
+                    <td className="max-w-[180px] truncate px-4 py-4 text-left">
+                      {row.opponent}
+                    </td>
+                    <td className="px-4 py-4 text-emerald-300">
+                      {formatNumber(row.points)}
+                    </td>
+                    {columns.map((column) => (
+                      <td key={column.label} className="px-4 py-4">
+                        {formatNumber(column.value(row.statLine))}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t border-white/10 p-4 sm:flex sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 transition hover:bg-white/5 sm:w-auto"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TeamStatTable({
   entries,
   columns,
   groups,
   scoring,
   title,
+  onSelectPlayer,
 }: {
   entries: TeamRosterEntry[];
   columns: TeamScoringColumn[];
   groups?: { group: string; span: number }[];
   scoring: FootballScoring;
   title?: string;
+  onSelectPlayer: (player: FootballPlayer) => void;
 }) {
   if (entries.length === 0 || columns.length === 0) return null;
 
@@ -306,7 +560,7 @@ function TeamStatTable({
           <thead className="text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">
             {groups && groups.length > 0 && (
               <tr className="border-b border-white/10 bg-[#111827]">
-                <th rowSpan={2} className="w-[188px] px-2 py-2 text-left sm:w-[300px] sm:px-4 sm:py-3">
+                <th rowSpan={2} className="w-[230px] px-1.5 py-2 text-left sm:w-[300px] sm:px-4 sm:py-3">
                   Player
                 </th>
                 <th rowSpan={2} className="w-[50px] px-2 py-2 text-center align-middle text-emerald-300 sm:w-[76px] sm:px-4 sm:py-3">
@@ -326,7 +580,7 @@ function TeamStatTable({
             <tr className="border-b border-white/10 bg-[#111827]">
               {!groups && (
                 <>
-                  <th className="w-[188px] px-2 py-2 text-left sm:w-[300px] sm:px-4 sm:py-3">Player</th>
+                  <th className="w-[230px] px-1.5 py-2 text-left sm:w-[300px] sm:px-4 sm:py-3">Player</th>
                   <th className="w-[50px] px-2 py-2 text-center text-emerald-300 sm:w-[76px] sm:px-4 sm:py-3">
                     Pts
                   </th>
@@ -352,18 +606,24 @@ function TeamStatTable({
 
               return (
                 <tr key={player.id} className="border-b border-white/5 last:border-b-0">
-                  <td className="px-2 py-3 text-left sm:px-4 sm:py-4">
-                    <div className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-3">
+                  <td className="px-1.5 py-3 text-left sm:px-4 sm:py-4">
+                    <button
+                      type="button"
+                      onClick={() => onSelectPlayer(player)}
+                      aria-label={`View ${player.name} stats`}
+                      className="grid w-full grid-cols-[44px_minmax(0,1fr)] items-center gap-2 rounded-lg text-left outline-none transition hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-emerald-300/70 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-3"
+                    >
                       <PositionBadge entry={entry} />
                       <div className="min-w-0">
                         <p className="truncate whitespace-nowrap text-sm font-black text-white sm:text-base">
                           {formatCompactName(player.name)}
                         </p>
-                        <p className="truncate whitespace-nowrap text-[10px] font-bold text-slate-500 sm:text-xs">
-                          {player.school} • {player.opponent}
+                        <p className="whitespace-normal text-[10px] font-bold leading-4 text-slate-500 sm:text-xs">
+                          {player.schoolAbbreviation || player.school} • {player.gameTime}{" "}
+                          {player.opponent}
                         </p>
                       </div>
-                    </div>
+                    </button>
                   </td>
                   <td className="px-2 py-3 text-center align-middle text-emerald-300 sm:px-4 sm:py-4">
                     {points.toFixed(1)}
@@ -542,6 +802,7 @@ export default function FootballLeaderboardPage() {
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<FootballPlayer | null>(null);
 
   useEffect(() => {
     getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
@@ -842,8 +1103,15 @@ export default function FootballLeaderboardPage() {
           onClose={closeRecap}
         />
       )}
+      {selectedPlayer ? (
+        <LeaderboardPlayerDetailsModal
+          player={selectedPlayer}
+          scoring={pool.scoring ?? defaultScoring}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      ) : null}
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-7">
+      <div className="mx-auto w-full max-w-7xl px-2 py-6 sm:px-6 sm:py-7">
         <Link href="/" aria-label="Draft With Friends home">
           <BrandMark size="lg" />
         </Link>
@@ -878,7 +1146,7 @@ export default function FootballLeaderboardPage() {
         </div>
 
         <div className="mt-8 grid gap-5 sm:mt-10 lg:grid-cols-[320px_1fr]">
-          <section className="rounded-3xl border border-white/5 bg-[#111827] p-4 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
+          <section className="rounded-3xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40 sm:p-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto lg:self-start">
             <h2 className="text-lg font-black uppercase tracking-wide text-slate-400">
               Leaderboard
             </h2>
@@ -906,7 +1174,7 @@ export default function FootballLeaderboardPage() {
             {standings.map((team) => (
               <div
                 key={team.team}
-                className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-4 shadow-xl shadow-black/40 sm:p-5"
+                className="min-w-0 rounded-2xl border border-slate-700/60 bg-[#1F2937] p-2.5 shadow-xl shadow-black/40 sm:p-5"
               >
                 <div className="flex items-center justify-between gap-4">
                   <h3 className="text-2xl font-black uppercase tracking-wide">{team.team}</h3>
@@ -932,18 +1200,21 @@ export default function FootballLeaderboardPage() {
                       columns={offenseColumns}
                       groups={offenseGroups}
                       scoring={pool.scoring ?? defaultScoring}
+                      onSelectPlayer={setSelectedPlayer}
                     />
                     <TeamStatTable
                       title="Defense / Special Teams"
                       entries={team.players.filter((entry) => entry.player.position === "DST")}
                       columns={defenseColumns}
                       scoring={pool.scoring ?? defaultScoring}
+                      onSelectPlayer={setSelectedPlayer}
                     />
                     <TeamStatTable
                       title="Kickers"
                       entries={team.players.filter((entry) => entry.player.position === "K")}
                       columns={kickingColumns}
                       scoring={pool.scoring ?? defaultScoring}
+                      onSelectPlayer={setSelectedPlayer}
                     />
                   </>
                 )}
