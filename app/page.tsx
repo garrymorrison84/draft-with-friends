@@ -309,11 +309,11 @@ export default function Home() {
 
           <div className="lg:hidden">
             <h1 className="whitespace-nowrap text-[2.55rem] font-black leading-[1.04] tracking-tight min-[375px]:text-[2.85rem]">
-              Your Friends.
+              Your Pool -
               <br />
-              Your Pool.
+              Your Friends -
               <br />
-              Your Rules.
+              Your Rules
             </h1>
 
             <p className="mt-5 max-w-[340px] text-xl font-black leading-8 text-emerald-300">
@@ -327,11 +327,11 @@ export default function Home() {
             <MobileHeroPreview />
 
             <h1 className="relative z-10 max-w-[calc(100%-118px)] whitespace-nowrap text-[2.05rem] font-black leading-[1.08] tracking-tight min-[375px]:text-[2.18rem] min-[390px]:max-w-[calc(100%-124px)] sm:max-w-[calc(100%-176px)] sm:text-5xl md:max-w-4xl lg:max-w-4xl">
-              Your Friends.
+              Your Pool -
               <br />
-              Your Pool.
+              Your Friends -
               <br />
-              Your Rules.
+              Your Rules
             </h1>
 
             <p className="relative z-10 mt-6 max-w-[calc(100%-122px)] text-base font-black leading-6 text-emerald-300 min-[375px]:text-lg min-[375px]:leading-7 min-[390px]:max-w-[calc(100%-128px)] sm:max-w-[calc(100%-180px)] sm:text-2xl md:max-w-3xl">
