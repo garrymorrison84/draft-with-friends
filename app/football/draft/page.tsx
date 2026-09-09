@@ -427,6 +427,13 @@ const formatPlayerName = (name: string) => {
   return `${firstName.charAt(0)}. ${lastName}${suffix ? ` ${suffix}` : ""}`;
 };
 
+function normalizePlayerSearch(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
 export default function FootballDraftPage() {
   const [pool, setPool] = useState<FootballPool | null>(null);
   const [picks, setPicks] = useState<FootballDraftPick[]>([]);
@@ -778,6 +785,7 @@ export default function FootballDraftPage() {
       );
     })
   );
+  const searchTerms = normalizePlayerSearch(search).split(" ").filter(Boolean);
 
   const filteredPlayers = players
     .filter((player) => {
@@ -796,11 +804,14 @@ export default function FootballDraftPage() {
           players,
           pool,
         });
-      const matchesSearch =
-        player.name.toLowerCase().includes(search.toLowerCase()) ||
-        player.school.toLowerCase().includes(search.toLowerCase()) ||
-        player.schoolAbbreviation?.toLowerCase().includes(search.toLowerCase()) ||
-        player.conference.toLowerCase().includes(search.toLowerCase());
+      const searchablePlayer = normalizePlayerSearch(
+        `${player.name} ${player.school} ${player.schoolAbbreviation || ""} ${
+          player.conference
+        } ${player.position}`
+      );
+      const matchesSearch = searchTerms.every((term) =>
+        searchablePlayer.includes(term)
+      );
       return (
         isAvailable &&
         matchesPosition &&
@@ -1307,8 +1318,13 @@ export default function FootballDraftPage() {
             <input
               type="text"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search players..."
+              onChange={(event) => {
+                const nextSearch = event.target.value;
+                setSearch(nextSearch);
+                if (nextSearch.trim()) setPosition("ALL");
+              }}
+              placeholder="Search player or school..."
+              aria-label="Search eligible players by player name or school"
               className={`mt-4 w-full rounded-xl border border-slate-600/40 bg-[#172235] px-4 text-white outline-none placeholder:text-slate-500 focus:border-emerald-300/60 ${
                 compactDraftLayout ? "py-3" : "py-4"
               }`}
