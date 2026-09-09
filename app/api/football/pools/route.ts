@@ -42,6 +42,25 @@ async function ensureDraftEntry({
   organizerId: string | null;
   participantId: string;
 }) {
+  const { data: seatEntry, error: seatError } = await client
+    .from("pool_entries")
+    .select("id,team_name,revoked_at")
+    .eq("pool_id", poolId)
+    .eq("seat_number", seatNumber)
+    .limit(1)
+    .maybeSingle();
+  if (seatError) throw seatError;
+  if (seatEntry) {
+    if (seatEntry.team_name !== team || seatEntry.revoked_at) {
+      const { error: updateError } = await client
+        .from("pool_entries")
+        .update({ team_name: team, revoked_at: null })
+        .eq("id", seatEntry.id);
+      if (updateError) throw updateError;
+    }
+    return seatEntry.id as string;
+  }
+
   if (organizerId) {
     const { data: existing, error } = await client
       .from("pool_entries")
