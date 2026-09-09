@@ -8,13 +8,12 @@ import {
   FootballPool,
   FootballScoring,
   defaultScoring,
-  loadFootballDraftPicks,
   loadFootballPool,
   saveFootballPool,
 } from "../lib/storage";
 import {
   loadPersistedFootballHistory,
-  persistFootballHistory,
+  updatePersistedFootballScoring,
 } from "../lib/platformStorage";
 
 type RosterKey = keyof FootballScoring["roster"];
@@ -391,9 +390,9 @@ export default function FootballScoringPage() {
     setIsFinalizing(true);
     setFinalizeError("");
     const nextPool = { ...pool, scoring, ownerId: organizer.id };
-    saveFootballPool(nextPool);
     try {
-      await persistFootballHistory(nextPool, loadFootballDraftPicks(nextPool.id));
+      const persistedPool = await updatePersistedFootballScoring(nextPool.id, scoring);
+      saveFootballPool({ ...nextPool, ...persistedPool, scoring });
       window.location.href = `/football/pool?id=${pool.id}`;
     } catch (error) {
       console.error(error);

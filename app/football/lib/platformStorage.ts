@@ -119,6 +119,27 @@ export async function persistFootballHistory(
   }
 }
 
+export async function updatePersistedFootballScoring(
+  poolId: string,
+  scoring: NonNullable<FootballPool["scoring"]>
+) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  const response = await fetch("/api/football/pools", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({ action: "update-scoring", poolId, scoring }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.error || "Could not update this pool's scoring.");
+  }
+  return data.pool as FootballPool;
+}
+
 export async function submitFootballPick({
   poolId,
   playerId,
