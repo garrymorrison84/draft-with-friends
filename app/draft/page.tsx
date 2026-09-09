@@ -311,6 +311,7 @@ export default function DraftPage() {
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [now, setNow] = useState(() => new Date());
   const [pickTimerStartedAt, setPickTimerStartedAt] = useState(() => Date.now());
+  const [pickTimerPickIndex, setPickTimerPickIndex] = useState(0);
   const [draftOpeningStartedAt, setDraftOpeningStartedAt] = useState<number | null>(null);
   const [isPickClockPaused, setIsPickClockPaused] = useState(false);
   const [pausedPickClockRemaining, setPausedPickClockRemaining] = useState<number | null>(null);
@@ -439,6 +440,17 @@ export default function DraftPage() {
         }
       });
 
+      const loadedPickIndex = picksArray.findIndex((pick) => pick === null);
+      const latestLoadedPick = picksArray
+        .filter((pick): pick is DraftPick => Boolean(pick))
+        .at(-1);
+      const loadedStartedAt = latestLoadedPick?.pickedAt
+        ? Date.parse(latestLoadedPick.pickedAt)
+        : Date.now();
+      setPickTimerStartedAt(
+        Number.isFinite(loadedStartedAt) ? loadedStartedAt : Date.now()
+      );
+      setPickTimerPickIndex(loadedPickIndex);
       setDraftPicks(picksArray);
       setShowDraftCompletedModal(
         totalPicks > 0 &&
@@ -677,6 +689,8 @@ export default function DraftPage() {
     timerPickClockSeconds > 0
       ? isPickClockPaused && pausedPickClockRemaining !== null
         ? pausedPickClockRemaining
+        : pickTimerPickIndex !== timerPickIndex
+          ? timerPickClockSeconds
         : Math.max(
           0,
           timerPickClockSeconds -
@@ -688,15 +702,20 @@ export default function DraftPage() {
     const lastPick = draftPicks.filter((pick): pick is DraftPick => Boolean(pick)).at(-1);
     const serverStartedAt = lastPick?.pickedAt ? Date.parse(lastPick.pickedAt) : Date.now();
     setPickTimerStartedAt(Number.isFinite(serverStartedAt) ? serverStartedAt : Date.now());
+    setPickTimerPickIndex(timerPickIndex);
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
-    autoPickInFlightRef.current = false;
-    autoPickedKeyRef.current = "";
     stopCountdownTickSound();
     if (timerPickIndex !== 0) {
       setDraftOpeningStartedAt(null);
     }
   }, [timerPickIndex]);
+
+  useEffect(() => {
+    if (pickTimerPickIndex !== timerPickIndex) return;
+    autoPickInFlightRef.current = false;
+    autoPickedKeyRef.current = "";
+  }, [pickTimerPickIndex, pickTimerStartedAt, timerPickIndex]);
 
   useEffect(() => {
     if (timerDraftOpen && !wasDraftOpenRef.current) {
@@ -716,6 +735,7 @@ export default function DraftPage() {
           ? scheduledStart + scheduledDraftOpeningBufferSeconds * 1000
           : Date.now()
       );
+      setPickTimerPickIndex(timerPickIndex);
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       autoPickInFlightRef.current = false;
@@ -742,6 +762,7 @@ export default function DraftPage() {
     if (wasDraftOpeningBufferActiveRef.current) {
       wasDraftOpeningBufferActiveRef.current = false;
       setPickTimerStartedAt(Date.now());
+      setPickTimerPickIndex(timerPickIndex);
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       tickKeyRef.current = "";
@@ -794,6 +815,7 @@ export default function DraftPage() {
       timerDraftComplete ||
       isPickClockPaused ||
       isSavingPick ||
+      pickTimerPickIndex !== timerPickIndex ||
       autoPickInFlightRef.current
     ) {
       return;
@@ -830,6 +852,7 @@ export default function DraftPage() {
     timerDraftOpeningBufferActive,
     timerPickClockRemaining,
     timerPickClockSeconds,
+    pickTimerPickIndex,
     visibleGolfers,
   ]);
 
@@ -897,6 +920,8 @@ export default function DraftPage() {
     draftOpen && !draftComplete && activePickClockSeconds > 0
       ? isPickClockPaused && pausedPickClockRemaining !== null
         ? pausedPickClockRemaining
+        : pickTimerPickIndex !== timerPickIndex
+          ? activePickClockSeconds
         : Math.max(
           0,
           activePickClockSeconds -
@@ -978,6 +1003,7 @@ export default function DraftPage() {
       team: nextTeam,
       golfer,
       pickIndex: nextPickIndex,
+      pickedAt: new Date().toISOString(),
     };
 
     const previousPicks = [...draftPicks];
@@ -989,6 +1015,8 @@ export default function DraftPage() {
     // submission synchronously to guarantee one save and one sound per pick.
     savePickInFlightRef.current = true;
     setIsSavingPick(true);
+    setPickTimerStartedAt(Date.parse(nextPick.pickedAt!));
+    setPickTimerPickIndex(nextPickIndex + 1);
     setDraftPicks(nextPicks);
     setPendingGolfer(null);
 
@@ -1003,7 +1031,12 @@ export default function DraftPage() {
           golfer_rank: golfer.rank,
           pick_index: nextPickIndex,
         });
-        nextPick.pickedAt = savedPick?.created_at || new Date().toISOString();
+        nextPick.pickedAt = savedPick?.created_at || nextPick.pickedAt;
+        const acceptedStartedAt = Date.parse(nextPick.pickedAt!);
+        setPickTimerStartedAt(
+          Number.isFinite(acceptedStartedAt) ? acceptedStartedAt : Date.now()
+        );
+        setPickTimerPickIndex(nextPickIndex + 1);
         setDraftPicks([...nextPicks]);
       }
 
@@ -1050,6 +1083,8 @@ export default function DraftPage() {
     const nextPicks = [...draftPicks];
     nextPicks[lastPick.index] = null;
 
+    setPickTimerStartedAt(Date.now());
+    setPickTimerPickIndex(lastPick.index);
     setDraftPicks(nextPicks);
 
     try {

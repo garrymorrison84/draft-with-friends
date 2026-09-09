@@ -254,6 +254,7 @@ export default function WinsDraftPage() {
     useState<number | null>(null);
   const [soundsEnabled, setSoundsEnabled] = useState(isDraftSoundEnabled);
   const [pickTimerStartedAt, setPickTimerStartedAt] = useState(Date.now);
+  const [pickTimerPickIndex, setPickTimerPickIndex] = useState(0);
   const [isPickClockPaused, setIsPickClockPaused] = useState(false);
   const [pausedPickClockRemaining, setPausedPickClockRemaining] =
     useState<number | null>(null);
@@ -286,6 +287,7 @@ export default function WinsDraftPage() {
 
   useEffect(() => {
     setPickTimerStartedAt(Date.now());
+    setPickTimerPickIndex(picks.length);
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
     tickKeyRef.current = "";
@@ -307,6 +309,7 @@ export default function WinsDraftPage() {
         setDraftOpeningStartedAt(getDraftOpeningBufferStartedAt(pool.id));
       }
       setPickTimerStartedAt(Date.now());
+      setPickTimerPickIndex(picks.length);
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       tickKeyRef.current = "";
@@ -354,6 +357,8 @@ export default function WinsDraftPage() {
     activePickClockSeconds > 0
       ? isPickClockPaused && pausedPickClockRemaining !== null
         ? pausedPickClockRemaining
+        : pickTimerPickIndex !== picks.length
+          ? activePickClockSeconds
         : Math.max(
             0,
             activePickClockSeconds -
@@ -396,6 +401,7 @@ export default function WinsDraftPage() {
     if (wasDraftOpeningBufferActiveRef.current) {
       wasDraftOpeningBufferActiveRef.current = false;
       setPickTimerStartedAt(Date.now());
+      setPickTimerPickIndex(picks.length);
       setIsPickClockPaused(false);
       setPausedPickClockRemaining(null);
       tickKeyRef.current = "";
@@ -446,6 +452,7 @@ export default function WinsDraftPage() {
       draftOpeningBufferActive ||
       isPickClockPaused ||
       activePickClockSeconds <= 0 ||
+      pickTimerPickIndex !== picks.length ||
       pickClockRemaining !== 0
     ) {
       return;
@@ -467,6 +474,7 @@ export default function WinsDraftPage() {
     filteredTeams,
     isPickClockPaused,
     pickClockRemaining,
+    pickTimerPickIndex,
     picks.length,
     pool,
   ]);
@@ -498,9 +506,10 @@ export default function WinsDraftPage() {
       },
     ];
 
+    setPickTimerStartedAt(Date.now());
+    setPickTimerPickIndex(nextPicks.length);
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
-    setPickTimerStartedAt(Date.now());
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
     tickKeyRef.current = "";
@@ -518,6 +527,8 @@ export default function WinsDraftPage() {
   function undoPick() {
     if (!pool) return;
     const nextPicks = picks.slice(0, -1);
+    setPickTimerStartedAt(Date.now());
+    setPickTimerPickIndex(nextPicks.length);
     setPicks(nextPicks);
     saveWinsDraftPicks(pool.id, nextPicks);
     setPendingTeam(null);
@@ -533,6 +544,7 @@ export default function WinsDraftPage() {
       setPickTimerStartedAt(
         Date.now() - (activePickClockSeconds - remaining) * 1000
       );
+      setPickTimerPickIndex(picks.length);
       setPausedPickClockRemaining(null);
       setIsPickClockPaused(false);
       if (remaining <= 8) tickKeyRef.current = "";
