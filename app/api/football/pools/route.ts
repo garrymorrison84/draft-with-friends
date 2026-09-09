@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
     pool_id: poolId,
     entry_id: entryId,
     pick_index: expectedPickIndex,
+    selection_type: "football_player",
     selection_id: playerId,
     selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1, playerSnapshot },
   }).select("created_at").single();
@@ -300,6 +301,7 @@ export async function PUT(request: NextRequest) {
     pool_id: poolId,
     entry_id: crypto.randomUUID(),
     pick_index: index,
+    selection_type: "football_player",
     selection_id: String(pick.playerId || ""),
     selection_snapshot: {
       playerId: String(pick.playerId || ""),
