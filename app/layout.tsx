@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import AccountMenu from "./components/AccountMenu";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,6 +60,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <AccountMenu />
         {children}
         <footer className="border-t border-white/5 bg-[#030712] px-6 py-8 text-sm text-slate-500">
           <div className="mx-auto flex max-w-7xl flex-col gap-4">
