@@ -277,7 +277,7 @@ export default function FootballPoolPage() {
                       setTeamError(error instanceof Error ? error.message : "Could not claim this team.");
                     }
                   }}
-                  className={`rounded-xl border px-4 py-3 text-left font-black transition ${claimedByOther ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
+                  className={`rounded-xl border px-4 py-3 text-center font-black transition ${claimedByOther ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
                 >
                   {team}{claimedByOther ? " · Claimed" : ""}
                 </button>
