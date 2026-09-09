@@ -1114,22 +1114,26 @@ export default function DraftPage() {
           </div>
         </div>
 
-        {draftOpen && !draftComplete && activePool.draftType === "scheduled" && (
+        {draftOpen && !draftComplete && (
           <div className="fixed bottom-5 right-4 z-50 flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2.5 rounded-2xl border border-emerald-400/30 bg-[#06261f]/95 px-3.5 py-3 text-sm font-black shadow-2xl shadow-black/50 backdrop-blur sm:right-6 sm:gap-3 sm:px-4 sm:py-3.5 sm:text-base">
             <span className="min-w-0 max-w-[190px] truncate text-emerald-300 sm:max-w-[260px]">
-              {isPickClockPaused
+              {activePool.draftType !== "scheduled"
+                ? `${currentTeam} is up`
+                : isPickClockPaused
                 ? "Draft paused"
                 : timerDraftOpeningBufferActive
                   ? formatDraftOpeningMessage(timerDraftOpeningBufferRemaining)
                   : `${currentTeam} is up`}
             </span>
-            <span className="shrink-0 text-white">
-              {timerDraftOpeningBufferActive
-                ? formatClockTime(timerDraftOpeningBufferRemaining)
-                : pickClockRemaining !== null
-                  ? formatClockTime(pickClockRemaining)
-                  : formatPickClock(activePool.pickClockSeconds)}
-            </span>
+            {activePool.draftType === "scheduled" && (
+              <span className="shrink-0 text-white">
+                {timerDraftOpeningBufferActive
+                  ? formatClockTime(timerDraftOpeningBufferRemaining)
+                  : pickClockRemaining !== null
+                    ? formatClockTime(pickClockRemaining)
+                    : formatPickClock(activePool.pickClockSeconds)}
+              </span>
+            )}
           </div>
         )}
 
