@@ -798,7 +798,6 @@ export default function FootballLeaderboardPage() {
   const [isLoadingPool, setIsLoadingPool] = useState(true);
   const [isLoadingSharedPicks, setIsLoadingSharedPicks] = useState(true);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(true);
-  const [liveDataProvider, setLiveDataProvider] = useState<string | null>(null);
   const [recapDismissed, setRecapDismissed] = useState(false);
   const [recapManuallyOpened, setRecapManuallyOpened] = useState(false);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
@@ -874,13 +873,9 @@ export default function FootballLeaderboardPage() {
         if (!response.ok) throw new Error("Replay player pool failed");
         const data = await response.json();
         const replayPlayers = data?.playerPool?.players;
-        const provider = data?.replay?.metadata?.provider;
 
         if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
           setPlayers(replayPlayers);
-          setLiveDataProvider(
-            typeof provider === "string" && provider.trim() ? provider : null
-          );
         }
       } catch {
         if (!cancelled) {
@@ -1119,9 +1114,11 @@ export default function FootballLeaderboardPage() {
         <div className="mt-8 flex flex-col gap-4 md:mt-10 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <h1 className="text-4xl font-black sm:text-5xl md:text-7xl">Leaderboard</h1>
-            <p className="mt-4 break-words text-base font-bold text-slate-400 sm:text-xl">
-              {pool.poolName} • {pool.season} •{" "}
-              {liveDataProvider ? `${liveDataProvider} live scoring` : "Live scoring"}
+            <p className="mt-4 break-words text-base font-bold text-white sm:text-xl">
+              <span className="text-emerald-300">{pool.poolName}</span>
+              {" • "}
+              {pool.season}
+              {" • Live Scoring"}
             </p>
           </div>
 
