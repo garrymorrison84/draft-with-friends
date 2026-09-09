@@ -131,10 +131,14 @@ export async function POST(request: NextRequest) {
       if (claimError) return NextResponse.json({ error: "Could not verify your team before saving the pick." }, { status: 500 });
     }
   }
+  const entryId = participantId || organizerId;
+  if (!entryId) {
+    return NextResponse.json({ error: "Your draft identity could not be verified." }, { status: 403 });
+  }
 
   const { data: insertedPick, error: insertError } = await client.from("platform_draft_picks").insert({
     pool_id: poolId,
-    entry_id: team,
+    entry_id: entryId,
     pick_index: expectedPickIndex,
     selection_id: playerId,
     selection_snapshot: { playerId, team, pickNumber: expectedPickIndex + 1, playerSnapshot },
@@ -294,7 +298,7 @@ export async function PUT(request: NextRequest) {
 
   const picks = body.picks.filter(isRecord).map((pick, index) => ({
     pool_id: poolId,
-    entry_id: String(pick.team || ""),
+    entry_id: crypto.randomUUID(),
     pick_index: index,
     selection_id: String(pick.playerId || ""),
     selection_snapshot: {

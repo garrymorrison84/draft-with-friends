@@ -1023,9 +1023,7 @@ export default function FootballDraftPage() {
     autoPickInFlightRef.current = true;
     autoPickedKeyRef.current = pickKey;
     setPendingPlayer(null);
-    void savePlayerPick(nextPlayer).then((didPick) => {
-      if (!didPick) autoPickedKeyRef.current = "";
-    });
+    void savePlayerPick(nextPlayer);
   }, [
     activePickClockSeconds,
     currentTeam,
