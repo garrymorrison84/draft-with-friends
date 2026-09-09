@@ -818,17 +818,26 @@ export default function FootballDraftPage() {
   }, [draftablePositions, position]);
 
   useEffect(() => {
-    const serverStartedAt = picks.at(-1)?.pickedAt
+    const latestPickStartedAt = picks.at(-1)?.pickedAt
       ? Date.parse(picks.at(-1)!.pickedAt!)
-      : Date.now();
-    setPickTimerStartedAt(Number.isFinite(serverStartedAt) ? serverStartedAt : Date.now());
+      : Number.NaN;
+    const resetStartedAt = pool?.draftTimerStartedAt
+      ? Date.parse(pool.draftTimerStartedAt)
+      : Number.NaN;
+    const authoritativeStartedAt = Math.max(
+      Number.isFinite(latestPickStartedAt) ? latestPickStartedAt : 0,
+      Number.isFinite(resetStartedAt) ? resetStartedAt : 0
+    );
+    setPickTimerStartedAt(
+      authoritativeStartedAt > 0 ? authoritativeStartedAt : Date.now()
+    );
     setIsPickClockPaused(false);
     setPausedPickClockRemaining(null);
     stopCountdownTickSound();
     if (picks.length !== 0) {
       setDraftOpeningStartedAt(null);
     }
-  }, [picks.length]);
+  }, [picks.length, pool?.draftTimerStartedAt]);
 
   useEffect(() => {
     // Release the timeout lock only after the next pick's fresh timer has rendered.
@@ -1112,18 +1121,30 @@ export default function FootballDraftPage() {
   async function undoPick() {
     if (!pool || !isCommissioner) return;
     committedPickKeyRef.current = "";
+    autoPickInFlightRef.current = true;
+    stopCountdownTickSound();
     setPickError("");
     try {
       await undoLastFootballPick(pool.id);
       const history = await loadPersistedFootballHistory(pool.id);
       if (history) {
+        const resetStartedAt = history.pool.draftTimerStartedAt
+          ? Date.parse(history.pool.draftTimerStartedAt)
+          : Number.NaN;
+        setPickTimerStartedAt(
+          Number.isFinite(resetStartedAt) ? resetStartedAt : Date.now()
+        );
         setPool(history.pool);
         setPicks(history.picks);
         saveFootballDraftPicks(pool.id, history.picks);
       }
+      autoPickInFlightRef.current = false;
+      autoPickedKeyRef.current = "";
+      tickKeyRef.current = "";
       setPendingPlayer(null);
       setDetailsPlayer(null);
     } catch (error) {
+      autoPickInFlightRef.current = false;
       setPickError(error instanceof Error ? error.message : "Could not undo the last pick.");
     }
   }
