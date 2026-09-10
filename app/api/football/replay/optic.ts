@@ -32,12 +32,12 @@ async function get<T>(path: string, key: string): Promise<T> {
   return response.json();
 }
 
-async function pages<T>(path: string, key: string, maxPages = 20) {
+async function pages<T>(path: string, key: string, maxPages?: number) {
   const data: T[] = [];
-  for (let page = 1; page <= maxPages; page += 1) {
+  for (let page = 1; ; page += 1) {
     const result = await get<Page<T>>(`${path}${path.includes("?") ? "&" : "?"}page=${page}`, key);
     data.push(...(result.data || []));
-    if (!result.has_more) break;
+    if (!result.has_more || (maxPages != null && page >= maxPages)) break;
   }
   return data;
 }
@@ -187,7 +187,9 @@ export async function getOpticOddsFootball(key: string) {
   const [playerBatches, fixtures] = await Promise.all([
     Promise.all(teamBatches.map((batch) => {
       const ids = batch.map((team) => `team_id=${encodeURIComponent(team.id)}`).join("&");
-      return pages<Player>(`/players?league=ncaaf&${ids}`, key, 10);
+      // Player batches can exceed 1,000 records. Follow OpticOdds pagination
+      // through its final page so late-page players are not silently omitted.
+      return pages<Player>(`/players?league=ncaaf&${ids}`, key);
     })),
     pages<Fixture>(`/fixtures?league=ncaaf&start_date_after=${from}&start_date_before=${to}`, key, 5),
   ]);
