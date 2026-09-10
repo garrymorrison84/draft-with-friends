@@ -10,6 +10,7 @@ import {
   getCurrentOrganizerUser,
 } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
+import { supabase } from "../lib/supabase";
 import FormSelect from "../components/FormSelect";
 import {
   buildScheduledDraftAt,
@@ -76,10 +77,13 @@ async function createSharedPool(pool: {
   pick_clock_seconds?: number;
   auto_pick_on_timeout?: boolean;
 }) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
   const response = await fetch("/api/pools", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify(pool),
   });

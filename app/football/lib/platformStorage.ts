@@ -1,6 +1,5 @@
 import type { FootballDraftPick, FootballPlayer, FootballPool } from "./storage";
 import { supabase } from "../../lib/supabase";
-import { getParticipantId } from "../../lib/teamClaims";
 
 type PlatformPoolRow = {
   id: string;
@@ -226,7 +225,7 @@ export async function submitFootballPick({
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex, participantId: getParticipantId(), playerSnapshot }),
+    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex, playerSnapshot }),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {

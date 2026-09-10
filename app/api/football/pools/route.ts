@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>;
@@ -32,65 +31,45 @@ async function ensureDraftEntry({
   poolId,
   team,
   seatNumber,
-  organizerId,
-  participantId,
+  userId,
+  role,
 }: {
   client: AdminClient;
   poolId: string;
   team: string;
   seatNumber: number;
-  organizerId: string | null;
-  participantId: string;
+  userId: string;
+  role: "commissioner" | "participant";
 }) {
   const { data: seatEntry, error: seatError } = await client
     .from("pool_entries")
-    .select("id,team_name,revoked_at")
+    .select("id,team_name,user_id,role,revoked_at")
     .eq("pool_id", poolId)
     .eq("seat_number", seatNumber)
     .limit(1)
     .maybeSingle();
   if (seatError) throw seatError;
   if (seatEntry) {
-    if (seatEntry.team_name !== team || seatEntry.revoked_at) {
+    if (
+      seatEntry.team_name !== team ||
+      seatEntry.user_id !== userId ||
+      seatEntry.role !== role ||
+      seatEntry.revoked_at
+    ) {
       const { error: updateError } = await client
         .from("pool_entries")
-        .update({ team_name: team, revoked_at: null })
+        .update({ team_name: team, user_id: userId, role, revoked_at: null })
         .eq("id", seatEntry.id);
       if (updateError) throw updateError;
     }
     return seatEntry.id as string;
   }
 
-  if (organizerId) {
-    const { data: existing, error } = await client
-      .from("pool_entries")
-      .select("id")
-      .eq("pool_id", poolId)
-      .eq("user_id", organizerId)
-      .is("revoked_at", null)
-      .limit(1)
-      .maybeSingle();
-    if (error) throw error;
-    if (existing) return existing.id as string;
-
-    const { data, error: insertError } = await client.from("pool_entries").insert({
-      pool_id: poolId,
-      user_id: organizerId,
-      team_name: team,
-      seat_number: seatNumber,
-      role: "commissioner",
-      claimed_at: new Date().toISOString(),
-    }).select("id").single();
-    if (insertError) throw insertError;
-    return data.id as string;
-  }
-
-  const guestTokenHash = createHash("sha256").update(`${poolId}:${participantId}`).digest("hex");
   const { data: existing, error } = await client
     .from("pool_entries")
     .select("id")
     .eq("pool_id", poolId)
-    .eq("guest_token_hash", guestTokenHash)
+    .eq("user_id", userId)
     .is("revoked_at", null)
     .limit(1)
     .maybeSingle();
@@ -99,10 +78,10 @@ async function ensureDraftEntry({
 
   const { data, error: insertError } = await client.from("pool_entries").insert({
     pool_id: poolId,
+    user_id: userId,
     team_name: team,
     seat_number: seatNumber,
-    role: "participant",
-    guest_token_hash: guestTokenHash,
+    role,
     claimed_at: new Date().toISOString(),
   }).select("id").single();
   if (insertError) throw insertError;
@@ -165,7 +144,6 @@ export async function POST(request: NextRequest) {
   const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
   const playerId = typeof body.playerId === "string" ? body.playerId.trim() : "";
   const team = typeof body.team === "string" ? body.team.trim() : "";
-  const participantId = typeof body.participantId === "string" ? body.participantId.trim() : "";
   const playerSnapshot = isRecord(body.playerSnapshot) ? body.playerSnapshot : null;
   const expectedPickIndex = Number(body.expectedPickIndex);
   if (!poolId || !playerId || !team || !Number.isInteger(expectedPickIndex) || expectedPickIndex < 0) {
@@ -205,36 +183,28 @@ export async function POST(request: NextRequest) {
   if (!expectedTeam || team !== expectedTeam) {
     return NextResponse.json({ error: "It is not that team's turn." }, { status: 403 });
   }
-  const organizerId = await getAuthenticatedOrganizerId(request, client);
-  const isCommissioner = Boolean(organizerId && organizerId === pool.owner_id);
+  const userId = await getAuthenticatedOrganizerId(request, client);
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in before drafting for your team." }, { status: 401 });
+  }
+  const isCommissioner = userId === pool.owner_id;
+  const claims = isRecord(pool.settings.teamClaims) ? { ...pool.settings.teamClaims } : {};
   if (!isCommissioner) {
-    const claims = isRecord(pool.settings.teamClaims) ? { ...pool.settings.teamClaims } : {};
-    if (!participantId || (claims[expectedTeam] && claims[expectedTeam] !== participantId)) {
+    if (claims[expectedTeam] !== userId) {
       return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
     }
-    if (!claims[expectedTeam]) {
-      for (const [claimedTeam, claimant] of Object.entries(claims)) {
-        if (claimant === participantId && claimedTeam !== expectedTeam) delete claims[claimedTeam];
-      }
-      claims[expectedTeam] = participantId;
-      const { error: claimError } = await client.from("platform_pools").update({
-        settings: { ...pool.settings, teamClaims: claims },
-      }).eq("id", poolId).eq("pool_type", "college_fantasy");
-      if (claimError) return NextResponse.json({ error: "Could not verify your team before saving the pick." }, { status: 500 });
-    }
-  }
-  if (!participantId && !organizerId) {
-    return NextResponse.json({ error: "Your draft identity could not be verified." }, { status: 403 });
   }
   let entryId: string;
   try {
+    const claimedUserId = typeof claims[team] === "string" ? claims[team] : "";
+    const entryUserId = isCommissioner && claimedUserId ? claimedUserId : userId;
     entryId = await ensureDraftEntry({
       client,
       poolId,
       team,
       seatNumber: Math.max(0, draftOrder.indexOf(team)),
-      organizerId: isCommissioner ? organizerId : null,
-      participantId,
+      userId: entryUserId,
+      role: entryUserId === pool.owner_id ? "commissioner" : "participant",
     });
   } catch (entryError) {
     console.error("Football draft entry resolution failed", entryError);
@@ -788,6 +758,12 @@ export async function PUT(request: NextRequest) {
       { status: 401 }
     );
   }
+  if (ownerId && organizerId !== ownerId) {
+    return NextResponse.json(
+      { error: "Only the commissioner can update this football pool." },
+      { status: 403 }
+    );
+  }
   ownerId ||= organizerId;
   const isScheduled = pool.draftType === "scheduled";
   const normalizedPool = {
@@ -826,8 +802,8 @@ export async function PUT(request: NextRequest) {
         poolId,
         team: String(picks[0].selection_snapshot.team),
         seatNumber: Math.max(0, draftOrder.indexOf(picks[0].selection_snapshot.team)),
-        organizerId,
-        participantId: "",
+        userId: organizerId,
+        role: "commissioner",
       });
     } catch (entryError) {
       console.error("Football commissioner entry resolution failed", entryError);

@@ -548,6 +548,11 @@ export default function FootballDraftPage() {
         ]);
       }
       const organizer = await getCurrentOrganizerUser();
+      if (!organizer) {
+        const redirect = encodeURIComponent(`/football/pool?id=${savedPool.id}`);
+        window.location.replace(`/organizer/sign-in?redirect=${redirect}`);
+        return;
+      }
       const commissioner = Boolean(organizer?.id && organizer.id === savedPool.ownerId);
       setIsCommissioner(commissioner);
       if (commissioner) {
@@ -556,7 +561,7 @@ export default function FootballDraftPage() {
         try {
           await claimTeam(savedPool.id, chosenTeam);
           setDraftIdentityReady(true);
-        } catch (error) {
+        } catch {
           window.sessionStorage.removeItem(`dwf-football-team-${savedPool.id}`);
           window.location.replace(`/football/pool?id=${savedPool.id}#choose-team`);
           return;

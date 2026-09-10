@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { supabase } from "../../lib/supabase";
 
@@ -9,6 +9,7 @@ export default function OrganizerSignInPage() {
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -18,15 +19,36 @@ export default function OrganizerSignInPage() {
     return params.get("redirect") || "/organizer";
   }
 
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session) window.location.replace(getRedirectTo());
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) window.location.replace(getRedirectTo());
+    });
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
   async function submitAuth() {
     setIsSubmitting(true);
     setMessage("");
     setErrorMessage("");
 
     try {
+      if (mode === "sign-up" && password !== confirmPassword) {
+        throw new Error("Passwords do not match.");
+      }
       const response =
         mode === "sign-up"
-          ? await supabase.auth.signUp({ email, password })
+          ? await supabase.auth.signUp({
+              email,
+              password,
+              options: { emailRedirectTo: window.location.href },
+            })
           : await supabase.auth.signInWithPassword({ email, password });
 
       if (response.error) throw response.error;
@@ -61,15 +83,14 @@ export default function OrganizerSignInPage() {
         <section className="my-auto grid gap-8 lg:grid-cols-[1fr_420px] lg:items-center">
           <div>
             <p className="text-sm font-extrabold uppercase text-emerald-400">
-              Organizer Portal
+              Your Draft With Friends Account
             </p>
             <h1 className="mt-3 text-3xl font-black tracking-tight md:text-5xl">
-              Secure commissioner access.
+              Every pool. One account.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-400">
-              Sign in to create pools, manage active drafts, review archived
-              drafts, and make commissioner overrides when your group needs a
-              clean fix.
+              Organizers can create and manage pools. Members can claim their
+              team, draft from any device, and revisit every pool they have joined.
             </p>
           </div>
 
@@ -124,6 +145,20 @@ export default function OrganizerSignInPage() {
                 />
               </div>
 
+              {mode === "sign-up" && (
+                <div>
+                  <label className="mb-2 block text-sm font-semibold">
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="w-full rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-white outline-none"
+                  />
+                </div>
+              )}
+
               {message && (
                 <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-bold text-emerald-300">
                   {message}
@@ -139,13 +174,18 @@ export default function OrganizerSignInPage() {
               <button
                 type="button"
                 onClick={submitAuth}
-                disabled={isSubmitting || !email || password.length < 6}
+                disabled={
+                  isSubmitting ||
+                  !email ||
+                  password.length < 6 ||
+                  (mode === "sign-up" && confirmPassword.length < 6)
+                }
                 className="rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting
                   ? "Working..."
                   : mode === "sign-up"
-                  ? "Create Organizer Account"
+                  ? "Create Account"
                   : "Sign In"}
               </button>
             </div>

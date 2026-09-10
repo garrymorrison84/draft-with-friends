@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { getParticipantId } from "./teamClaims";
 
 export type SupabasePool = {
   id: string;
@@ -208,7 +207,7 @@ export async function saveDraftPick(pick: DraftPickRow) {
       "Content-Type": "application/json",
       ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
     },
-    body: JSON.stringify({ ...pick, participant_id: getParticipantId() }),
+    body: JSON.stringify(pick),
   });
   const result = await response.json().catch(() => null);
   if (!response.ok) throw new Error(result?.error || "Save draft pick failed.");

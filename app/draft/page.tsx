@@ -11,6 +11,7 @@ import {
   loadGolfers,
 } from "../lib/poolApi";
 import BrandMark from "../components/BrandMark";
+import { claimTeam } from "../lib/teamClaims";
 import { getOrganizerPoolMeta } from "../lib/organizerStorage";
 import {
   loadPool as loadLocalPool,
@@ -402,7 +403,21 @@ export default function DraftPage() {
       window.sessionStorage.setItem(`dwf-golf-team-${formattedPool.id}`, selectedTeam);
       setSelectedTeam(selectedTeam);
       const organizer = await getCurrentOrganizerUser();
+      if (!organizer) {
+        const redirect = encodeURIComponent(`/pool?id=${formattedPool.id}`);
+        window.location.replace(`/organizer/sign-in?redirect=${redirect}`);
+        return;
+      }
       setIsCommissioner(Boolean(organizer?.id && organizer.id === formattedPool.ownerId));
+      if (organizer.id !== formattedPool.ownerId) {
+        try {
+          await claimTeam(formattedPool.id, selectedTeam);
+        } catch {
+          window.sessionStorage.removeItem(`dwf-golf-team-${formattedPool.id}`);
+          window.location.replace(`/pool?id=${formattedPool.id}#choose-team`);
+          return;
+        }
+      }
 
       setIsLocalPool(!savedPool);
       setPool(formattedPool);

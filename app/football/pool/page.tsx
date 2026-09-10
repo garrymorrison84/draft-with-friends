@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
-import { claimTeam, getParticipantId, loadTeamClaims } from "../../lib/teamClaims";
+import { claimTeam, loadTeamClaims } from "../../lib/teamClaims";
 import {
   formatPickClock,
   getDraftStartsIn,
@@ -62,12 +62,16 @@ export default function FootballPoolPage() {
         saveFootballPool(history.pool);
         saveFootballDraftPicks(history.pool.id, history.picks);
         setPool(history.pool);
+        const nextClaims = await loadTeamClaims(history.pool.id);
         const savedTeam = window.sessionStorage.getItem(`dwf-football-team-${history.pool.id}`) || "";
-        if (history.pool.teamNames.includes(savedTeam)) {
+        if (history.pool.teamNames.includes(savedTeam) && nextClaims[savedTeam] === "mine") {
           setSelectedTeam(savedTeam);
+        } else if (savedTeam) {
+          window.sessionStorage.removeItem(`dwf-football-team-${history.pool.id}`);
+          setSelectedTeam("");
         }
         setPicks(history.picks);
-        setClaims(await loadTeamClaims(history.pool.id));
+        setClaims(nextClaims);
       }
       setIsLoading(false);
     }
@@ -187,14 +191,14 @@ export default function FootballPoolPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             {!lobbyStats.draftComplete && (
               <Link
-                href={selectedTeam ? `/football/draft?id=${pool.id}&team=${encodeURIComponent(selectedTeam)}` : "#choose-team"}
-                aria-disabled={!selectedTeam}
+                href={organizerId && selectedTeam ? `/football/draft?id=${pool.id}&team=${encodeURIComponent(selectedTeam)}` : "#choose-team"}
+                aria-disabled={!organizerId || !selectedTeam}
                 onClick={(event) => {
-                  if (!selectedTeam) event.preventDefault();
+                  if (!organizerId || !selectedTeam) event.preventDefault();
                 }}
-                className={`rounded-2xl px-8 py-4 text-center text-lg font-black transition ${selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
+                className={`rounded-2xl px-8 py-4 text-center text-lg font-black transition ${organizerId && selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
               >
-                {!selectedTeam ? "Choose Your Team" : picks.length > 0 ? "Continue Draft" : "Enter Draft"}
+                {!organizerId ? "Sign In to Join" : !selectedTeam ? "Choose Your Team" : picks.length > 0 ? "Continue Draft" : "Enter Draft"}
               </Link>
             )}
             {lobbyStats.draftComplete && (
@@ -212,16 +216,31 @@ export default function FootballPoolPage() {
           <section id="choose-team" className="mt-8 rounded-3xl border border-emerald-400/20 bg-[#111827] p-5 sm:p-6">
             <h2 className="text-xl font-black">Choose your team</h2>
             <p className="mt-2 text-sm font-semibold text-slate-400">
-              Select the team you control before entering the draft.
+              Sign in, then select the team you control before entering the draft.
             </p>
+            {!organizerId && (
+              <div className="mt-5 rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-5">
+                <p className="font-black text-white">Sign in to join this pool</p>
+                <p className="mt-2 text-sm font-semibold text-slate-300">
+                  Your account keeps this team connected to you on every device and adds the pool to your history.
+                </p>
+                <Link
+                  href={`/organizer/sign-in?redirect=${encodeURIComponent(`/football/pool?id=${pool.id}`)}`}
+                  className="mt-4 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+                >
+                  Sign In or Create Account
+                </Link>
+              </div>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {pool.teamNames.map((team) => {
-                const claimedByOther = Boolean(claims[team] && claims[team] !== getParticipantId());
+                const claimedByOther = claims[team] === "claimed";
+                const unavailable = !organizerId || claimedByOther;
                 return (
                 <button
                   key={team}
                   type="button"
-                  disabled={claimedByOther}
+                  disabled={unavailable}
                   onClick={async () => {
                     try {
                       setClaims(await claimTeam(pool.id, team));
@@ -232,7 +251,7 @@ export default function FootballPoolPage() {
                       setTeamError(error instanceof Error ? error.message : "Could not claim this team.");
                     }
                   }}
-                  className={`rounded-xl border px-4 py-3 text-center font-black transition ${claimedByOther ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
+                  className={`rounded-xl border px-4 py-3 text-center font-black transition ${unavailable ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team || claims[team] === "mine" ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
                 >
                   {team}{claimedByOther ? " · Claimed" : ""}
                 </button>

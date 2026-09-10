@@ -50,6 +50,13 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  const userId = await authenticatedUserId(request, client);
+  if (!userId) {
+    return NextResponse.json(
+      { success: false, error: "Sign in before creating a pool." },
+      { status: 401 }
+    );
+  }
 
   const basePool = {
     id,
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
     scores_to_count: Number(body.scores_to_count) || 1,
     team_names: teamNames,
     draft_order: draftOrder,
-    owner_id: body.owner_id ? String(body.owner_id) : null,
+    owner_id: userId,
     draft_locked: Boolean(body.draft_locked),
     archived: Boolean(body.archived),
   };
@@ -160,7 +167,6 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const poolId = String(body.pool_id || "").trim();
   const team = String(body.team || "").trim();
-  const participantId = String(body.participant_id || "").trim();
   const pickIndex = Number(body.pick_index);
   if (!poolId || !team || !Number.isInteger(pickIndex)) return NextResponse.json({ error: "Invalid pick." }, { status: 400 });
 
@@ -176,11 +182,14 @@ export async function PUT(request: NextRequest) {
   const expectedTeam = draftOrder.length ? teamForPick(draftOrder, pickIndex) : "";
   if (!expectedTeam || expectedTeam !== team) return NextResponse.json({ error: "It is not that team's turn." }, { status: 403 });
   const userId = await authenticatedUserId(request, client);
-  if (!userId || userId !== pool.owner_id) {
+  if (!userId) {
+    return NextResponse.json({ error: "Sign in before drafting for your team." }, { status: 401 });
+  }
+  if (userId !== pool.owner_id) {
     const { data: claimRow } = await client.from("platform_pools").select("settings").eq("id", `TEAM_CLAIMS_${poolId}`).maybeSingle();
     const settings = claimRow?.settings && typeof claimRow.settings === "object" ? claimRow.settings as Record<string, unknown> : {};
     const claims = settings.claims && typeof settings.claims === "object" ? settings.claims as Record<string, unknown> : {};
-    if (!participantId || claims[expectedTeam] !== participantId) return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
+    if (claims[expectedTeam] !== userId) return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
   }
   if ((picks || []).some((pick) => pick.golfer_name === String(body.golfer_name))) return NextResponse.json({ error: "That golfer was already drafted." }, { status: 409 });
   const { data, error } = await client.from("draft_picks").insert({

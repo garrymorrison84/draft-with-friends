@@ -8,7 +8,7 @@ import {
   loadDraftPicks as loadLocalDraftPicks,
 } from "../lib/poolStorage";
 import BrandMark from "../components/BrandMark";
-import { claimTeam, getParticipantId, loadTeamClaims } from "../lib/teamClaims";
+import { claimTeam, loadTeamClaims } from "../lib/teamClaims";
 import {
   formatPickClock,
   getDraftStartsIn,
@@ -35,9 +35,7 @@ export default function PoolPage() {
   const [pickCount, setPickCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState("");
-  const [teamName, setTeamName] = useState("");
   const [teamError, setTeamError] = useState("");
-  const [isRenaming, setIsRenaming] = useState(false);
   const [organizerId, setOrganizerId] = useState<string | null>(null);
   const [claims, setClaims] = useState<Record<string, string>>({});
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
@@ -104,11 +102,14 @@ export default function PoolPage() {
           };
 
       setPool(formattedPool);
-      setClaims(await loadTeamClaims(formattedPool.id));
+      const nextClaims = await loadTeamClaims(formattedPool.id);
+      setClaims(nextClaims);
       const savedTeam = window.sessionStorage.getItem(`dwf-golf-team-${formattedPool.id}`) || "";
-      if (formattedPool.teamNames.includes(savedTeam)) {
+      if (formattedPool.teamNames.includes(savedTeam) && nextClaims[savedTeam] === "mine") {
         setSelectedTeam(savedTeam);
-        setTeamName(savedTeam);
+      } else if (savedTeam) {
+        window.sessionStorage.removeItem(`dwf-golf-team-${formattedPool.id}`);
+        setSelectedTeam("");
       }
 
       const picks = savedPool
@@ -140,35 +141,6 @@ export default function PoolPage() {
   useEffect(() => {
     getCurrentOrganizerUser().then((user) => setOrganizerId(user?.id || null));
   }, []);
-
-  async function renameSelectedTeam() {
-    if (!pool || !selectedTeam || !teamName.trim()) return;
-    setIsRenaming(true);
-    setTeamError("");
-    try {
-      const response = await fetch("/api/pools", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ poolId: pool.id, currentName: selectedTeam, newName: teamName }),
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(result?.error || "Could not rename this team.");
-      const nextName = teamName.trim();
-      setClaims(await claimTeam(pool.id, nextName));
-      setPool((current) => current ? {
-        ...current,
-        teamNames: current.teamNames.map((name) => name === selectedTeam ? nextName : name),
-        draftOrder: current.draftOrder.map((name) => name === selectedTeam ? nextName : name),
-      } : current);
-      setSelectedTeam(nextName);
-      setTeamName(nextName);
-      window.sessionStorage.setItem(`dwf-golf-team-${pool.id}`, nextName);
-    } catch (error) {
-      setTeamError(error instanceof Error ? error.message : "Could not rename this team.");
-    } finally {
-      setIsRenaming(false);
-    }
-  }
 
   useEffect(() => {
     if (copyStatus === "idle") {
@@ -251,14 +223,14 @@ export default function PoolPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             {!draftComplete && (
               <Link
-                href={selectedTeam ? `/draft?id=${pool.id}&team=${encodeURIComponent(selectedTeam)}` : "#choose-team"}
-                aria-disabled={!selectedTeam}
+                href={organizerId && selectedTeam ? `/draft?id=${pool.id}&team=${encodeURIComponent(selectedTeam)}` : "#choose-team"}
+                aria-disabled={!organizerId || !selectedTeam}
                 onClick={(event) => {
-                  if (!selectedTeam) event.preventDefault();
+                  if (!organizerId || !selectedTeam) event.preventDefault();
                 }}
-                className={`rounded-2xl px-8 py-4 text-center text-lg font-black transition ${selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
+                className={`rounded-2xl px-8 py-4 text-center text-lg font-black transition ${organizerId && selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
               >
-                {!selectedTeam ? "Choose Your Team" : pickCount > 0 ? "Continue Draft" : "Enter Draft"}
+                {!organizerId ? "Sign In to Join" : !selectedTeam ? "Choose Your Team" : pickCount > 0 ? "Continue Draft" : "Enter Draft"}
               </Link>
             )}
 
@@ -278,45 +250,48 @@ export default function PoolPage() {
           <section id="choose-team" className="mt-8 rounded-3xl border border-emerald-400/20 bg-[#111827] p-5 sm:p-6">
             <h2 className="text-xl font-black">Choose your team</h2>
             <p className="mt-2 text-sm font-semibold text-slate-400">
-              Select the team you control before entering the draft.
+              Sign in, then select the team you control before entering the draft.
             </p>
+            {!organizerId && (
+              <div className="mt-5 rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-5">
+                <p className="font-black text-white">Sign in to join this pool</p>
+                <p className="mt-2 text-sm font-semibold text-slate-300">
+                  Your account keeps this team connected to you on every device and adds the pool to your history.
+                </p>
+                <Link
+                  href={`/organizer/sign-in?redirect=${encodeURIComponent(`/pool?id=${pool.id}`)}`}
+                  className="mt-4 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+                >
+                  Sign In or Create Account
+                </Link>
+              </div>
+            )}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {pool.teamNames.map((team) => {
-                const claimedByOther = Boolean(claims[team] && claims[team] !== getParticipantId());
+                const claimedByOther = claims[team] === "claimed";
+                const unavailable = !organizerId || claimedByOther;
                 return (
                 <button
                   key={team}
                   type="button"
-                  disabled={claimedByOther}
+                  disabled={unavailable}
                   onClick={async () => {
                     try {
                       setClaims(await claimTeam(pool.id, team));
                       setSelectedTeam(team);
-                      setTeamName(team);
                       setTeamError("");
                       window.sessionStorage.setItem(`dwf-golf-team-${pool.id}`, team);
                     } catch (error) {
                       setTeamError(error instanceof Error ? error.message : "Could not claim this team.");
                     }
                   }}
-                  className={`rounded-xl border px-4 py-3 text-left font-black transition ${claimedByOther ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
+                  className={`rounded-xl border px-4 py-3 text-center font-black transition ${unavailable ? "cursor-not-allowed border-white/5 bg-slate-800/50 text-slate-600" : selectedTeam === team || claims[team] === "mine" ? "border-emerald-300 bg-emerald-400 text-slate-950" : "border-white/10 bg-[#1F2937] text-white hover:border-emerald-300/60"}`}
                 >
                   {team}{claimedByOther ? " · Claimed" : ""}
                 </button>
               )})}
             </div>
-            {selectedTeam && (
-              <div className="mt-5 max-w-xl">
-                <label className="mb-2 block text-sm font-bold text-slate-300">Rename your team</label>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input value={teamName} onChange={(event) => setTeamName(event.target.value)} maxLength={40} className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#030712] px-4 py-3 font-bold text-white outline-none focus:border-emerald-300" />
-                  <button type="button" onClick={renameSelectedTeam} disabled={isRenaming || !teamName.trim()} className="rounded-xl bg-white px-5 py-3 font-black text-slate-950 transition hover:bg-slate-200 disabled:opacity-50">
-                    {isRenaming ? "Saving…" : "Save Name"}
-                  </button>
-                </div>
-                {teamError && <p className="mt-2 text-sm font-bold text-red-300">{teamError}</p>}
-              </div>
-            )}
+            {teamError && <p className="mt-3 text-sm font-bold text-red-300">{teamError}</p>}
           </section>
         )}
 
