@@ -14,7 +14,8 @@ type AccountPool = {
   event: string;
   role: "organizer" | "member";
   teamName: string;
-  archived: boolean;
+  completed: boolean;
+  createdAt: string | null;
   status: string;
   details: string;
   lobbyHref: string;
@@ -22,12 +23,122 @@ type AccountPool = {
   manageHref: string | null;
 };
 
+function createdDateLabel(createdAt: string | null) {
+  if (!createdAt) return "Creation date unavailable";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "Creation date unavailable";
+  return `Created ${new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date)}`;
+}
+
+function PoolCard({
+  pool,
+  isDeleting,
+  onDelete,
+}: {
+  pool: AccountPool;
+  isDeleting: boolean;
+  onDelete: (pool: AccountPool) => void;
+}) {
+  return (
+    <article className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-emerald-300">{pool.event}</p>
+          <h3 className="mt-2 break-words text-2xl font-black">{pool.name}</h3>
+          <p className="mt-2 text-sm text-slate-400">{pool.details}</p>
+          <p className="mt-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+            {createdDateLabel(pool.createdAt)}
+          </p>
+          {pool.teamName && <p className="mt-2 text-sm font-bold text-white">Your team: {pool.teamName}</p>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-black capitalize text-emerald-300">
+            {pool.role}
+          </span>
+          <span className="rounded-full bg-slate-400/10 px-3 py-1 text-xs font-black text-slate-300">
+            {pool.status}
+          </span>
+          <button
+            type="button"
+            onClick={() => onDelete(pool)}
+            disabled={isDeleting}
+            aria-label={`Delete ${pool.name} from My Pools`}
+            className="rounded-lg border border-red-400/30 bg-red-400/10 px-2.5 py-1 text-xs font-black text-red-300 transition hover:border-red-300 hover:bg-red-400/20 hover:text-red-200 disabled:cursor-wait disabled:opacity-60"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Link href={pool.lobbyHref} className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40">
+          Lobby
+        </Link>
+        <Link href={pool.leaderboardHref} className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40">
+          Leaderboard
+        </Link>
+        {pool.manageHref && (
+          <Link href={pool.manageHref} className="rounded-xl bg-emerald-400 px-4 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-emerald-300">
+            Manage
+          </Link>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function PoolSection({
+  title,
+  emptyMessage,
+  pools,
+  deletingPoolKey,
+  onDelete,
+}: {
+  title: string;
+  emptyMessage: string;
+  pools: AccountPool[];
+  deletingPoolKey: string;
+  onDelete: (pool: AccountPool) => void;
+}) {
+  return (
+    <section className="mt-12">
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-2xl font-black md:text-3xl">{title}</h2>
+        <span className="text-sm font-black text-slate-500">{pools.length}</span>
+      </div>
+      {pools.length === 0 ? (
+        <div className="mt-5 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
+          <p className="text-slate-400">{emptyMessage}</p>
+        </div>
+      ) : (
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          {pools.map((pool) => {
+            const poolKey = `${pool.sport}-${pool.id}`;
+            return (
+              <PoolCard
+                key={poolKey}
+                pool={pool}
+                isDeleting={deletingPoolKey === poolKey}
+                onDelete={onDelete}
+              />
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function AccountPoolsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [pools, setPools] = useState<AccountPool[]>([]);
-  const [view, setView] = useState<"active" | "archived">("active");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingPoolKey, setDeletingPoolKey] = useState("");
 
   useEffect(() => {
     async function loadPools() {
@@ -60,13 +171,43 @@ export default function AccountPoolsPage() {
     loadPools();
   }, []);
 
-  const activePools = useMemo(() => pools.filter((pool) => !pool.archived), [pools]);
-  const archivedPools = useMemo(() => pools.filter((pool) => pool.archived), [pools]);
-  const visiblePools = view === "active" ? activePools : archivedPools;
+  const activePools = useMemo(() => pools.filter((pool) => !pool.completed), [pools]);
+  const completedPools = useMemo(() => pools.filter((pool) => pool.completed), [pools]);
 
   async function signOut() {
     await supabase.auth.signOut();
     window.location.href = "/";
+  }
+
+  async function deleteFromHistory(pool: AccountPool) {
+    const confirmed = window.confirm(
+      `Delete “${pool.name}” from My Pools? This only removes it from your account history and will not delete the shared pool for other participants.`
+    );
+    if (!confirmed) return;
+
+    const poolKey = `${pool.sport}-${pool.id}`;
+    setDeletingPoolKey(poolKey);
+    setDeleteError("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) throw new Error("Sign in again to update your pool history.");
+      const response = await fetch("/api/account/pools", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sport: pool.sport, poolId: pool.id }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Could not delete this pool from your history.");
+      setPools((current) => current.filter((item) => `${item.sport}-${item.id}` !== poolKey));
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Could not delete this pool from your history.");
+    } finally {
+      setDeletingPoolKey("");
+    }
   }
 
   return (
@@ -100,15 +241,6 @@ export default function AccountPoolsPage() {
           </div>
         </div>
 
-        <div className="mt-8 inline-grid grid-cols-2 rounded-2xl border border-white/5 bg-[#111827] p-1 shadow-xl shadow-black/40">
-          <button type="button" onClick={() => setView("active")} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === "active" ? "bg-emerald-400 text-slate-950" : "text-slate-300 hover:text-white"}`}>
-            Active ({activePools.length})
-          </button>
-          <button type="button" onClick={() => setView("archived")} className={`rounded-xl px-5 py-3 text-sm font-black transition ${view === "archived" ? "bg-emerald-400 text-slate-950" : "text-slate-300 hover:text-white"}`}>
-            Archived ({archivedPools.length})
-          </button>
-        </div>
-
         {isLoading ? (
           <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
             <p className="text-slate-400">Loading your pools...</p>
@@ -117,37 +249,28 @@ export default function AccountPoolsPage() {
           <section className="mt-10 rounded-3xl border border-red-400/25 bg-red-400/10 p-8 text-red-200">
             <p className="font-bold">{errorMessage}</p>
           </section>
-        ) : visiblePools.length === 0 ? (
-          <section className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-8 shadow-xl shadow-black/40">
-            <h2 className="text-2xl font-black">No {view} pools</h2>
-            <p className="mt-3 text-slate-400">
-              {view === "active" ? "Create a pool or use an invite link to join one. It will appear here automatically." : "Archived pools will stay available here."}
-            </p>
-          </section>
         ) : (
-          <section className="mt-10 grid gap-5 lg:grid-cols-2">
-            {visiblePools.map((pool) => (
-              <article key={`${pool.sport}-${pool.id}`} className="rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-emerald-300">{pool.event}</p>
-                    <h2 className="mt-2 break-words text-2xl font-black">{pool.name}</h2>
-                    <p className="mt-2 text-sm text-slate-400">{pool.details}</p>
-                    {pool.teamName && <p className="mt-2 text-sm font-bold text-white">Your team: {pool.teamName}</p>}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-black capitalize text-emerald-300">{pool.role}</span>
-                    <span className="rounded-full bg-slate-400/10 px-3 py-1 text-xs font-black text-slate-300">{pool.status}</span>
-                  </div>
-                </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <Link href={pool.lobbyHref} className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40">Lobby</Link>
-                  <Link href={pool.leaderboardHref} className="rounded-xl border border-white/5 bg-[#1F2937] px-4 py-3 text-center text-sm font-black text-white transition hover:border-emerald-400/40">Leaderboard</Link>
-                  {pool.manageHref && <Link href={pool.manageHref} className="rounded-xl bg-emerald-400 px-4 py-3 text-center text-sm font-black text-slate-950 transition hover:bg-emerald-300">Manage</Link>}
-                </div>
-              </article>
-            ))}
-          </section>
+          <>
+            {deleteError && (
+              <div className="mt-8 rounded-2xl border border-red-400/25 bg-red-400/10 px-5 py-4 text-sm font-bold text-red-200">
+                {deleteError}
+              </div>
+            )}
+            <PoolSection
+              title="Active Pools"
+              emptyMessage="Create a pool or use an invite link to join one. It will appear here automatically."
+              pools={activePools}
+              deletingPoolKey={deletingPoolKey}
+              onDelete={deleteFromHistory}
+            />
+            <PoolSection
+              title="Completed Pools"
+              emptyMessage="Pools move here automatically when their contest is complete."
+              pools={completedPools}
+              deletingPoolKey={deletingPoolKey}
+              onDelete={deleteFromHistory}
+            />
+          </>
         )}
       </div>
     </main>
