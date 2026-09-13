@@ -1,5 +1,6 @@
 import type { FootballPlayer } from "../../../football/lib/storage";
 import type { FootballStatLine } from "../../../football/lib/scoringEngine";
+import { getEspnFallbackGames } from "./espn";
 
 const baseUrl = "https://api.opticodds.com/api/v3";
 const fantasyPositions = new Set(["QB", "RB", "WR", "TE", "K", "PK"]);
@@ -271,18 +272,42 @@ export async function getOpticOddsFootball(
     Promise.all(scoringGames.map((game) => get<{ data?: ResultEnvelope[] }>(`/fixtures/player-results?fixture_id=${game.id}`, key).catch(() => ({ data: [] })))),
     Promise.all(upcoming.map((game) => get<{ data?: OddsEnvelope[] }>(`/fixtures/odds?fixture_id=${game.id}&sportsbook=DraftKings&is_main=true`, key).catch(() => ({ data: [] })))),
   ]);
-  const results = new Map<string, { fixture: Fixture; result: PlayerResult }[]>();
+  const missingResultGames = scoringGames.filter((game, index) => {
+    const rows = (resultCalls[index].data || []).flatMap(
+      (envelope) => envelope.results || []
+    );
+    return [game.home_competitors[0]?.id, game.away_competitors[0]?.id]
+      .filter((teamId) => teamId && teamIds.has(teamId))
+      .some((teamId) => !rows.some((result) => result.team.id === teamId));
+  });
+  const fallbackGames = await getEspnFallbackGames(
+    missingResultGames.flatMap((game) => {
+      const home = game.home_competitors[0];
+      const away = game.away_competitors[0];
+      if (!home || !away) return [];
+      const homeTeam = teams.find((team) => team.id === home.id);
+      const awayTeam = teams.find((team) => team.id === away.id);
+      return [{
+        id: game.id,
+        startDate: game.start_date,
+        home: { ...home, abbreviation: homeTeam?.abbreviation },
+        away: { ...away, abbreviation: awayTeam?.abbreviation },
+      }];
+    }),
+    selectedSeasonYear
+  );
+  const results = new Map<string, { fixture: Fixture; statLine: FootballStatLine }[]>();
   const defenseResults = new Map<string, { fixture: Fixture; statLine: FootballStatLine }[]>();
   resultCalls.flatMap((call) => call.data || []).forEach((envelope) => {
     (envelope.results || []).forEach((result) => {
       const list = results.get(result.player.id) || [];
-      list.push({ fixture: envelope.fixture, result });
-      results.set(result.player.id, list);
-
-      if (!teamIds.has(result.team.id)) return;
       const allStats = statLine(
         result.stats?.find((row) => row.period === "all")?.stats
       );
+      list.push({ fixture: envelope.fixture, statLine: allStats });
+      results.set(result.player.id, list);
+
+      if (!teamIds.has(result.team.id)) return;
       let teamGame = defenseResults
         .get(result.team.id)
         ?.find((entry) => entry.fixture.id === envelope.fixture.id);
@@ -293,6 +318,36 @@ export async function getOpticOddsFootball(
         defenseResults.set(result.team.id, teamGames);
       }
       addDefenseStats(teamGame.statLine, allStats);
+    });
+  });
+  const playerNameKey = (name: string) => name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/(jr|sr|ii|iii|iv)$/i, "");
+  fallbackGames.forEach((fallbackGame) => {
+    const fixture = scoringGames.find((game) => game.id === fallbackGame.fixtureId);
+    if (!fixture) return;
+    fallbackGame.teams.forEach((fallbackTeam) => {
+      const teamPlayers = players.filter(
+        (player) => player.team?.id === fallbackTeam.teamId
+      );
+      fallbackTeam.players.forEach((fallbackPlayer) => {
+        const fallbackName = playerNameKey(fallbackPlayer.name);
+        const player = teamPlayers.find(
+          (candidate) => playerNameKey(candidate.name) === fallbackName
+        );
+        if (!player) return;
+        const list = results.get(player.id) || [];
+        if (!list.some((entry) => entry.fixture.id === fixture.id)) {
+          list.push({ fixture, statLine: fallbackPlayer.statLine });
+          results.set(player.id, list);
+        }
+      });
+      const teamGames = defenseResults.get(fallbackTeam.teamId) || [];
+      if (!teamGames.some((entry) => entry.fixture.id === fixture.id)) {
+        teamGames.push({ fixture, statLine: fallbackTeam.defense });
+        defenseResults.set(fallbackTeam.teamId, teamGames);
+      }
     });
   });
   const props = new Map<string, FootballStatLine>();
@@ -308,10 +363,10 @@ export async function getOpticOddsFootball(
     .map((player) => {
       const team = teams.find((candidate) => candidate.id === player.team!.id)!;
       const history = (results.get(player.id) || []).sort((a, b) => Date.parse(a.fixture.start_date) - Date.parse(b.fixture.start_date));
-      const logs = history.map(({ fixture, result }) => ({
+      const logs = history.map(({ fixture, statLine: gameStats }) => ({
         id: `${fixture.id}-${player.id}`, week: `W${fixture.season_week || "-"}`,
         opponent: opponentForFixture(fixture, team.id),
-        statLine: statLine(result.stats?.find((row) => row.period === "all")?.stats),
+        statLine: gameStats,
       }));
       const recent = logs.at(-1)?.statLine || {};
       const currentResult = history.find(
@@ -331,12 +386,7 @@ export async function getOpticOddsFootball(
         opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
         gameStatus: gameStatusForFixture(selectedFixture, team.id),
         averageStats: recent, projectedStats,
-        liveStats: currentResult
-          ? statLine(
-              currentResult.result.stats?.find((row) => row.period === "all")
-                ?.stats
-            )
-          : undefined,
+        liveStats: currentResult?.statLine,
         gameLogs: logs,
       };
     });
@@ -382,7 +432,7 @@ export async function getOpticOddsFootball(
       season: sample?.season_year || String(new Date().getFullYear()), seasonType: "reg",
       week: selectedWeek, hasReplayKey: true, error: null,
       endpoints: { teams: `${baseUrl}/teams`, players: `${baseUrl}/players`, fixtures: `${baseUrl}/fixtures`, odds: `${baseUrl}/fixtures/odds`, playerResults: `${baseUrl}/fixtures/player-results` },
-      metadata: { provider: "OpticOdds", teams: teams.length, fixtures: games.length, completedFixtures: completed.length, upcomingFixtures: upcoming.length, playersWithPropProjections: props.size },
+      metadata: { provider: "OpticOdds", teams: teams.length, fixtures: games.length, completedFixtures: completed.length, upcomingFixtures: upcoming.length, playersWithPropProjections: props.size, fallbackFixtures: fallbackGames.length },
     },
     playerPool: {
       source: "OpticOdds NCAAF live data", count: eligible.length,
