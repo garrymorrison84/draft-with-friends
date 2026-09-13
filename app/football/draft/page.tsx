@@ -35,6 +35,7 @@ import {
   defaultFootballPlayerPool,
   defaultScoring,
   footballPlayers,
+  getFootballReplayUrl,
   getTotalRosterSlots,
   saveFootballDraftPicks,
   saveFootballPool,
@@ -675,11 +676,12 @@ export default function FootballDraftPage() {
   }, [activePoolId, syncServerClock]);
 
   useEffect(() => {
+    if (!pool) return;
     let cancelled = false;
 
     async function loadReplayPlayers() {
       try {
-        const response = await fetch("/api/football/replay", { cache: "no-store" });
+        const response = await fetch(getFootballReplayUrl(pool!), { cache: "no-store" });
         if (!response.ok) throw new Error("Replay player pool failed");
         const data = await response.json();
         const replayPlayers = data?.playerPool?.players;
@@ -699,7 +701,7 @@ export default function FootballDraftPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pool?.createdAt, pool?.season]);
 
   useEffect(() => {
     let animationFrame = 0;

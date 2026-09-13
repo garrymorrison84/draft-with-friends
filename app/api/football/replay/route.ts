@@ -1,12 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { footballPlayers } from "../../../football/lib/storage";
 import { getOpticOddsFootball } from "./optic";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const opticOddsKey = process.env.OPTICODDS_API_KEY;
+  const requestedWeek = Number(request.nextUrl.searchParams.get("week"));
+  const requestedSeasonYear = Number(request.nextUrl.searchParams.get("season"));
+  const replayOptions = {
+    ...(Number.isInteger(requestedWeek) && requestedWeek >= 1 && requestedWeek <= 25
+      ? { week: requestedWeek }
+      : {}),
+    ...(Number.isInteger(requestedSeasonYear) && requestedSeasonYear >= 2000 && requestedSeasonYear <= 2100
+      ? { seasonYear: requestedSeasonYear }
+      : {}),
+  };
 
   if (!opticOddsKey) {
     return NextResponse.json(
@@ -33,7 +43,7 @@ export async function GET() {
   }
 
   try {
-    return NextResponse.json(await getOpticOddsFootball(opticOddsKey));
+    return NextResponse.json(await getOpticOddsFootball(opticOddsKey, replayOptions));
   } catch (error) {
     return NextResponse.json(
       {

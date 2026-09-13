@@ -109,6 +109,23 @@ export type FootballDraftPick = {
   playerSnapshot?: FootballPlayer;
 };
 
+export function getFootballReplayUrl(
+  pool: Pick<FootballPool, "season" | "createdAt">
+) {
+  const weekMatch = pool.season.match(/week\s*(\d+)/i);
+  const week = weekMatch ? Number(weekMatch[1]) : 0;
+  const createdAt = new Date(pool.createdAt);
+  const seasonYear = Number.isNaN(createdAt.getTime())
+    ? new Date().getFullYear()
+    : createdAt.getMonth() < 2
+      ? createdAt.getFullYear() - 1
+      : createdAt.getFullYear();
+  const params = new URLSearchParams();
+  if (week >= 1 && week <= 25) params.set("week", String(week));
+  params.set("season", String(seasonYear));
+  return `/api/football/replay?${params.toString()}`;
+}
+
 const poolKey = (id: string) => `dwf-football-pool-${id}`;
 const picksKey = (id: string) => `dwf-football-picks-${id}`;
 
