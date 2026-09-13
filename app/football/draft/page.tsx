@@ -329,6 +329,7 @@ function PlayerDetailsModal({
               </h2>
               <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
                 {player.conference} • {player.gameTime} {player.opponent}
+                {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
               </p>
             </div>
 
@@ -678,8 +679,11 @@ export default function FootballDraftPage() {
   useEffect(() => {
     if (!pool) return;
     let cancelled = false;
+    let requestInFlight = false;
 
     async function loadReplayPlayers() {
+      if (requestInFlight) return;
+      requestInFlight = true;
       try {
         const response = await fetch(getFootballReplayUrl(pool!), { cache: "no-store" });
         if (!response.ok) throw new Error("Replay player pool failed");
@@ -691,15 +695,27 @@ export default function FootballDraftPage() {
         }
       } catch {
         if (!cancelled) {
-          setPlayers(footballPlayers);
+          setPlayers((current) => current.length > 0 ? current : footballPlayers);
         }
+      } finally {
+        requestInFlight = false;
       }
     }
 
-    loadReplayPlayers();
+    const refreshPlayers = () => void loadReplayPlayers();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") refreshPlayers();
+    };
+    refreshPlayers();
+    const refreshInterval = window.setInterval(refreshPlayers, 30000);
+    window.addEventListener("focus", refreshPlayers);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       cancelled = true;
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", refreshPlayers);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [pool?.createdAt, pool?.season]);
 
@@ -1507,8 +1523,9 @@ export default function FootballDraftPage() {
                               {player.schoolAbbreviation || player.school}
                             </span>
                           </div>
-                          <p className="truncate text-xs font-bold text-slate-500">
+                          <p className="whitespace-normal text-xs font-bold leading-4 text-slate-500">
                             {player.gameTime} {player.opponent}
+                            {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
                           </p>
                         </div>
                       </div>

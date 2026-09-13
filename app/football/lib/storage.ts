@@ -87,6 +87,7 @@ export type FootballPlayer = {
   projected: number;
   opponent: string;
   gameTime: string;
+  gameStatus?: string;
   averageStats: import("./scoringEngine").FootballStatLine;
   projectedStats: import("./scoringEngine").FootballStatLine;
   liveStats?: import("./scoringEngine").FootballStatLine;

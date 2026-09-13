@@ -13,6 +13,17 @@ type Fixture = {
   id: string; start_date: string; status: string; is_live: boolean;
   season_year?: string; season_week?: string;
   home_competitors: Competitor[]; away_competitors: Competitor[];
+  result?: {
+    scores?: {
+      home?: { total?: number | null };
+      away?: { total?: number | null };
+    };
+    in_play_data?: {
+      period?: string | number | null;
+      period_number?: string | number | null;
+      clock?: string | null;
+    };
+  } | null;
 };
 type RawStats = Record<string, number | null | undefined>;
 type PlayerResult = {
@@ -149,6 +160,37 @@ function opponentForFixture(fixture: Fixture, teamId: string) {
   return `${atHome ? "vs" : "@"} ${atHome ? away?.name : home?.name}`;
 }
 
+function periodLabel(value: string | number | null | undefined) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "Live";
+  if (/^\d+$/.test(raw)) {
+    const period = Number(raw);
+    if (period <= 4) return `Q${period}`;
+    return period === 5 ? "OT" : `${period - 4}OT`;
+  }
+  if (/^q\d+$/i.test(raw)) return raw.toUpperCase();
+  if (/half/i.test(raw)) return "Halftime";
+  if (/overtime|^ot$/i.test(raw)) return "OT";
+  return raw;
+}
+
+function gameStatusForFixture(fixture: Fixture | undefined, teamId: string) {
+  if (!fixture) return "";
+  const homeScore = fixture.result?.scores?.home?.total;
+  const awayScore = fixture.result?.scores?.away?.total;
+  if (typeof homeScore !== "number" || typeof awayScore !== "number") return "";
+  const isHomeTeam = fixture.home_competitors[0]?.id === teamId;
+  const teamScore = isHomeTeam ? homeScore : awayScore;
+  const opponentScore = isHomeTeam ? awayScore : homeScore;
+  const score = `${teamScore}–${opponentScore}`;
+  if (fixture.status === "completed") return `Final • ${score}`;
+  if (fixture.is_live || fixture.status === "live") {
+    const period = fixture.result?.in_play_data?.period_number ?? fixture.result?.in_play_data?.period;
+    return `${periodLabel(period)} • ${score}`;
+  }
+  return "";
+}
+
 function currentCollegeWeek(date = new Date()) {
   const seasonYear = date.getMonth() < 2 ? date.getFullYear() - 1 : date.getFullYear();
   const firstOfSeptember = new Date(seasonYear, 8, 1);
@@ -277,6 +319,9 @@ export async function getOpticOddsFootball(
       );
       const projectedStats = { ...recent, ...(props.get(player.id) || {}) };
       const selectedGame = schedule(selectedWeekGames, team.id);
+      const selectedFixture = selectedWeekGames.find(
+        (fixture) => fixture.home_competitors[0]?.id === team.id || fixture.away_competitors[0]?.id === team.id
+      );
       return {
         id: `oo-${player.id}`, name: player.name, school: team.name,
         schoolAbbreviation: team.abbreviation || team.name,
@@ -284,6 +329,7 @@ export async function getOpticOddsFootball(
         position: (player.position === "PK" ? "K" : player.position) as FootballPlayer["position"],
         rank: 9999, projected: projectedPoints(projectedStats),
         opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
+        gameStatus: gameStatusForFixture(selectedFixture, team.id),
         averageStats: recent, projectedStats,
         liveStats: currentResult
           ? statLine(
@@ -296,6 +342,9 @@ export async function getOpticOddsFootball(
     });
   const defenses: FootballPlayer[] = teams.map((team) => {
     const selectedGame = schedule(selectedWeekGames, team.id);
+    const selectedFixture = selectedWeekGames.find(
+      (fixture) => fixture.home_competitors[0]?.id === team.id || fixture.away_competitors[0]?.id === team.id
+    );
     const teamResults = (defenseResults.get(team.id) || []).sort(
       (a, b) => Date.parse(a.fixture.start_date) - Date.parse(b.fixture.start_date)
     );
@@ -314,6 +363,7 @@ export async function getOpticOddsFootball(
       schoolAbbreviation: team.abbreviation || team.name,
       conference: conferenceName(team.conference), position: "DST", rank: 9999,
       projected: projectedPoints(averageStats), opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
+      gameStatus: gameStatusForFixture(selectedFixture, team.id),
       averageStats, projectedStats: averageStats,
       liveStats: currentResult
         ? normalizeDefenseTouchdowns(currentResult.statLine)

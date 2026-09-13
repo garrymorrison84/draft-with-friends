@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await getOpticOddsFootball(opticOddsKey, replayOptions));
+    return NextResponse.json(await getOpticOddsFootball(opticOddsKey, replayOptions), {
+      headers: {
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=40",
+      },
+    });
   } catch (error) {
     return NextResponse.json(
       {
