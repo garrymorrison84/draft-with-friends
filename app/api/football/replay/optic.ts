@@ -104,16 +104,25 @@ function addDefenseStats(total: FootballStatLine, stats: FootballStatLine) {
   return total;
 }
 
-function averageDefenseStats(logs: { statLine: FootballStatLine }[]) {
+function averageGameStats(logs: { statLine: FootballStatLine }[]) {
   if (!logs.length) return {};
-  const total = logs.reduce(
-    (sum, log) => addDefenseStats(sum, log.statLine),
-    {} as FootballStatLine
-  );
+  const total = logs.reduce((sum, log) => {
+    (Object.keys(log.statLine) as (keyof FootballStatLine)[]).forEach((key) => {
+      sum[key] = (sum[key] || 0) + (log.statLine[key] || 0);
+    });
+    return sum;
+  }, {} as FootballStatLine);
   (Object.keys(total) as (keyof FootballStatLine)[]).forEach((key) => {
     total[key] = Number(((total[key] || 0) / logs.length).toFixed(2));
   });
   return total;
+}
+
+function batchesOf<T>(items: T[], size: number) {
+  return Array.from(
+    { length: Math.ceil(items.length / size) },
+    (_, index) => items.slice(index * size, index * size + size)
+  );
 }
 
 function normalizeDefenseTouchdowns(stats: FootballStatLine) {
@@ -214,7 +223,10 @@ export async function getOpticOddsFootball(
   const selectedWeek = options.week || getCurrentCollegeFootballWeek();
   const selectedSeasonYear =
     options.seasonYear || getCurrentCollegeFootballSeasonYear();
-  const fixtureWeeks = [...new Set([Math.max(1, selectedWeek - 1), selectedWeek])];
+  const fixtureWeeks = Array.from(
+    { length: selectedWeek },
+    (_, index) => index + 1
+  );
   const teams = (await pages<Team>("/teams?league=ncaaf&division=FBS", key, 3))
     .filter((team) => powerConferences.has(team.conference || ""));
   const teamIds = new Set(teams.map((team) => team.id));
@@ -257,12 +269,28 @@ export async function getOpticOddsFootball(
     (game) => game.status === "completed" || game.is_live
   );
   const upcoming = selectedWeekGames.filter((game) => game.status === "unplayed" || game.is_live);
+  const scoringGameBatches = batchesOf(scoringGames, 20);
   const [resultCalls, oddsCalls] = await Promise.all([
-    Promise.all(scoringGames.map((game) => get<{ data?: ResultEnvelope[] }>(`/fixtures/player-results?fixture_id=${game.id}`, key).catch(() => ({ data: [] })))),
+    Promise.all(scoringGameBatches.map((batch) => {
+      const fixtureIds = batch
+        .map((game) => `fixture_id=${encodeURIComponent(game.id)}`)
+        .join("&");
+      return get<{ data?: ResultEnvelope[] }>(
+        `/fixtures/player-results?${fixtureIds}`,
+        key
+      ).catch(() => ({ data: [] }));
+    })),
     Promise.all(upcoming.map((game) => get<{ data?: OddsEnvelope[] }>(`/fixtures/odds?fixture_id=${game.id}&sportsbook=DraftKings&is_main=true`, key).catch(() => ({ data: [] })))),
   ]);
-  const missingResultGames = scoringGames.filter((game, index) => {
-    const rows = (resultCalls[index].data || []).flatMap(
+  const resultEnvelopes = resultCalls.flatMap((call) => call.data || []);
+  const resultsByFixture = new Map<string, ResultEnvelope[]>();
+  resultEnvelopes.forEach((envelope) => {
+    const list = resultsByFixture.get(envelope.fixture.id) || [];
+    list.push(envelope);
+    resultsByFixture.set(envelope.fixture.id, list);
+  });
+  const missingResultGames = scoringGames.filter((game) => {
+    const rows = (resultsByFixture.get(game.id) || []).flatMap(
       (envelope) => envelope.results || []
     );
     return [game.home_competitors[0]?.id, game.away_competitors[0]?.id]
@@ -287,7 +315,7 @@ export async function getOpticOddsFootball(
   );
   const results = new Map<string, { fixture: Fixture; statLine: FootballStatLine }[]>();
   const defenseResults = new Map<string, { fixture: Fixture; statLine: FootballStatLine }[]>();
-  resultCalls.flatMap((call) => call.data || []).forEach((envelope) => {
+  resultEnvelopes.forEach((envelope) => {
     (envelope.results || []).forEach((result) => {
       const list = results.get(result.player.id) || [];
       const allStats = statLine(
@@ -357,11 +385,11 @@ export async function getOpticOddsFootball(
         opponent: opponentForFixture(fixture, team.id),
         statLine: gameStats,
       }));
-      const recent = logs.at(-1)?.statLine || {};
       const currentResult = history.find(
         ({ fixture }) => Number(fixture.season_week) === selectedWeek
       );
-      const projectedStats = { ...recent, ...(props.get(player.id) || {}) };
+      const averageStats = averageGameStats(logs);
+      const projectedStats = { ...averageStats, ...(props.get(player.id) || {}) };
       const selectedGame = schedule(selectedWeekGames, team.id);
       const selectedFixture = selectedWeekGames.find(
         (fixture) => fixture.home_competitors[0]?.id === team.id || fixture.away_competitors[0]?.id === team.id
@@ -374,7 +402,7 @@ export async function getOpticOddsFootball(
         rank: 9999, projected: projectedPoints(projectedStats),
         opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
         gameStatus: gameStatusForFixture(selectedFixture, team.id),
-        averageStats: recent, projectedStats,
+        averageStats, projectedStats,
         liveStats: currentResult?.statLine,
         gameLogs: logs,
       };
@@ -396,7 +424,7 @@ export async function getOpticOddsFootball(
         opponent: opponentForFixture(fixture, team.id),
         statLine: normalizeDefenseTouchdowns(gameStats),
       }));
-    const averageStats = averageDefenseStats(logs);
+    const averageStats = averageGameStats(logs);
     return {
       id: `oo-dst-${team.id}`, name: `${team.name} D/ST`, school: team.name,
       schoolAbbreviation: team.abbreviation || team.name,

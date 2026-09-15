@@ -265,6 +265,16 @@ export function getPlayerPpg(
   player: FootballPlayer,
   scoring: FootballScoring = defaultScoring
 ) {
+  const gameLogs = player.gameLogs || [];
+  if (gameLogs.length > 0) {
+    const totalPoints = gameLogs.reduce(
+      (total, game) => total + scoreFootballStats(game.statLine, scoring).total,
+      0
+    );
+
+    return Number((totalPoints / gameLogs.length).toFixed(1));
+  }
+
   return scoreFootballStats(player.averageStats, scoring).total;
 }
 
