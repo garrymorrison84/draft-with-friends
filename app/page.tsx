@@ -410,7 +410,7 @@ export default function Home() {
           </div>
 
           <p className="mt-5 max-w-3xl text-base font-bold leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
-            Draft With Friends is the home for one and done sports pools, giving friends
+            Draft With Friends is the home for weekend sports pools, giving friends
             one place to build, run, and track custom contests from draft to finish.
           </p>
 
