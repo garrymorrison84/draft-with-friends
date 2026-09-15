@@ -1,33 +1,37 @@
 import type { ReactNode } from "react";
 import BrandMark from "./components/BrandMark";
 
-const draftTeams = ["Garry", "Kelli", "Andrew"];
+const draftTeams = ["Andy", "Mark", "Steve"];
 
 const draftPicks = [
-  ["1.1", "Dante Moore", "QB", "ORE", "Drafted"],
-  ["1.2", "Jeremiah Smith", "WR", "OSU", "Drafted"],
-  ["1.3", "CJ Baxter", "RB", "TEX", "Drafted"],
-  ["2.3", "Ryan Williams", "WR", "ALA", "Drafted"],
-  ["2.2", "LaNorris Sellers", "QB", "SC", "Drafted"],
-  ["2.1", "On the clock", "FLEX", "", "On the clock"],
+  ["1.1", "Sam Leavitt", "QB", "LSU", "Drafted"],
+  ["1.2", "Nate Sheppard", "RB", "DUKE", "Drafted"],
+  ["1.3", "KJ Duff", "WR", "RUTG", "Drafted"],
+  ["2.3", "On the clock", "FLEX", "", "On the clock"],
+  ["2.2", "Lincoln Kienholz", "QB", "LOU", "Drafted"],
+  ["2.1", "Kamario Taylor", "QB", "MSST", "Drafted"],
 ];
 
 const eligiblePlayers = [
-  ["WR", "Carnell Tate", "OSU · vs Notre Dame", "21.8"],
-  ["RB", "Justice Haynes", "MICH · at Wisconsin", "19.6"],
-  ["TE", "Eli Stowers", "VAN · vs Kentucky", "16.2"],
+  ["QB", "Kevin Jennings", "SMU · at Louisville", "35.5"],
+  ["WR", "Malachi Toney", "MIA · at Wake Forest", "32.5"],
+  ["WR", "Reed Harris", "ASU · vs Kansas", "32.0"],
+  ["RB", "Wayshawn Parker", "UTAH · vs Utah State", "30.5"],
 ];
 
 const footballLeaderboardTeams = [
-  ["1", "Garry", "128.6"],
-  ["2", "Kelli", "117.2"],
-  ["3", "Andrew", "109.8"],
+  ["1", "Andy", "177.0"],
+  ["2", "Mark", "161.4"],
+  ["3", "Steve", "149.7"],
 ];
 
 const liveFootballRows = [
-  ["QB", "Dante Moore", "ORE · Q3 21–17 vs USC", "28.4"],
-  ["WR", "Carnell Tate", "OSU · Final 31–24", "24.7"],
-  ["DST", "Oregon D/ST", "ORE · Q3 21–17", "16.0"],
+  ["QB", "Sam Leavitt", "LSU · Final vs Louisiana Tech", "44.0"],
+  ["RB", "Nate Sheppard", "DUKE · Final at Illinois", "39.0"],
+  ["WR", "KJ Duff", "RUTG · Final at Boston College", "30.0"],
+  ["WR", "Malachi Toney", "MIA · Final vs Florida A&M", "18.0"],
+  ["TE", "Luke Reynolds", "VT · Final vs Old Dominion", "27.0"],
+  ["DST", "LSU D/ST", "LSU · Final vs Louisiana Tech", "19.0"],
 ];
 
 const draftPreviewPositionStyles: Record<string, { cell: string; badge: string }> = {
@@ -88,7 +92,6 @@ function PhoneFrame({
                   <span key={height} className="w-[2px] rounded-sm bg-white" style={{ height }} />
                 ))}
               </span>
-              <span className="h-2 w-3 rounded-t-full border-2 border-b-0 border-white" />
               <span className="relative h-2.5 w-5 rounded-[3px] border border-white/80">
                 <span className="absolute inset-[2px] rounded-[1px] bg-white" />
                 <span className="absolute -right-1 top-[2px] h-1 w-0.5 rounded-r bg-white/70" />
@@ -137,7 +140,7 @@ function DraftPhonePreview({
         <div className="mt-3 flex items-center justify-between rounded-2xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2.5">
           <div>
             <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-300">Pick 6 of 27</p>
-            <p className="mt-0.5 text-[12px] font-black text-white">Garry is on the clock</p>
+            <p className="mt-0.5 text-[12px] font-black text-white">Andy is on the clock</p>
           </div>
           <span className="rounded-lg bg-emerald-400 px-2.5 py-1.5 text-[12px] font-black tabular-nums text-slate-950">0:42</span>
         </div>
@@ -275,8 +278,8 @@ function LeaderboardPhonePreview({
         <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#030712] shadow-xl shadow-black/30">
           <div className="flex items-center justify-between bg-[#172235] px-3 py-2.5">
             <div>
-              <p className="text-[8px] font-black uppercase tracking-widest text-emerald-300">Garry&apos;s Roster</p>
-              <p className="mt-0.5 text-[7px] font-bold text-slate-500">128.6 fantasy points</p>
+              <p className="text-[8px] font-black uppercase tracking-widest text-emerald-300">Andy&apos;s Roster</p>
+              <p className="mt-0.5 text-[7px] font-bold text-slate-500">177.0 fantasy points</p>
             </div>
             <span className="rounded-lg bg-emerald-400/10 px-2 py-1 text-[7px] font-black text-emerald-300">1st</span>
           </div>
@@ -289,7 +292,7 @@ function LeaderboardPhonePreview({
             return (
               <div
                 key={name}
-                className="grid grid-cols-[auto_1fr_auto] items-center gap-2 border-t border-white/5 px-3 py-3"
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-2 border-t border-white/5 px-3 py-2.5"
               >
                 <span className={`rounded-full border px-2 py-1 text-[7px] font-black ${styles.badge}`}>{position}</span>
                 <div className="min-w-0">
@@ -302,13 +305,6 @@ function LeaderboardPhonePreview({
           })}
         </div>
 
-        <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0c1421] px-3 py-3">
-          <div>
-            <p className="text-[7px] font-black uppercase tracking-widest text-slate-500">Next Up</p>
-            <p className="mt-1 text-[9px] font-black text-white">Michigan at Wisconsin</p>
-          </div>
-          <span className="text-[9px] font-black text-slate-300">7:30 PM</span>
-        </div>
       </div>
     </PhoneFrame>
   );
