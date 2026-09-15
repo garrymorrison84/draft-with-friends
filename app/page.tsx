@@ -4,17 +4,17 @@ import BrandMark from "./components/BrandMark";
 const draftTeams = ["Andy", "Mark", "Steve"];
 
 const draftPicks = [
-  ["1.1", "Sam Leavitt", "QB", "LSU", "Drafted"],
-  ["1.2", "Nate Sheppard", "RB", "DUKE", "Drafted"],
-  ["1.3", "KJ Duff", "WR", "RUTG", "Drafted"],
+  ["1.1", "Arch Manning", "QB", "TEX", "Drafted"],
+  ["1.2", "Jeremiah Smith", "WR", "OSU", "Drafted"],
+  ["1.3", "Malachi Toney", "WR", "MIA", "Drafted"],
   ["2.3", "On the clock", "FLEX", "", "On the clock"],
-  ["2.2", "Lincoln Kienholz", "QB", "LOU", "Drafted"],
-  ["2.1", "Kamario Taylor", "QB", "MSST", "Drafted"],
+  ["2.2", "Kewan Lacy", "RB", "MISS", "Drafted"],
+  ["2.1", "Bo Jackson", "RB", "OSU", "Drafted"],
 ];
 
 const eligiblePlayers = [
-  ["QB", "Kevin Jennings", "SMU · at Louisville", "35.5"],
-  ["WR", "Malachi Toney", "MIA · at Wake Forest", "32.5"],
+  ["WR", "Charlie Becker", "IND · vs Illinois", "35.5"],
+  ["QB", "Kevin Jennings", "SMU · at Louisville", "34.0"],
   ["WR", "Reed Harris", "ASU · vs Kansas", "32.0"],
   ["RB", "Wayshawn Parker", "UTAH · vs Utah State", "30.5"],
 ];
