@@ -387,7 +387,7 @@ export default function Home() {
             <SportButtons className="mt-7" />
 
             <p className="mt-7 max-w-[340px] text-xl font-black leading-8 text-emerald-300">
-              No spreadsheets. No manual tracking. Just snake drafts with friends.
+              No more drafts over text or email. No spreadsheets. No manual tracking.
             </p>
 
             <MobileExperienceShowcase />
@@ -405,13 +405,13 @@ export default function Home() {
             <SportButtons className="mt-8 max-w-xl" />
 
             <p className="relative z-10 mt-8 max-w-xl text-xl font-black leading-8 text-emerald-300">
-              Weekend long contests. No waiver wires. No bye weeks. No text threads
-              for drafting. No excel spreadsheets for tracking.
+              No more drafts over text or email. No spreadsheets. No manual tracking.
             </p>
           </div>
 
-          <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
-            Build your pool. Invite your friends. Snake draft teams. Track in realtime.
+          <p className="mt-5 max-w-3xl text-base font-bold leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
+            Draft With Friends is the home for one and done sports pools, giving friends
+            one place to build, run, and track custom contests from draft to finish.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-300 sm:text-base md:text-lg lg:mt-10 lg:gap-6">
