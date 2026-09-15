@@ -663,6 +663,7 @@ function LeaderboardPlayerDetailsModal({
   const rows = playerGameRows(player, scoring);
   const hasGameLogs = Boolean(player.gameLogs?.length);
   const columns = gameLogColumnsForPosition(player.position, scoring);
+  const mobileGameLogMinWidth = 190 + columns.length * 52;
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -677,10 +678,10 @@ function LeaderboardPlayerDetailsModal({
       role="dialog"
       aria-modal="true"
       aria-label={`${player.name} details`}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/80 px-2 pb-3 backdrop-blur-sm md:items-center md:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/80 px-1 pb-1 backdrop-blur-sm md:items-center md:p-6"
     >
-      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
-        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
+      <div className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-3rem)]">
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-4 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -693,7 +694,7 @@ function LeaderboardPlayerDetailsModal({
                   {player.school}
                 </span>
               </div>
-              <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
+              <h2 className="mt-3 break-words text-2xl font-black text-white sm:text-4xl">
                 {player.name}
               </h2>
               <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
@@ -711,7 +712,7 @@ function LeaderboardPlayerDetailsModal({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-7">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4 sm:p-7">
           <h3 className="text-xl font-black">Game Log</h3>
           <p className="mt-2 text-sm font-semibold text-slate-400">
             Fantasy points reflect your pool&apos;s scoring rules.
@@ -722,15 +723,18 @@ function LeaderboardPlayerDetailsModal({
             </p>
           ) : null}
 
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-            <table className="w-full min-w-[760px] text-right text-sm font-black text-slate-200">
-              <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-500">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712] sm:mt-5">
+            <table
+              className="w-full text-right text-[11px] font-black text-slate-200 sm:min-w-[760px] sm:text-sm"
+              style={{ minWidth: mobileGameLogMinWidth }}
+            >
+              <thead className="border-b border-white/10 text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">
                 <tr>
-                  <th className="px-4 py-3 text-left">Week</th>
-                  <th className="px-4 py-3 text-left">Opp</th>
-                  <th className="px-4 py-3 text-emerald-300">Pts</th>
+                  <th className="whitespace-nowrap px-2 py-2.5 text-left sm:px-4 sm:py-3">Week</th>
+                  <th className="px-2 py-2.5 text-left sm:px-4 sm:py-3">Opp</th>
+                  <th className="whitespace-nowrap px-2 py-2.5 text-emerald-300 sm:px-4 sm:py-3">Pts</th>
                   {columns.map((column) => (
-                    <th key={column.label} className="px-4 py-3">
+                    <th key={column.label} className="whitespace-nowrap px-2 py-2.5 sm:px-4 sm:py-3">
                       {column.label}
                     </th>
                   ))}
@@ -742,15 +746,15 @@ function LeaderboardPlayerDetailsModal({
                     key={`${row.label}-${row.opponent}`}
                     className="border-b border-white/5 last:border-b-0"
                   >
-                    <td className="px-4 py-4 text-left text-slate-400">{row.label}</td>
-                    <td className="max-w-[180px] truncate px-4 py-4 text-left">
+                    <td className="whitespace-nowrap px-2 py-3 text-left text-slate-400 sm:px-4 sm:py-4">{row.label}</td>
+                    <td className="max-w-[112px] truncate px-2 py-3 text-left sm:max-w-[180px] sm:px-4 sm:py-4">
                       {row.opponent}
                     </td>
-                    <td className="px-4 py-4 text-emerald-300">
+                    <td className="whitespace-nowrap px-2 py-3 text-emerald-300 sm:px-4 sm:py-4">
                       {formatNumber(row.points)}
                     </td>
                     {columns.map((column) => (
-                      <td key={column.label} className="px-4 py-4">
+                      <td key={column.label} className="whitespace-nowrap px-2 py-3 sm:px-4 sm:py-4">
                         {formatNumber(column.value(row.statLine))}
                       </td>
                     ))}

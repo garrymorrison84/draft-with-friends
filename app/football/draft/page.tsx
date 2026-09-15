@@ -309,12 +309,13 @@ function PlayerDetailsModal({
   const rows = playerGameRows(player, scoring);
   const hasReplayGameLogs = Boolean(player.gameLogs?.length);
   const gameLogColumns = gameLogColumnsForPosition(player.position, scoring);
+  const mobileGameLogMinWidth = 190 + gameLogColumns.length * 52;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-3 pb-4 backdrop-blur-sm md:items-center md:p-6">
-      <div className="flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
-        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
-          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-1 pb-1 backdrop-blur-sm md:items-center md:p-6">
+      <div className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-3rem)]">
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-4 sm:p-7">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-5">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`rounded-full border px-3 py-1 text-xs font-black ${styles.badge}`}>
@@ -324,7 +325,7 @@ function PlayerDetailsModal({
                   {player.school}
                 </span>
               </div>
-              <h2 className="mt-3 break-words text-3xl font-black text-white sm:text-4xl">
+              <h2 className="mt-3 break-words text-2xl font-black text-white sm:text-4xl">
                 {player.name}
               </h2>
               <p className="mt-2 text-sm font-bold text-slate-400 sm:text-base">
@@ -333,8 +334,8 @@ function PlayerDetailsModal({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:min-w-[280px]">
-              <div className="flex flex-col items-center justify-center rounded-2xl bg-[#030712] p-4 text-center">
+            <div className="grid grid-cols-2 gap-2 md:min-w-[280px] md:gap-3">
+              <div className="flex flex-col items-center justify-center rounded-2xl bg-[#030712] p-3 text-center sm:p-4">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-500">PPG</p>
                 <p className="mt-1 text-2xl font-black text-emerald-300">{formatPoints(ppg)}</p>
               </div>
@@ -342,7 +343,7 @@ function PlayerDetailsModal({
                 type="button"
                 onClick={onDraft}
                 disabled={!canDraft}
-                className="rounded-2xl bg-emerald-400 p-4 text-lg font-black text-slate-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                className="rounded-2xl bg-emerald-400 p-3 text-base font-black text-slate-950 hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:p-4 sm:text-lg"
               >
                 Draft
               </button>
@@ -350,7 +351,7 @@ function PlayerDetailsModal({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-4 sm:p-7">
           <h3 className="text-xl font-black">Game Log</h3>
           <p className="mt-2 text-sm font-semibold text-slate-400">
             Fantasy points reflect your pool&apos;s scoring rules.
@@ -361,15 +362,18 @@ function PlayerDetailsModal({
             </p>
           )}
 
-          <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-            <table className="min-w-[760px] w-full text-right text-sm font-black text-slate-200">
-              <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-500">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-[#030712] sm:mt-5">
+            <table
+              className="w-full text-right text-[11px] font-black text-slate-200 sm:min-w-[760px] sm:text-sm"
+              style={{ minWidth: mobileGameLogMinWidth }}
+            >
+              <thead className="border-b border-white/10 text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">
                 <tr>
-                  <th className="px-4 py-3 text-left">Week</th>
-                  <th className="px-4 py-3 text-left">Opp</th>
-                  <th className="px-4 py-3 text-emerald-300">Pts</th>
+                  <th className="whitespace-nowrap px-2 py-2.5 text-left sm:px-4 sm:py-3">Week</th>
+                  <th className="px-2 py-2.5 text-left sm:px-4 sm:py-3">Opp</th>
+                  <th className="whitespace-nowrap px-2 py-2.5 text-emerald-300 sm:px-4 sm:py-3">Pts</th>
                   {gameLogColumns.map((column) => (
-                    <th key={column.label} className="px-4 py-3">
+                    <th key={column.label} className="whitespace-nowrap px-2 py-2.5 sm:px-4 sm:py-3">
                       {column.label}
                     </th>
                   ))}
@@ -378,11 +382,11 @@ function PlayerDetailsModal({
               <tbody>
                 {rows.map((row) => (
                   <tr key={`${row.label}-${row.opponent}`} className="border-b border-white/5 last:border-b-0">
-                    <td className="px-4 py-4 text-left text-slate-400">{row.label}</td>
-                    <td className="max-w-[180px] truncate px-4 py-4 text-left">{row.opponent}</td>
-                    <td className="px-4 py-4 text-emerald-300">{formatPoints(row.points)}</td>
+                    <td className="whitespace-nowrap px-2 py-3 text-left text-slate-400 sm:px-4 sm:py-4">{row.label}</td>
+                    <td className="max-w-[112px] truncate px-2 py-3 text-left sm:max-w-[180px] sm:px-4 sm:py-4">{row.opponent}</td>
+                    <td className="whitespace-nowrap px-2 py-3 text-emerald-300 sm:px-4 sm:py-4">{formatPoints(row.points)}</td>
                     {gameLogColumns.map((column) => (
-                      <td key={column.label} className="px-4 py-4">
+                      <td key={column.label} className="whitespace-nowrap px-2 py-3 sm:px-4 sm:py-4">
                         {formatStat(column.value(row.statLine))}
                       </td>
                     ))}
