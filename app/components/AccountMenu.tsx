@@ -56,16 +56,16 @@ export default function AccountMenu() {
         <div className="relative">
           <button
             type="button"
+            aria-label="Open account menu"
             aria-expanded={open}
             aria-haspopup="menu"
             onClick={() => setOpen((current) => !current)}
-            className="flex max-w-[13rem] items-center gap-2 rounded-xl border border-emerald-300/30 bg-[#111827]/95 px-3 py-2 text-sm font-black text-white shadow-xl shadow-black/40 backdrop-blur transition hover:border-emerald-300/70 hover:bg-[#182235] sm:max-w-xs sm:px-4"
+            className="flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-[#111827]/95 p-1.5 pr-2.5 text-sm font-black text-white shadow-xl shadow-black/40 backdrop-blur transition hover:border-emerald-300/70 hover:bg-[#182235]"
           >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-300 text-xs text-slate-950">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-300 text-sm text-slate-950">
               {(user.email?.[0] || "A").toUpperCase()}
             </span>
-            <span className="truncate">{user.email || "Account"}</span>
-            <span aria-hidden="true" className="text-emerald-300">⌄</span>
+            <span aria-hidden="true" className="text-xs text-emerald-300">▼</span>
           </button>
 
           {open && (
