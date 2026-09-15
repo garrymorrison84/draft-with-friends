@@ -386,10 +386,6 @@ export default function Home() {
 
             <SportButtons className="mt-7" />
 
-            <p className="mt-7 max-w-[340px] text-xl font-black leading-8 text-emerald-300">
-              No more drafts over text or email. No spreadsheets. No manual tracking.
-            </p>
-
             <MobileExperienceShowcase />
           </div>
 
@@ -404,14 +400,15 @@ export default function Home() {
 
             <SportButtons className="mt-8 max-w-xl" />
 
-            <p className="relative z-10 mt-8 max-w-xl text-xl font-black leading-8 text-emerald-300">
-              No more drafts over text or email. No spreadsheets. No manual tracking.
-            </p>
           </div>
 
           <p className="mt-5 max-w-3xl text-base font-bold leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
             Draft With Friends is the home for weekend sports pools, giving friends
             one place to build, run, and track custom contests from draft to finish.
+          </p>
+
+          <p className="mt-4 max-w-3xl text-base font-black leading-7 text-emerald-300 sm:text-lg sm:leading-8 md:text-xl md:leading-9">
+            No more drafts over text or email. No spreadsheets. No manual tracking.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-300 sm:text-base md:text-lg lg:mt-10 lg:gap-6">
