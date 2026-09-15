@@ -1,37 +1,33 @@
 import type { ReactNode } from "react";
 import BrandMark from "./components/BrandMark";
 
+const draftTeams = ["Garry", "Kelli", "Andrew"];
+
 const draftPicks = [
-  ["1.1", "Andy", "Omarion Hampton", "RB", "North Carolina", "Drafted"],
-  ["1.2", "Mark", "Rome Odunze", "WR", "Washington", "Drafted"],
-  ["1.3", "Andrew", "Audric Estime", "RB", "Notre Dame", "Drafted"],
-  ["1.4", "Steve", "Blake Corum", "RB", "Michigan", "Drafted"],
-  ["2.4", "Andy", "Kyle Monangai", "RB", "Rutgers", "Drafted"],
-  ["2.3", "Mark", "Jaxson Dart", "QB", "Ole Miss", "Drafted"],
-  ["2.2", "Andrew", "Michael Penix Jr.", "QB", "Washington", "Drafted"],
-  ["2.1", "Steve", "Brock Bowers", "TE", "Georgia", "Drafted"],
-  ["3.1", "Andy", "Malik Nabers", "WR", "LSU", "Drafted"],
-  ["3.2", "Mark", "Luther Burden III", "WR", "Missouri", "Drafted"],
-  ["3.3", "Andrew", "Awaiting selection", "FLEX", "", "On the clock"],
-  ["3.4", "Steve", "Awaiting selection", "FLEX", "", "Open"],
-  ["4.4", "Andy", "Awaiting selection", "FLEX", "", "Open"],
-  ["4.3", "Mark", "Awaiting selection", "FLEX", "", "Open"],
-  ["4.2", "Andrew", "Awaiting selection", "FLEX", "", "Open"],
-  ["4.1", "Steve", "Awaiting selection", "FLEX", "", "Open"],
+  ["1.1", "Dante Moore", "QB", "ORE", "Drafted"],
+  ["1.2", "Jeremiah Smith", "WR", "OSU", "Drafted"],
+  ["1.3", "CJ Baxter", "RB", "TEX", "Drafted"],
+  ["2.3", "Ryan Williams", "WR", "ALA", "Drafted"],
+  ["2.2", "LaNorris Sellers", "QB", "SC", "Drafted"],
+  ["2.1", "On the clock", "FLEX", "", "On the clock"],
 ];
 
-const liveGolfRows = [
-  ["Scottie Scheffler", "-6", "-10", "-3", "-19"],
-  ["Sam Burns", "-4", "-4", "-4", "-12"],
-  ["Justin Rose", "-5", "-4", "-3", "-12"],
-  ["Tommy Fleetwood", "-2", "-5", "-3", "-10"],
+const eligiblePlayers = [
+  ["WR", "Carnell Tate", "OSU · vs Notre Dame", "21.8"],
+  ["RB", "Justice Haynes", "MICH · at Wisconsin", "19.6"],
+  ["TE", "Eli Stowers", "VAN · vs Kentucky", "16.2"],
 ];
 
-const golfLeaderboardTeams = [
-  ["1", "Andrew", "-43"],
-  ["2", "Mark", "-39"],
-  ["3", "Garry", "-36"],
-  ["4", "Steve", "-31"],
+const footballLeaderboardTeams = [
+  ["1", "Garry", "128.6"],
+  ["2", "Kelli", "117.2"],
+  ["3", "Andrew", "109.8"],
+];
+
+const liveFootballRows = [
+  ["QB", "Dante Moore", "ORE · Q3 21–17 vs USC", "28.4"],
+  ["WR", "Carnell Tate", "OSU · Final 31–24", "24.7"],
+  ["DST", "Oregon D/ST", "ORE · Q3 21–17", "16.0"],
 ];
 
 const draftPreviewPositionStyles: Record<string, { cell: string; badge: string }> = {
@@ -55,6 +51,10 @@ const draftPreviewPositionStyles: Record<string, { cell: string; badge: string }
     cell: "border-sky-500/45 bg-[#0b3b55]/95",
     badge: "border-sky-200 bg-sky-500/45 text-sky-50",
   },
+  DST: {
+    cell: "border-emerald-500/45 bg-emerald-950/65",
+    badge: "border-emerald-200 bg-emerald-500/40 text-emerald-50",
+  },
 };
 
 function PhoneFrame({
@@ -68,17 +68,40 @@ function PhoneFrame({
 }) {
   return (
     <div
-      className={`relative w-[306px] rounded-[2.45rem] border border-slate-500/40 bg-gradient-to-br from-slate-500 via-slate-900 to-black p-2.5 shadow-2xl shadow-emerald-950/50 ${className}`}
+      className={`relative w-[318px] rounded-[3.65rem] bg-gradient-to-br from-slate-300 via-slate-700 to-slate-950 p-[5px] shadow-[0_38px_90px_rgba(0,0,0,0.72),0_0_0_1px_rgba(203,213,225,0.36)] ${className}`}
     >
-      <div className="absolute -left-1.5 top-24 h-12 w-1 rounded-l-full bg-slate-700" />
-      <div className="absolute -right-1.5 top-32 h-16 w-1 rounded-r-full bg-slate-700" />
+      <div className="absolute -left-[4px] top-24 h-7 w-[3px] rounded-l-full bg-slate-500" />
+      <div className="absolute -left-[4px] top-36 h-12 w-[3px] rounded-l-full bg-slate-500" />
+      <div className="absolute -left-[4px] top-[13.25rem] h-12 w-[3px] rounded-l-full bg-slate-500" />
+      <div className="absolute -right-[4px] top-40 h-20 w-[3px] rounded-r-full bg-slate-600" />
 
-      <div className="relative overflow-hidden rounded-[1.9rem] border border-slate-700/80 bg-[#050a13]">
-        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(120deg,rgba(255,255,255,0.12),transparent_30%,transparent_72%,rgba(255,255,255,0.04))]" />
-        <div
-          className={`relative z-0 min-h-[540px] px-3.5 pb-4 pt-4 ${screenClassName}`}
+      <div className="rounded-[3.35rem] bg-[#070b11] p-[3px] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.14)]">
+        <div className="relative overflow-hidden rounded-[3.16rem] bg-[#050a13]">
+          <div className="absolute inset-x-0 top-0 z-20 flex h-11 items-center justify-between px-6 text-[9px] font-black text-white">
+            <span>9:41</span>
+            <div className="absolute left-1/2 top-2 h-[24px] w-[82px] -translate-x-1/2 rounded-full bg-black shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]">
+              <span className="absolute right-2.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-[#101927] ring-1 ring-slate-700" />
+            </div>
+            <div className="flex items-center gap-1.5" aria-hidden="true">
+              <span className="flex h-2.5 items-end gap-[1px]">
+                {[3, 5, 7, 9].map((height) => (
+                  <span key={height} className="w-[2px] rounded-sm bg-white" style={{ height }} />
+                ))}
+              </span>
+              <span className="h-2 w-3 rounded-t-full border-2 border-b-0 border-white" />
+              <span className="relative h-2.5 w-5 rounded-[3px] border border-white/80">
+                <span className="absolute inset-[2px] rounded-[1px] bg-white" />
+                <span className="absolute -right-1 top-[2px] h-1 w-0.5 rounded-r bg-white/70" />
+              </span>
+            </div>
+          </div>
+          <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(125deg,rgba(255,255,255,0.075),transparent_28%,transparent_76%,rgba(255,255,255,0.025))]" />
+          <div
+            className={`relative z-0 min-h-[610px] px-3.5 pb-8 pt-12 ${screenClassName}`}
         >
-          {children}
+            {children}
+          </div>
+          <div className="absolute bottom-2.5 left-1/2 z-20 h-1 w-24 -translate-x-1/2 rounded-full bg-white/85" />
         </div>
       </div>
     </div>
@@ -92,75 +115,98 @@ function DraftPhonePreview({
   className?: string;
   screenClassName?: string;
 }) {
-  const resolvedScreenClassName = screenClassName || "!min-h-[492px]";
+  const resolvedScreenClassName = screenClassName || "!min-h-[610px]";
 
   return (
     <PhoneFrame className={`rotate-[-2deg] ${className}`} screenClassName={resolvedScreenClassName}>
-      <div className="rounded-2xl border border-slate-700/70 bg-[#111827] p-3">
-        <div className="flex items-start justify-between gap-3">
+      <div>
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-300">
-              College Football
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              College Football · Week 3
             </p>
-            <h2 className="mt-1 text-[1.7rem] font-black leading-none text-white">
-              Draft Board
+            <h2 className="mt-1 text-[1.45rem] font-black leading-none text-white">
+              Draft Room
             </h2>
           </div>
-
-          <span className="rounded-full bg-emerald-400 px-3 py-1 text-[10px] font-black text-slate-950">
+          <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-wide text-emerald-300">
             Live
           </span>
         </div>
 
-          <div className="mt-3 overflow-hidden rounded-xl border border-emerald-400/20 bg-[#030712]">
-            <div className="grid grid-cols-4 bg-[#0d3b45] shadow-[0_10px_18px_rgba(0,0,0,0.35)]">
-              {["Andy", "Mark", "Andrew", "Steve"].map((team) => (
-                <div
-                  key={team}
-                  className="border-r border-emerald-300/10 px-1.5 py-2 text-center last:border-r-0"
-                >
-                  <p className="truncate text-[10px] font-black text-white">{team}</p>
-                </div>
-              ))}
-            </div>
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-emerald-400/25 bg-emerald-400/10 px-3 py-2.5">
+          <div>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-emerald-300">Pick 6 of 27</p>
+            <p className="mt-0.5 text-[12px] font-black text-white">Garry is on the clock</p>
+          </div>
+          <span className="rounded-lg bg-emerald-400 px-2.5 py-1.5 text-[12px] font-black tabular-nums text-slate-950">0:42</span>
+        </div>
 
-          <div className="grid grid-cols-4">
-            {draftPicks.map(([pick, team, player, position, school, status]) => {
+        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#030712] shadow-xl shadow-black/30">
+          <div className="grid grid-cols-3 bg-[#10363d]">
+            {draftTeams.map((team) => (
+              <div key={team} className="border-r border-emerald-300/10 px-1.5 py-2 text-center last:border-r-0">
+                <p className="truncate text-[9px] font-black text-white">{team}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3">
+            {draftPicks.map(([pick, player, position, school, status]) => {
               const styles = draftPreviewPositionStyles[position] ?? draftPreviewPositionStyles.RB;
 
               return (
                 <div
                   key={pick}
-                  className={`relative min-h-[92px] overflow-hidden border-b border-r px-1.5 pb-1.5 pt-2 ${
+                  className={`relative min-h-[76px] overflow-hidden border-b border-r px-2 pb-2 pt-2 ${
                     status === "On the clock"
-                      ? "border-emerald-400/35 bg-[#07110f]"
-                      : status === "Open"
-                        ? "border-slate-800 bg-[#030712]"
-                        : styles.cell
+                      ? "border-emerald-400/45 bg-emerald-400/10"
+                      : styles.cell
                   }`}
                 >
                   <div className="flex items-start justify-end pr-0.5">
-                    <span className="shrink-0 rounded-full bg-blue-700/80 px-1.5 py-0.5 text-[6.5px] font-black leading-none text-white">
+                    <span className="shrink-0 rounded-full bg-blue-600/80 px-1.5 py-0.5 text-[6px] font-black leading-none text-white">
                       {pick}
                     </span>
                   </div>
-                  <p className="mt-1.5 line-clamp-2 text-[8.5px] font-black leading-tight text-white">
+                  <p className={`mt-1 line-clamp-2 text-[8px] font-black leading-tight ${status === "On the clock" ? "text-emerald-300" : "text-white"}`}>
                     {player}
                   </p>
                   <div className="mt-1.5 flex items-center gap-1">
                     <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[6.5px] font-black leading-none ${styles.badge}`}
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[6px] font-black leading-none ${styles.badge}`}
                     >
                       {position}
                     </span>
-                    <span className="min-w-0 truncate text-[6.5px] font-bold text-slate-400">
-                      {school || team}
+                    <span className="min-w-0 truncate text-[6px] font-bold text-slate-400">
+                      {school || "Awaiting pick"}
                     </span>
                   </div>
                 </div>
               );
             })}
           </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between">
+          <h3 className="text-[12px] font-black text-white">Eligible Players</h3>
+          <span className="text-[7px] font-bold uppercase tracking-wider text-slate-500">Sorted by PPG</span>
+        </div>
+        <div className="mt-2 overflow-hidden rounded-2xl border border-white/10 bg-[#0c1421]">
+          {eligiblePlayers.map(([position, name, game, ppg]) => {
+            const styles = draftPreviewPositionStyles[position] ?? draftPreviewPositionStyles.RB;
+            return (
+              <div key={name} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 border-b border-white/5 px-2.5 py-2.5 last:border-b-0">
+                <span className={`rounded-full border px-2 py-1 text-[7px] font-black ${styles.badge}`}>{position}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-[9px] font-black text-white">{name}</p>
+                  <p className="truncate text-[6.5px] font-bold text-slate-500">{game}</p>
+                </div>
+                <span className="text-[9px] font-black text-emerald-300">{ppg}</span>
+                <span className="rounded-lg bg-emerald-400 px-2 py-1.5 text-[7px] font-black text-slate-950">Draft</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </PhoneFrame>
@@ -176,73 +222,93 @@ function LeaderboardPhonePreview({
 }) {
   return (
     <PhoneFrame
-      className={`mt-8 rotate-[2deg] lg:mt-20 lg:-ml-8 ${className}`}
+      className={`mt-8 rotate-[2deg] lg:mt-16 lg:-ml-9 ${className}`}
       screenClassName={screenClassName}
     >
-      <div className="rounded-2xl border border-slate-700/70 bg-[#111827] p-4">
+      <div>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-300">
-              Live Golf Pool
+            <p className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-300">
+              College Football · Week 3
             </p>
-            <h2 className="mt-1 text-[1.65rem] font-black leading-none text-white">
-              Scoreboard
+            <h2 className="mt-1 text-[1.45rem] font-black leading-none text-white">
+              Live Leaderboard
             </h2>
           </div>
-
-          <span className="text-2xl font-black text-emerald-300">-43</span>
+          <span className="mt-0.5 flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-wide text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.9)]" />
+            Live
+          </span>
         </div>
 
-        <div className="mt-4 space-y-2">
-          {golfLeaderboardTeams.map(([rank, team, total]) => (
-            <div
-              key={team}
-              className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${
-                rank === "1"
-                  ? "border-emerald-400/25 bg-emerald-400/10"
-                  : "border-white/5 bg-[#1F2937]"
-              }`}
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="text-sm font-black text-slate-400">
-                  {rank}
-                </span>
-                <span className="truncate text-base font-black text-white">
-                  {team}
+        <div className="mt-3 rounded-2xl border border-white/10 bg-[#0c1421] p-2.5">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <span className="text-[7px] font-black uppercase tracking-widest text-slate-500">Pool Standings</span>
+            <span className="text-[7px] font-bold text-slate-500">Updated now</span>
+          </div>
+          <div className="space-y-1.5">
+            {footballLeaderboardTeams.map(([rank, team, total]) => (
+              <div
+                key={team}
+                className={`flex items-center justify-between rounded-xl border px-3 py-2 ${
+                  rank === "1"
+                    ? "border-emerald-400/30 bg-emerald-400/10 shadow-[0_8px_20px_rgba(16,185,129,0.08)]"
+                    : "border-white/5 bg-[#182334]"
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="w-3 text-[9px] font-black text-slate-500">
+                    {rank}
+                  </span>
+                  <span className="truncate text-[11px] font-black text-white">
+                    {team}
+                  </span>
+                </div>
+                <span className="text-[12px] font-black tabular-nums text-emerald-300">
+                  {total}
                 </span>
               </div>
-              <span className="text-lg font-black text-emerald-300">
-                {total}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        <div className="mt-3 overflow-hidden rounded-xl border border-slate-700/70 bg-[#030712]">
-          <div className="bg-[#172235] px-3 py-2 text-[8px] font-black uppercase tracking-widest text-emerald-300">
-            Andrew's Golfers
-          </div>
-          <div className="grid grid-cols-[1.6fr_0.55fr_0.55fr_0.55fr_0.7fr] bg-[#1F2937] px-3 py-2 text-[8px] font-black uppercase tracking-widest text-slate-400">
-            <span>Golfer</span>
-            <span>R1</span>
-            <span>R2</span>
-            <span>R3</span>
-            <span>Total</span>
-          </div>
-          {liveGolfRows.map(([name, r1, r2, r3, total]) => (
-            <div
-              key={name}
-              className="grid grid-cols-[1.6fr_0.55fr_0.55fr_0.55fr_0.7fr] border-t border-white/5 px-3 py-3 text-[10px] font-black text-slate-200"
-            >
-              <span className="truncate pr-2 text-white">{name}</span>
-              <span>{r1}</span>
-              <span>{r2}</span>
-              <span>{r3}</span>
-              <span className="text-emerald-300">{total}</span>
+        <div className="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#030712] shadow-xl shadow-black/30">
+          <div className="flex items-center justify-between bg-[#172235] px-3 py-2.5">
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-widest text-emerald-300">Garry&apos;s Roster</p>
+              <p className="mt-0.5 text-[7px] font-bold text-slate-500">128.6 fantasy points</p>
             </div>
-          ))}
+            <span className="rounded-lg bg-emerald-400/10 px-2 py-1 text-[7px] font-black text-emerald-300">1st</span>
+          </div>
+          <div className="grid grid-cols-[1fr_auto] bg-[#111a28] px-3 py-2 text-[7px] font-black uppercase tracking-widest text-slate-500">
+            <span>Player / Game</span>
+            <span>Pts</span>
+          </div>
+          {liveFootballRows.map(([position, name, game, total]) => {
+            const styles = draftPreviewPositionStyles[position] ?? draftPreviewPositionStyles.RB;
+            return (
+              <div
+                key={name}
+                className="grid grid-cols-[auto_1fr_auto] items-center gap-2 border-t border-white/5 px-3 py-3"
+              >
+                <span className={`rounded-full border px-2 py-1 text-[7px] font-black ${styles.badge}`}>{position}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-[9px] font-black text-white">{name}</p>
+                  <p className="truncate text-[6.5px] font-bold text-slate-500">{game}</p>
+                </div>
+                <span className="text-[11px] font-black tabular-nums text-emerald-300">{total}</span>
+              </div>
+            );
+          })}
         </div>
 
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-[#0c1421] px-3 py-3">
+          <div>
+            <p className="text-[7px] font-black uppercase tracking-widest text-slate-500">Next Up</p>
+            <p className="mt-1 text-[9px] font-black text-white">Michigan at Wisconsin</p>
+          </div>
+          <span className="text-[9px] font-black text-slate-300">7:30 PM</span>
+        </div>
       </div>
     </PhoneFrame>
   );
@@ -264,35 +330,41 @@ function ProductPreview() {
   );
 }
 
-function MobileHeroPreview() {
+function MobileExperienceShowcase() {
   return (
-    <div className="pointer-events-none absolute right-0 top-0 h-[430px] w-[118px] overflow-visible min-[390px]:w-[124px] sm:right-1 sm:w-[170px] lg:hidden">
-      <div className="absolute -inset-12 rounded-full bg-emerald-400/28 blur-3xl" />
-      <div className="absolute -inset-5 rounded-full bg-emerald-300/18 blur-2xl" />
-      <div className="absolute right-0 top-0 origin-top-right scale-[0.32] min-[390px]:scale-[0.34] sm:scale-[0.42]">
+    <div className="relative isolate my-7 h-[380px] overflow-hidden rounded-[2rem] border border-emerald-400/18 bg-[#040b12] shadow-[0_0_54px_rgba(16,185,129,0.12)] lg:hidden">
+      <div className="absolute inset-[-18%] z-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.36)_0%,rgba(16,185,129,0.20)_38%,rgba(16,185,129,0.08)_60%,transparent_80%)] blur-3xl" />
+      <div className="absolute left-1/2 top-1/2 z-0 h-[32rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/16 blur-3xl" />
+      <div className="absolute inset-x-[12%] bottom-[-10%] z-0 h-36 rounded-full bg-emerald-300/12 blur-2xl" />
+      <div className="absolute left-[8%] top-5 z-10 origin-top-left scale-[0.52] min-[375px]:left-[9%]">
         <DraftPhonePreview />
       </div>
-      <div className="absolute right-0 top-[198px] origin-top-right scale-[0.32] min-[390px]:top-[210px] min-[390px]:scale-[0.34] sm:top-[258px] sm:scale-[0.42]">
+      <div className="absolute left-[42%] top-11 z-10 origin-top-left scale-[0.52] min-[375px]:left-[43%]">
         <LeaderboardPhonePreview className="!mt-0" />
       </div>
     </div>
   );
 }
 
-function MobileExperienceShowcase() {
+function SportButtons({ className = "" }: { className?: string }) {
   return (
-    <div className="relative isolate my-5 h-[365px] overflow-hidden rounded-[2rem] border border-emerald-400/18 bg-[#040b12] shadow-[0_0_54px_rgba(16,185,129,0.12)] lg:hidden">
-      <div className="absolute inset-[-18%] z-0 bg-[radial-gradient(ellipse_at_center,rgba(16,185,129,0.36)_0%,rgba(16,185,129,0.20)_38%,rgba(16,185,129,0.08)_60%,transparent_80%)] blur-3xl" />
-      <div className="absolute left-1/2 top-1/2 z-0 h-[32rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-400/16 blur-3xl" />
-      <div className="absolute inset-x-[12%] bottom-[-10%] z-0 h-36 rounded-full bg-emerald-300/12 blur-2xl" />
-      <div className="absolute left-[8%] top-5 z-10 origin-top-left scale-[0.52] min-[375px]:left-[9%]">
-        <DraftPhonePreview screenClassName="!h-[500px] !min-h-[500px] overflow-hidden" />
-      </div>
-      <div className="absolute left-[42%] top-11 z-10 origin-top-left scale-[0.52] min-[375px]:left-[43%]">
-        <LeaderboardPhonePreview
-          className="!mt-0"
-          screenClassName="!h-[500px] !min-h-[500px] overflow-hidden"
-        />
+    <div className={`relative z-10 ${className}`}>
+      <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+        Pick Your Sport
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <a
+          href="/football"
+          className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
+        >
+          Create College Fantasy Football Pool
+        </a>
+        <a
+          href="/create-pool"
+          className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
+        >
+          Create PGA Event Pool
+        </a>
       </div>
     </div>
   );
@@ -316,17 +388,17 @@ export default function Home() {
               Your Rules
             </h1>
 
-            <p className="mt-5 max-w-[340px] text-xl font-black leading-8 text-emerald-300">
+            <SportButtons className="mt-7" />
+
+            <p className="mt-7 max-w-[340px] text-xl font-black leading-8 text-emerald-300">
               No spreadsheets. No manual tracking. Just snake drafts with friends.
             </p>
 
             <MobileExperienceShowcase />
           </div>
 
-          <div className="relative mb-7 hidden min-h-[430px] min-[390px]:min-h-[450px] lg:mb-0 lg:block lg:min-h-0">
-            <MobileHeroPreview />
-
-            <h1 className="relative z-10 max-w-[calc(100%-118px)] whitespace-nowrap text-[2.05rem] font-black leading-[1.08] tracking-tight min-[375px]:text-[2.18rem] min-[390px]:max-w-[calc(100%-124px)] sm:max-w-[calc(100%-176px)] sm:text-5xl md:max-w-4xl lg:max-w-4xl">
+          <div className="relative mb-7 hidden lg:mb-0 lg:block">
+            <h1 className="relative z-10 whitespace-nowrap text-5xl font-black leading-[1.04] tracking-tight xl:text-[4.2rem]">
               Your Pool
               <br />
               Your Friends
@@ -334,7 +406,9 @@ export default function Home() {
               Your Rules
             </h1>
 
-            <p className="relative z-10 mt-6 max-w-[calc(100%-122px)] text-base font-black leading-6 text-emerald-300 min-[375px]:text-lg min-[375px]:leading-7 min-[390px]:max-w-[calc(100%-128px)] sm:max-w-[calc(100%-180px)] sm:text-2xl md:max-w-3xl">
+            <SportButtons className="mt-8 max-w-xl" />
+
+            <p className="relative z-10 mt-8 max-w-xl text-xl font-black leading-8 text-emerald-300">
               Weekend long contests. No waiver wires. No bye weeks. No text threads
               for drafting. No excel spreadsheets for tracking.
             </p>
@@ -343,28 +417,6 @@ export default function Home() {
           <p className="mt-5 max-w-3xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8 md:mt-6 md:text-xl md:leading-9">
             Build your pool. Invite your friends. Snake draft teams. Track in realtime.
           </p>
-
-          <div className="mt-8 lg:mt-10">
-            <p className="mb-4 text-sm font-black uppercase tracking-widest text-slate-400">
-              Pick Your Sport
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <a
-                href="/football"
-                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)] md:text-xl"
-              >
-                Create College Fantasy Football Pool
-              </a>
-
-              <a
-                href="/create-pool"
-                className="flex min-h-20 items-center justify-center rounded-2xl bg-emerald-400 px-8 py-5 text-center text-lg font-black text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)] md:text-xl"
-              >
-                Create PGA Event Pool
-              </a>
-            </div>
-          </div>
 
           <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-slate-300 sm:text-base md:text-lg lg:mt-10 lg:gap-6">
             <span>✓ Snake Drafts</span>
