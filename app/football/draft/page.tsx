@@ -312,7 +312,7 @@ function PlayerDetailsModal({
   const mobileGameLogMinWidth = 190 + gameLogColumns.length * 52;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/75 px-1 pb-1 backdrop-blur-sm md:items-center md:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/75 p-1 backdrop-blur-sm md:p-6">
       <div className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-3rem)]">
         <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-4 sm:p-7">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-5">

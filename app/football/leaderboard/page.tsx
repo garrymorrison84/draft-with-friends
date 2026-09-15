@@ -678,7 +678,7 @@ function LeaderboardPlayerDetailsModal({
       role="dialog"
       aria-modal="true"
       aria-label={`${player.name} details`}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#030712]/80 px-1 pb-1 backdrop-blur-sm md:items-center md:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/80 p-1 backdrop-blur-sm md:p-6"
     >
       <div className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-3rem)]">
         <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-4 sm:p-7">
