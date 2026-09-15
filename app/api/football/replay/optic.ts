@@ -1,5 +1,9 @@
 import type { FootballPlayer } from "../../../football/lib/storage";
 import type { FootballStatLine } from "../../../football/lib/scoringEngine";
+import {
+  getCurrentCollegeFootballSeasonYear,
+  getCurrentCollegeFootballWeek,
+} from "../../../football/lib/collegeWeek";
 import { getEspnFallbackGames } from "./espn";
 
 const baseUrl = "https://api.opticodds.com/api/v3";
@@ -192,22 +196,6 @@ function gameStatusForFixture(fixture: Fixture | undefined, teamId: string) {
   return "";
 }
 
-function currentCollegeWeek(date = new Date()) {
-  const seasonYear = date.getMonth() < 2 ? date.getFullYear() - 1 : date.getFullYear();
-  const firstOfSeptember = new Date(seasonYear, 8, 1);
-  const firstMonday = new Date(firstOfSeptember);
-  firstMonday.setDate(firstMonday.getDate() - ((firstMonday.getDay() + 6) % 7));
-  const seasonStart = new Date(firstMonday);
-  seasonStart.setDate(seasonStart.getDate() - 7);
-  const currentMonday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  currentMonday.setDate(currentMonday.getDate() - ((currentMonday.getDay() + 6) % 7));
-  return Math.max(1, Math.floor((currentMonday.getTime() - seasonStart.getTime()) / 604800000) + 1);
-}
-
-function currentCollegeSeasonYear(date = new Date()) {
-  return date.getMonth() < 2 ? date.getFullYear() - 1 : date.getFullYear();
-}
-
 const propMap: Record<string, keyof FootballStatLine> = {
   player_passing_attempts: "passingAttempts", player_passing_completions: "completions",
   player_passing_yards: "passingYards", player_passing_touchdowns: "passingTds",
@@ -223,8 +211,9 @@ export async function getOpticOddsFootball(
   key: string,
   options: { week?: number; seasonYear?: number } = {}
 ) {
-  const selectedWeek = options.week || currentCollegeWeek();
-  const selectedSeasonYear = options.seasonYear || currentCollegeSeasonYear();
+  const selectedWeek = options.week || getCurrentCollegeFootballWeek();
+  const selectedSeasonYear =
+    options.seasonYear || getCurrentCollegeFootballSeasonYear();
   const fixtureWeeks = [...new Set([Math.max(1, selectedWeek - 1), selectedWeek])];
   const teams = (await pages<Team>("/teams?league=ncaaf&division=FBS", key, 3))
     .filter((team) => powerConferences.has(team.conference || ""));

@@ -23,6 +23,7 @@ import {
   defaultScoring,
   saveFootballPool,
 } from "../lib/storage";
+import { getCurrentCollegeFootballWeek } from "../lib/collegeWeek";
 
 const conferenceOptions = [
   "ACC",
@@ -36,8 +37,10 @@ const conferenceOptions = [
 const powerPoolConferences = defaultFootballPlayerPool.conferences;
 
 export default function CreateFootballPoolPage() {
+  const initialWeek = getCurrentCollegeFootballWeek();
   const [poolName, setPoolName] = useState("");
-  const [week, setWeek] = useState("Week 1");
+  const [currentWeek, setCurrentWeek] = useState(initialWeek);
+  const [week, setWeek] = useState(`Week ${initialWeek}`);
   const [numberOfTeams, setNumberOfTeams] = useState(4);
   const [teamNames, setTeamNames] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrder, setDraftOrder] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
@@ -59,8 +62,17 @@ export default function CreateFootballPoolPage() {
       try {
         const response = await fetch("/api/football/replay", { cache: "no-store" });
         const data = await response.json();
-        const currentWeek = Number(data?.replay?.week);
-        if (response.ok && currentWeek > 0) setWeek(`Week ${currentWeek}`);
+        const availableWeek = Number(data?.replay?.week);
+        if (response.ok && availableWeek > 0) {
+          const boundedWeek = Math.min(18, availableWeek);
+          setCurrentWeek(boundedWeek);
+          setWeek((selectedWeek) => {
+            const selectedNumber = Number(selectedWeek.replace(/\D/g, ""));
+            return selectedNumber < boundedWeek
+              ? `Week ${boundedWeek}`
+              : selectedWeek;
+          });
+        }
       } catch (error) {
         console.error("Could not load the current college football week", error);
       }
@@ -218,9 +230,9 @@ export default function CreateFootballPoolPage() {
                 ariaLabel="College football week"
                 value={week}
                 onChange={setWeek}
-                options={Array.from({ length: 18 }).map((_, index) => ({
-                  value: `Week ${index + 1}`,
-                  label: `Week ${index + 1}`,
+                options={Array.from({ length: 19 - currentWeek }).map((_, index) => ({
+                  value: `Week ${currentWeek + index}`,
+                  label: `Week ${currentWeek + index}`,
                 }))}
                 buttonClassName="border-white/5 bg-[#1F2937] font-normal"
               />
