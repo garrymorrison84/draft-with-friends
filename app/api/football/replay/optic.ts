@@ -401,6 +401,7 @@ export async function getOpticOddsFootball(
         position: (player.position === "PK" ? "K" : player.position) as FootballPlayer["position"],
         rank: 9999, projected: projectedPoints(projectedStats),
         opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
+        gameStartAt: selectedFixture?.start_date,
         gameStatus: gameStatusForFixture(selectedFixture, team.id),
         averageStats, projectedStats,
         liveStats: currentResult?.statLine,
@@ -430,6 +431,7 @@ export async function getOpticOddsFootball(
       schoolAbbreviation: team.abbreviation || team.name,
       conference: conferenceName(team.conference), position: "DST", rank: 9999,
       projected: projectedPoints(averageStats), opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
+      gameStartAt: selectedFixture?.start_date,
       gameStatus: gameStatusForFixture(selectedFixture, team.id),
       averageStats, projectedStats: averageStats,
       liveStats: currentResult

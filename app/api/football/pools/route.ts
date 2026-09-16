@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import {
+  getFootballDraftEligibilityCutoff,
+  isFootballPlayerEligibleAt,
+} from "../../../football/lib/storage";
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>;
 
@@ -173,6 +177,37 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isRecord(pool.settings)) return NextResponse.json({ error: "Invalid pool settings." }, { status: 500 });
+  const snapshotGameStartAt =
+    playerSnapshot && typeof playerSnapshot.gameStartAt === "string"
+      ? playerSnapshot.gameStartAt
+      : "";
+  const eligibilityCutoff = getFootballDraftEligibilityCutoff(
+    {
+      draftType:
+        pool.settings.draftType === "scheduled" ? "scheduled" : "unscheduled",
+      scheduledDraftAt:
+        typeof pool.settings.scheduledDraftAt === "string"
+          ? pool.settings.scheduledDraftAt
+          : null,
+    },
+    Date.now()
+  );
+  if (
+    !snapshotGameStartAt ||
+    !isFootballPlayerEligibleAt(
+      { gameStartAt: snapshotGameStartAt },
+      eligibilityCutoff
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error: snapshotGameStartAt
+          ? "This player's game has already started and they are no longer eligible."
+          : "This player's kickoff time could not be verified. Refresh the player pool and try again.",
+      },
+      { status: 409 }
+    );
+  }
   if (pool.settings.draftPaused === true) {
     return NextResponse.json({ error: "The commissioner has paused the draft." }, { status: 409 });
   }

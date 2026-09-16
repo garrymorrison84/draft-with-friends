@@ -87,12 +87,40 @@ export type FootballPlayer = {
   projected: number;
   opponent: string;
   gameTime: string;
+  gameStartAt?: string;
   gameStatus?: string;
   averageStats: import("./scoringEngine").FootballStatLine;
   projectedStats: import("./scoringEngine").FootballStatLine;
   liveStats?: import("./scoringEngine").FootballStatLine;
   gameLogs?: FootballGameLog[];
 };
+
+export function getFootballDraftEligibilityCutoff(
+  pool: Pick<FootballPool, "draftType" | "scheduledDraftAt"> | null | undefined,
+  now: Date | number = new Date()
+) {
+  const nowMs = now instanceof Date ? now.getTime() : now;
+  const scheduledDraftMs =
+    pool?.draftType === "scheduled" && pool.scheduledDraftAt
+      ? Date.parse(pool.scheduledDraftAt)
+      : Number.NaN;
+
+  return Number.isFinite(scheduledDraftMs)
+    ? Math.max(nowMs, scheduledDraftMs)
+    : nowMs;
+}
+
+export function isFootballPlayerEligibleAt(
+  player: Pick<FootballPlayer, "gameStartAt">,
+  cutoff: Date | number
+) {
+  const cutoffMs = cutoff instanceof Date ? cutoff.getTime() : cutoff;
+  const gameStartMs = player.gameStartAt
+    ? Date.parse(player.gameStartAt)
+    : Number.NaN;
+
+  return Number.isFinite(cutoffMs) && Number.isFinite(gameStartMs) && gameStartMs > cutoffMs;
+}
 
 export type FootballGameLog = {
   id: string;

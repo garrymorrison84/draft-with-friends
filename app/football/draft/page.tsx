@@ -35,8 +35,10 @@ import {
   defaultFootballPlayerPool,
   defaultScoring,
   footballPlayers,
+  getFootballDraftEligibilityCutoff,
   getFootballReplayUrl,
   getTotalRosterSlots,
+  isFootballPlayerEligibleAt,
   saveFootballDraftPicks,
   saveFootballPool,
 } from "../lib/storage";
@@ -824,6 +826,7 @@ export default function FootballDraftPage() {
         )
       : null;
   const draftedIds = new Set(picks.map((pick) => pick.playerId));
+  const eligibilityCutoff = getFootballDraftEligibilityCutoff(pool, now);
   const compactDraftLayout = (pool?.numberOfTeams || 0) > 3;
   const draftRoomGridClass = compactDraftLayout
     ? "lg:grid-cols-[minmax(360px,430px)_minmax(0,1fr)] xl:grid-cols-[minmax(380px,460px)_minmax(0,1fr)]"
@@ -906,6 +909,10 @@ export default function FootballDraftPage() {
       const matchesPosition = position === "ALL" || player.position === position;
       const matchesConference = activeConferences.includes(player.conference);
       const matchesSchedule = hasScheduledOpponent(player);
+      const gameHasNotStarted = isFootballPlayerEligibleAt(
+        player,
+        eligibilityCutoff
+      );
       const matchesRoster = activePositions.has(player.position);
       const isAvailable = !draftedIds.has(player.id);
       const matchesCurrentTeamRoster =
@@ -931,6 +938,7 @@ export default function FootballDraftPage() {
         matchesPosition &&
         matchesConference &&
         matchesSchedule &&
+        gameHasNotStarted &&
         matchesRoster &&
         matchesCurrentTeamRoster &&
         matchesSearch
@@ -1071,6 +1079,7 @@ export default function FootballDraftPage() {
       !pool ||
       !draftIdentityReady ||
       draftedIds.has(player.id) ||
+      !isFootballPlayerEligibleAt(player, eligibilityCutoff) ||
       !draftOpen ||
       isPickClockPaused ||
       draftComplete ||
@@ -1105,6 +1114,7 @@ export default function FootballDraftPage() {
       pickSubmissionInFlightRef.current ||
       committedPickKeyRef.current === pickKey ||
       draftedIds.has(player.id) ||
+      !isFootballPlayerEligibleAt(player, eligibilityCutoff) ||
       !draftOpen ||
       isPickClockPaused ||
       draftComplete ||
@@ -1740,7 +1750,7 @@ export default function FootballDraftPage() {
           scoring={pool.scoring}
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
-          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && (isCommissioner || selectedTeam === currentTeam)}
+          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && isFootballPlayerEligibleAt(detailsPlayer, eligibilityCutoff) && (isCommissioner || selectedTeam === currentTeam)}
         />
       )}
 
@@ -1778,9 +1788,12 @@ export default function FootballDraftPage() {
               <button
                 type="button"
                 onClick={confirmDraftPlayer}
-                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
+                disabled={!isFootballPlayerEligibleAt(pendingPlayer, eligibilityCutoff)}
+                className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
               >
-                Yes
+                {isFootballPlayerEligibleAt(pendingPlayer, eligibilityCutoff)
+                  ? "Yes"
+                  : "Game Started"}
               </button>
             </div>
           </div>
