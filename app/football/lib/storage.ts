@@ -89,11 +89,33 @@ export type FootballPlayer = {
   gameTime: string;
   gameStartAt?: string;
   gameStatus?: string;
+  injuryStatus?: string;
+  injuryType?: string;
   averageStats: import("./scoringEngine").FootballStatLine;
   projectedStats: import("./scoringEngine").FootballStatLine;
   liveStats?: import("./scoringEngine").FootballStatLine;
   gameLogs?: FootballGameLog[];
 };
+
+export type FootballInjuryAvailability = "available" | "warning" | "out";
+
+export function getFootballInjuryAvailability(
+  player: Pick<FootballPlayer, "injuryStatus" | "injuryType">
+): FootballInjuryAvailability {
+  const status = player.injuryStatus?.trim().toLowerCase() || "";
+  if (!status) return player.injuryType ? "warning" : "available";
+  if (/^(active|available|healthy|cleared)$/.test(status)) {
+    return "available";
+  }
+  if (
+    /\bout\b|\binactive\b|injured reserve|reserve\/injured|^ir$|\bpup\b|physically unable|season[- ]ending|will not play|\bsuspended\b/.test(
+      status
+    )
+  ) {
+    return "out";
+  }
+  return "warning";
+}
 
 export function getFootballDraftEligibilityCutoff(
   pool: Pick<FootballPool, "draftType" | "scheduledDraftAt"> | null | undefined,

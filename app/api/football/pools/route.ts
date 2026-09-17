@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import {
+  getFootballInjuryAvailability,
   getFootballDraftEligibilityCutoff,
   isFootballPlayerEligibleAt,
 } from "../../../football/lib/storage";
+import { getOpticOddsNcaafInjuries } from "../replay/optic";
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>;
 
@@ -204,6 +206,38 @@ export async function POST(request: NextRequest) {
         error: snapshotGameStartAt
           ? "This player's game has already started and they are no longer eligible."
           : "This player's kickoff time could not be verified. Refresh the player pool and try again.",
+      },
+      { status: 409 }
+    );
+  }
+  let injuryStatus =
+    playerSnapshot && typeof playerSnapshot.injuryStatus === "string"
+      ? playerSnapshot.injuryStatus
+      : "";
+  const opticOddsKey = process.env.OPTICODDS_API_KEY;
+  if (
+    opticOddsKey &&
+    playerId.startsWith("oo-") &&
+    !playerId.startsWith("oo-dst-")
+  ) {
+    try {
+      const opticOddsPlayerId = playerId.slice("oo-".length);
+      const currentInjury = (await getOpticOddsNcaafInjuries(opticOddsKey)).find(
+        (injury) => injury.player?.id === opticOddsPlayerId
+      );
+      if (currentInjury?.status) injuryStatus = currentInjury.status;
+    } catch {
+      // Keep the last player-pool status if the live injury feed is temporarily unavailable.
+    }
+  }
+  if (getFootballInjuryAvailability({ injuryStatus }) === "out") {
+    return NextResponse.json(
+      {
+        error: `${
+          playerSnapshot && typeof playerSnapshot.name === "string"
+            ? playerSnapshot.name
+            : "This player"
+        } is listed as ${injuryStatus} and is no longer eligible to be drafted.`,
       },
       { status: 409 }
     );

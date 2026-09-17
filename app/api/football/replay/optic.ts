@@ -1,4 +1,7 @@
-import type { FootballPlayer } from "../../../football/lib/storage";
+import {
+  getFootballInjuryAvailability,
+  type FootballPlayer,
+} from "../../../football/lib/storage";
 import type { FootballStatLine } from "../../../football/lib/scoringEngine";
 import {
   getCurrentCollegeFootballSeasonYear,
@@ -38,6 +41,16 @@ type PlayerResult = {
 type ResultEnvelope = { fixture: Fixture; results?: PlayerResult[] };
 type Odd = { player_id?: string | null; market_id?: string; points?: number | null; is_main?: boolean };
 type OddsEnvelope = { odds?: Odd[] };
+export type OpticOddsInjury = {
+  player?: { id?: string; name?: string };
+  team?: { id?: string; name?: string };
+  status?: string | null;
+  type?: string | null;
+};
+
+let ncaafInjuryCache:
+  | { expiresAt: number; injuries: OpticOddsInjury[] }
+  | undefined;
 
 async function get<T>(path: string, key: string): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -56,6 +69,18 @@ async function pages<T>(path: string, key: string, maxPages?: number) {
     if (!result.has_more || (maxPages != null && page >= maxPages)) break;
   }
   return data;
+}
+
+export async function getOpticOddsNcaafInjuries(key: string) {
+  if (ncaafInjuryCache && ncaafInjuryCache.expiresAt > Date.now()) {
+    return ncaafInjuryCache.injuries;
+  }
+  const injuries = await pages<OpticOddsInjury>("/injuries?league=ncaaf", key, 10);
+  ncaafInjuryCache = {
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    injuries,
+  };
+  return injuries;
 }
 
 function conferenceName(value?: string | null) {
@@ -234,7 +259,7 @@ export async function getOpticOddsFootball(
     { length: Math.ceil(teams.length / 10) },
     (_, index) => teams.slice(index * 10, index * 10 + 10)
   );
-  const [playerBatches, fixtures] = await Promise.all([
+  const [playerBatches, fixtures, injuries] = await Promise.all([
     Promise.all(teamBatches.map((batch) => {
       const ids = batch.map((team) => `team_id=${encodeURIComponent(team.id)}`).join("&");
       // Player batches can exceed 1,000 records. Follow OpticOdds pagination
@@ -254,8 +279,21 @@ export async function getOpticOddsFootball(
       weekResults.flat().forEach((fixture) => byId.set(fixture.id, fixture));
       return [...byId.values()];
     }),
+    getOpticOddsNcaafInjuries(key).catch(() => []),
   ]);
   const players = playerBatches.flat();
+  const injuriesByPlayer = new Map<string, OpticOddsInjury>();
+  injuries.forEach((injury) => {
+    const playerId = injury.player?.id;
+    if (!playerId) return;
+    const existing = injuriesByPlayer.get(playerId);
+    if (
+      !existing ||
+      getFootballInjuryAvailability({ injuryStatus: injury.status || undefined }) === "out"
+    ) {
+      injuriesByPlayer.set(playerId, injury);
+    }
+  });
   const games = fixtures.filter((fixture) => {
     const home = fixture.home_competitors[0]?.id;
     const away = fixture.away_competitors[0]?.id;
@@ -394,6 +432,7 @@ export async function getOpticOddsFootball(
       const selectedFixture = selectedWeekGames.find(
         (fixture) => fixture.home_competitors[0]?.id === team.id || fixture.away_competitors[0]?.id === team.id
       );
+      const injury = injuriesByPlayer.get(player.id);
       return {
         id: `oo-${player.id}`, name: player.name, school: team.name,
         schoolAbbreviation: team.abbreviation || team.name,
@@ -403,6 +442,8 @@ export async function getOpticOddsFootball(
         opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
         gameStartAt: selectedFixture?.start_date,
         gameStatus: gameStatusForFixture(selectedFixture, team.id),
+        injuryStatus: injury?.status || undefined,
+        injuryType: injury?.type || undefined,
         averageStats, projectedStats,
         liveStats: currentResult?.statLine,
         gameLogs: logs,
@@ -440,10 +481,15 @@ export async function getOpticOddsFootball(
       gameLogs: logs,
     };
   });
-  const eligible = [...normalized, ...defenses]
-    .filter((player) => /^(vs|@)\s+\S+/.test(player.opponent))
+  const scheduledPlayers = [...normalized, ...defenses]
+    .filter((player) => /^(vs|@)\s+\S+/.test(player.opponent));
+  const eligible = scheduledPlayers
+    .filter((player) => getFootballInjuryAvailability(player) !== "out")
     .sort((a, b) => b.projected - a.projected || a.name.localeCompare(b.name))
     .map((player, index) => ({ ...player, rank: index + 1 }));
+  const unavailable = scheduledPlayers
+    .filter((player) => getFootballInjuryAvailability(player) === "out")
+    .sort((a, b) => a.name.localeCompare(b.name));
   const sample = selectedWeekGames[0] || games[0];
   return {
     mode: "live",
@@ -451,11 +497,12 @@ export async function getOpticOddsFootball(
       season: sample?.season_year || String(new Date().getFullYear()), seasonType: "reg",
       week: selectedWeek, hasReplayKey: true, error: null,
       endpoints: { teams: `${baseUrl}/teams`, players: `${baseUrl}/players`, fixtures: `${baseUrl}/fixtures`, odds: `${baseUrl}/fixtures/odds`, playerResults: `${baseUrl}/fixtures/player-results` },
-      metadata: { provider: "OpticOdds", teams: teams.length, fixtures: games.length, completedFixtures: completed.length, upcomingFixtures: upcoming.length, playersWithPropProjections: props.size, fallbackFixtures: fallbackGames.length },
+      metadata: { provider: "OpticOdds", teams: teams.length, fixtures: games.length, completedFixtures: completed.length, upcomingFixtures: upcoming.length, playersWithPropProjections: props.size, fallbackFixtures: fallbackGames.length, activeInjuries: injuries.length, excludedInjuries: unavailable.length },
     },
     playerPool: {
       source: "OpticOdds NCAAF live data", count: eligible.length,
       conferences: [...new Set(eligible.map((player) => player.conference))].sort(), players: eligible,
+      unavailablePlayers: unavailable,
     },
   };
 }

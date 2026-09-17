@@ -36,6 +36,7 @@ import {
   defaultScoring,
   footballPlayers,
   getFootballDraftEligibilityCutoff,
+  getFootballInjuryAvailability,
   getFootballReplayUrl,
   getTotalRosterSlots,
   isFootballPlayerEligibleAt,
@@ -125,6 +126,10 @@ function formatDraftOpeningMessage(secondsRemaining: number) {
 
 function hasScheduledOpponent(player: FootballPlayer) {
   return /^(vs|@)\s+\S+/.test(player.opponent);
+}
+
+function injuryLabel(player: FootballPlayer) {
+  return [player.injuryStatus, player.injuryType].filter(Boolean).join(" • ");
 }
 
 const eligiblePlayerGrid =
@@ -310,6 +315,7 @@ function PlayerDetailsModal({
   const ppg = getPlayerPpg(player, scoring);
   const rows = playerGameRows(player, scoring);
   const hasReplayGameLogs = Boolean(player.gameLogs?.length);
+  const injuryAvailability = getFootballInjuryAvailability(player);
   const gameLogColumns = gameLogColumnsForPosition(player.position, scoring);
   const mobileGameLogMinWidth = 190 + gameLogColumns.length * 52;
 
@@ -334,6 +340,11 @@ function PlayerDetailsModal({
                 {player.conference} • {player.gameTime} {player.opponent}
                 {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
               </p>
+              {injuryAvailability !== "available" && (
+                <p className={`mt-3 rounded-xl border px-3 py-2 text-sm font-black ${injuryAvailability === "out" ? "border-red-300/30 bg-red-400/10 text-red-200" : "border-amber-300/30 bg-amber-300/10 text-amber-100"}`}>
+                  Injury status: {injuryLabel(player)}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 md:min-w-[280px] md:gap-3">
@@ -916,6 +927,7 @@ export default function FootballDraftPage() {
         player,
         eligibilityCutoff
       );
+      const injuryEligible = getFootballInjuryAvailability(player) !== "out";
       const matchesRoster = activePositions.has(player.position);
       const isAvailable = !draftedIds.has(player.id);
       const matchesEligiblePlayerTeamRoster =
@@ -931,7 +943,7 @@ export default function FootballDraftPage() {
       const searchablePlayer = normalizePlayerSearch(
         `${player.name} ${player.school} ${player.schoolAbbreviation || ""} ${
           player.conference
-        } ${player.position}`
+        } ${player.position} ${player.injuryStatus || ""} ${player.injuryType || ""}`
       );
       const matchesSearch = searchTerms.every((term) =>
         searchablePlayer.includes(term)
@@ -942,6 +954,7 @@ export default function FootballDraftPage() {
         matchesConference &&
         matchesSchedule &&
         gameHasNotStarted &&
+        injuryEligible &&
         matchesRoster &&
         matchesEligiblePlayerTeamRoster &&
         matchesSearch
@@ -1083,6 +1096,7 @@ export default function FootballDraftPage() {
       !draftIdentityReady ||
       draftedIds.has(player.id) ||
       !isFootballPlayerEligibleAt(player, eligibilityCutoff) ||
+      getFootballInjuryAvailability(player) === "out" ||
       !draftOpen ||
       isPickClockPaused ||
       draftComplete ||
@@ -1118,6 +1132,7 @@ export default function FootballDraftPage() {
       committedPickKeyRef.current === pickKey ||
       draftedIds.has(player.id) ||
       !isFootballPlayerEligibleAt(player, eligibilityCutoff) ||
+      getFootballInjuryAvailability(player) === "out" ||
       !draftOpen ||
       isPickClockPaused ||
       draftComplete ||
@@ -1544,6 +1559,11 @@ export default function FootballDraftPage() {
                             {player.gameTime} {player.opponent}
                             {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
                           </p>
+                          {getFootballInjuryAvailability(player) === "warning" && (
+                            <p className="mt-1 text-xs font-black leading-4 text-amber-300">
+                              Injury: {injuryLabel(player)}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </button>
@@ -1753,7 +1773,7 @@ export default function FootballDraftPage() {
           scoring={pool.scoring}
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
-          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && isFootballPlayerEligibleAt(detailsPlayer, eligibilityCutoff) && (isCommissioner || selectedTeam === currentTeam)}
+          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && isFootballPlayerEligibleAt(detailsPlayer, eligibilityCutoff) && getFootballInjuryAvailability(detailsPlayer) !== "out" && (isCommissioner || selectedTeam === currentTeam)}
         />
       )}
 
@@ -1778,6 +1798,11 @@ export default function FootballDraftPage() {
             <p className="mt-4 text-sm text-slate-400">
               This will add {pendingPlayer.name} to {currentTeam}&apos;s current pick.
             </p>
+            {getFootballInjuryAvailability(pendingPlayer) === "warning" && (
+              <p className="mt-4 rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm font-black text-amber-100">
+                Injury warning: {injuryLabel(pendingPlayer)}
+              </p>
+            )}
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
@@ -1791,12 +1816,14 @@ export default function FootballDraftPage() {
               <button
                 type="button"
                 onClick={confirmDraftPlayer}
-                disabled={!isFootballPlayerEligibleAt(pendingPlayer, eligibilityCutoff)}
+                disabled={!isFootballPlayerEligibleAt(pendingPlayer, eligibilityCutoff) || getFootballInjuryAvailability(pendingPlayer) === "out"}
                 className="rounded-xl bg-emerald-400 px-4 py-3 font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
               >
-                {isFootballPlayerEligibleAt(pendingPlayer, eligibilityCutoff)
-                  ? "Yes"
-                  : "Game Started"}
+                {!isFootballPlayerEligibleAt(pendingPlayer, eligibilityCutoff)
+                  ? "Game Started"
+                  : getFootballInjuryAvailability(pendingPlayer) === "out"
+                    ? "Unavailable"
+                    : "Yes"}
               </button>
             </div>
           </div>

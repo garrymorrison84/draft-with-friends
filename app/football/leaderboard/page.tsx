@@ -11,6 +11,7 @@ import {
   FootballScoring,
   defaultScoring,
   footballPlayers,
+  getFootballInjuryAvailability,
   getFootballReplayUrl,
   loadFootballDraftPicks,
   loadFootballPool,
@@ -62,6 +63,10 @@ const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
   DST: "bg-green-500/45 border-green-200 text-green-50 shadow-green-500/20",
   K: "bg-slate-400/45 border-slate-100 text-white shadow-slate-400/20",
 };
+
+function injuryLabel(player: FootballPlayer) {
+  return [player.injuryStatus, player.injuryType].filter(Boolean).join(" • ");
+}
 
 function scoringStatLine(player: FootballPlayer) {
   return player.liveStats || {};
@@ -662,6 +667,7 @@ function LeaderboardPlayerDetailsModal({
   const ppg = getPlayerPpg(player, scoring);
   const rows = playerGameRows(player, scoring);
   const hasGameLogs = Boolean(player.gameLogs?.length);
+  const injuryAvailability = getFootballInjuryAvailability(player);
   const columns = gameLogColumnsForPosition(player.position, scoring);
   const mobileGameLogMinWidth = 190 + columns.length * 52;
 
@@ -701,6 +707,11 @@ function LeaderboardPlayerDetailsModal({
                 {player.conference} • {player.gameTime} {player.opponent}
                 {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
               </p>
+              {injuryAvailability !== "available" && (
+                <p className={`mt-3 rounded-xl border px-3 py-2 text-sm font-black ${injuryAvailability === "out" ? "border-red-300/30 bg-red-400/10 text-red-200" : "border-amber-300/30 bg-amber-300/10 text-amber-100"}`}>
+                  Injury status: {injuryLabel(player)}
+                </p>
+              )}
             </div>
 
             <div className="flex shrink-0 flex-col items-center justify-center rounded-2xl bg-[#030712] px-4 py-3 text-center sm:min-w-28 sm:p-4">
@@ -871,6 +882,11 @@ function TeamStatTable({
                           {player.opponent}
                           {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
                         </p>
+                        {getFootballInjuryAvailability(player) !== "available" && (
+                          <p className={`mt-0.5 text-[10px] font-black leading-4 sm:text-xs ${getFootballInjuryAvailability(player) === "out" ? "text-red-300" : "text-amber-300"}`}>
+                            Injury: {injuryLabel(player)}
+                          </p>
+                        )}
                       </div>
                     </button>
                   </td>
@@ -1126,9 +1142,14 @@ export default function FootballLeaderboardPage() {
         const response = await fetch(getFootballReplayUrl(pool!), { cache: "no-store" });
         if (!response.ok) throw new Error("Replay player pool failed");
         const data = await response.json();
-        const replayPlayers = data?.playerPool?.players;
+        const replayPlayers = [
+          ...(Array.isArray(data?.playerPool?.players) ? data.playerPool.players : []),
+          ...(Array.isArray(data?.playerPool?.unavailablePlayers)
+            ? data.playerPool.unavailablePlayers
+            : []),
+        ];
 
-        if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
+        if (!cancelled && replayPlayers.length > 0) {
           setPlayers(replayPlayers);
         }
       } catch {
