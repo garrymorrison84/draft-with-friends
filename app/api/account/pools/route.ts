@@ -233,6 +233,61 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Choose a pool to delete from your history." }, { status: 400 });
   }
 
+  const ownerResult = sport === "football"
+    ? await client
+      .from("platform_pools")
+      .select("id,owner_id")
+      .eq("id", poolId)
+      .eq("pool_type", "college_fantasy")
+      .maybeSingle()
+    : await client
+      .from("pools")
+      .select("id,owner_id")
+      .eq("id", poolId)
+      .maybeSingle();
+
+  if (ownerResult.error) {
+    return NextResponse.json({ error: ownerResult.error.message }, { status: 500 });
+  }
+  if (!ownerResult.data) {
+    return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  }
+
+  if (ownerResult.data.owner_id === userId) {
+    const relatedDeletes = sport === "football"
+      ? await Promise.all([
+        client.from("platform_draft_picks").delete().eq("pool_id", poolId),
+        client.from("pool_entries").delete().eq("pool_id", poolId),
+        client.from("platform_pools").delete().eq("id", `TEAM_CLAIMS_${poolId}`),
+      ])
+      : await Promise.all([
+        client.from("draft_picks").delete().eq("pool_id", poolId),
+        client.from("platform_pools").delete().eq("id", `TEAM_CLAIMS_${poolId}`),
+      ]);
+    const relatedError = relatedDeletes.find((result) => result.error)?.error;
+    if (relatedError) {
+      return NextResponse.json({ error: relatedError.message }, { status: 500 });
+    }
+
+    const deleteResult = sport === "football"
+      ? await client
+        .from("platform_pools")
+        .delete()
+        .eq("id", poolId)
+        .eq("pool_type", "college_fantasy")
+        .eq("owner_id", userId)
+      : await client
+        .from("pools")
+        .delete()
+        .eq("id", poolId)
+        .eq("owner_id", userId);
+    if (deleteResult.error) {
+      return NextResponse.json({ error: deleteResult.error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deletedForEveryone: true });
+  }
+
   const { error } = await client.from("platform_pools").upsert(
     {
       id: hiddenPoolRowId(userId, sport, poolId),
@@ -245,5 +300,5 @@ export async function DELETE(request: NextRequest) {
   );
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, deletedForEveryone: false });
 }

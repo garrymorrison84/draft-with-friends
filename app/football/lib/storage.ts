@@ -486,6 +486,11 @@ export function loadFootballDraftPicks(poolId: string) {
   return raw ? (JSON.parse(raw) as FootballDraftPick[]) : [];
 }
 
+export function clearFootballHistory(poolId: string) {
+  localStorage.removeItem(poolKey(poolId));
+  localStorage.removeItem(picksKey(poolId));
+}
+
 export function getTotalRosterSlots(scoring?: FootballScoring) {
   const roster = scoring?.roster || defaultScoring.roster;
   return Object.values(roster).reduce((total, value) => total + value, 0);

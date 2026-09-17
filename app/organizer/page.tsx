@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import BrandMark from "../components/BrandMark";
 import { getCurrentOrganizerUser } from "../lib/poolApi";
+import { clearPool as clearLocalGolfPool } from "../lib/poolStorage";
 import { supabase } from "../lib/supabase";
+import { clearFootballHistory } from "../football/lib/storage";
 
 type AccountPool = {
   id: string;
@@ -180,8 +182,11 @@ export default function AccountPoolsPage() {
   }
 
   async function deleteFromHistory(pool: AccountPool) {
+    const deletesForEveryone = pool.role === "organizer";
     const confirmed = window.confirm(
-      `Delete “${pool.name}” from My Pools? This only removes it from your account history and will not delete the shared pool for other participants.`
+      deletesForEveryone
+        ? `Permanently delete “${pool.name}” for everyone? The pool, draft, and leaderboard will be removed for every participant. This cannot be undone.`
+        : `Delete “${pool.name}” from My Pools? This only removes it from your account history and will not delete the shared pool for other participants.`
     );
     if (!confirmed) return;
 
@@ -201,10 +206,27 @@ export default function AccountPoolsPage() {
         body: JSON.stringify({ sport: pool.sport, poolId: pool.id }),
       });
       const result = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(result?.error || "Could not delete this pool from your history.");
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            (deletesForEveryone
+              ? "Could not delete this pool for everyone."
+              : "Could not delete this pool from your history.")
+        );
+      }
+      if (result?.deletedForEveryone) {
+        if (pool.sport === "football") clearFootballHistory(pool.id);
+        else clearLocalGolfPool(pool.id);
+      }
       setPools((current) => current.filter((item) => `${item.sport}-${item.id}` !== poolKey));
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : "Could not delete this pool from your history.");
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : deletesForEveryone
+            ? "Could not delete this pool for everyone."
+            : "Could not delete this pool from your history."
+      );
     } finally {
       setDeletingPoolKey("");
     }
