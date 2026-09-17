@@ -886,6 +886,9 @@ export default function FootballDraftPage() {
     draftCompleteSoundPlayedRef.current = false;
     draftCompleteAfterPickSoundRef.current = 0;
   }, [activePoolId, draftComplete]);
+  const eligiblePlayerTeam = isCommissioner
+    ? currentTeam
+    : selectedTeam || currentTeam;
   const draftablePositions = new Set(
     positions.filter((item) => {
       if (item === "ALL") return true;
@@ -893,7 +896,7 @@ export default function FootballDraftPage() {
       return (
         activePositions.has(item) &&
         canTeamDraftPosition({
-          team: currentTeam,
+          team: eligiblePlayerTeam,
           position: item as FootballPlayer["position"],
           picks,
           players,
@@ -915,11 +918,11 @@ export default function FootballDraftPage() {
       );
       const matchesRoster = activePositions.has(player.position);
       const isAvailable = !draftedIds.has(player.id);
-      const matchesCurrentTeamRoster =
+      const matchesEligiblePlayerTeamRoster =
         !pool ||
         draftComplete ||
         canTeamDraftPosition({
-          team: currentTeam,
+          team: eligiblePlayerTeam,
           position: player.position,
           picks,
           players,
@@ -940,7 +943,7 @@ export default function FootballDraftPage() {
         matchesSchedule &&
         gameHasNotStarted &&
         matchesRoster &&
-        matchesCurrentTeamRoster &&
+        matchesEligiblePlayerTeamRoster &&
         matchesSearch
       );
     })
@@ -1572,7 +1575,7 @@ export default function FootballDraftPage() {
               {filteredPlayers.length === 0 && (
                 <div className="mt-4 rounded-2xl border border-white/5 bg-[#030712] p-5 text-slate-400">
                   No eligible players match this position, roster limit, conference,
-                  and search combination for {currentTeam}.
+                  and search combination for {eligiblePlayerTeam}.
                 </div>
               )}
           </section>
