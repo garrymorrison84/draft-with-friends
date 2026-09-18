@@ -807,6 +807,11 @@ function TeamStatTable({
 }) {
   if (entries.length === 0 || columns.length === 0) return null;
 
+  // Keep every compact stat heading legible on phones. The table remains
+  // horizontally scrollable, but each statistic gets enough room so adjacent
+  // labels such as COMP and YDS never overlap.
+  const mobileTableMinWidth = Math.max(620, 280 + columns.length * 58);
+
   return (
     <div className="mt-5">
       {title && (
@@ -815,7 +820,10 @@ function TeamStatTable({
         </h4>
       )}
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#030712]">
-        <table className="w-full min-w-[560px] table-fixed text-right text-xs font-black sm:min-w-[760px] sm:text-sm">
+        <table
+          className="w-full table-fixed text-right text-xs font-black sm:text-sm"
+          style={{ minWidth: mobileTableMinWidth }}
+        >
           <thead className="text-[10px] uppercase tracking-wide text-slate-500 sm:text-xs">
             {groups && groups.length > 0 && (
               <tr className="border-b border-white/10 bg-[#111827]">
@@ -848,7 +856,7 @@ function TeamStatTable({
               {columns.map((column, index) => (
                 <th
                   key={`${title}-${column.group}-${column.label}`}
-                  className={`px-1.5 py-2 text-center sm:px-3 sm:py-3 ${
+                  className={`whitespace-nowrap px-1.5 py-2 text-center sm:px-3 sm:py-3 ${
                     groups && isGroupStart(columns, index) ? "border-l border-white/10" : ""
                   }`}
                 >
@@ -874,12 +882,18 @@ function TeamStatTable({
                     >
                       <PositionBadge entry={entry} />
                       <div className="min-w-0">
-                        <p className="truncate whitespace-nowrap text-sm font-black text-white sm:text-base">
-                          {formatCompactName(player.name)}
-                        </p>
+                        <div className="flex min-w-0 items-baseline gap-1.5">
+                          <p className="truncate whitespace-nowrap text-sm font-black text-white sm:text-base">
+                            {player.position === "DST" ? player.school : formatCompactName(player.name)}
+                          </p>
+                          {player.position !== "DST" && (
+                            <span className="shrink-0 text-[10px] font-black uppercase text-slate-500 sm:text-xs">
+                              {player.schoolAbbreviation || player.school}
+                            </span>
+                          )}
+                        </div>
                         <p className="whitespace-normal text-[10px] font-bold leading-4 text-slate-500 sm:text-xs">
-                          {player.schoolAbbreviation || player.school} • {player.gameTime}{" "}
-                          {player.opponent}
+                          {player.gameTime} {player.opponent}
                           {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
                         </p>
                         {getFootballInjuryAvailability(player) !== "available" && (
