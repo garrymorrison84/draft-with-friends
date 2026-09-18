@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import ScoringSettingsModal from "../components/ScoringSettingsModal";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import { claimTeam } from "../../lib/teamClaims";
 import FormSelect from "../../components/FormSelect";
@@ -462,6 +463,7 @@ export default function FootballDraftPage() {
   const [search, setSearch] = useState("");
   const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
   const [detailsPlayer, setDetailsPlayer] = useState<FootballPlayer | null>(null);
+  const [showScoringSettings, setShowScoringSettings] = useState(false);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
   const [now, setNow] = useState(() => new Date());
   const [pickTimerStartedAt, setPickTimerStartedAt] = useState(() => Date.now());
@@ -1398,6 +1400,14 @@ export default function FootballDraftPage() {
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#030712] text-white">
+      {showScoringSettings ? (
+        <ScoringSettingsModal
+          poolName={pool.poolName}
+          scoring={pool.scoring ?? defaultScoring}
+          onClose={() => setShowScoringSettings(false)}
+        />
+      ) : null}
+
       <div className="mx-auto w-full max-w-[1500px] px-2 py-4 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -1428,14 +1438,23 @@ export default function FootballDraftPage() {
             </p>
           </div>
 
-          {isCommissioner && <div className="hidden flex-col gap-3 sm:flex-row lg:flex">
-            <Link
-              href={`/football/pool?id=${pool.id}&view=lobby`}
-              className="rounded-2xl border border-slate-700 px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#111827] sm:px-8 sm:text-lg"
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setShowScoringSettings(true)}
+              className="rounded-2xl border border-white/15 bg-[#111827] px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#1F2937] sm:px-8 sm:text-lg"
             >
-              Return to Lobby
-            </Link>
-          </div>}
+              Scoring Settings
+            </button>
+            {isCommissioner && (
+              <Link
+                href={`/football/pool?id=${pool.id}&view=lobby`}
+                className="rounded-2xl border border-slate-700 px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#111827] sm:px-8 sm:text-lg"
+              >
+                Return to Lobby
+              </Link>
+            )}
+          </div>
         </div>
 
         {pickError && (
