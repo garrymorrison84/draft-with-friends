@@ -5,6 +5,12 @@ import { useEffect, useState } from "react";
 import BrandMark from "../../components/BrandMark";
 import { supabase } from "../../lib/supabase";
 
+function safeRedirect(value: string | null) {
+  return value?.startsWith("/") && !value.startsWith("//")
+    ? value
+    : "/organizer";
+}
+
 export default function OrganizerSignInPage() {
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [email, setEmail] = useState("");
@@ -16,11 +22,27 @@ export default function OrganizerSignInPage() {
 
   function getRedirectTo() {
     const params = new URLSearchParams(window.location.search);
-    return params.get("redirect") || "/organizer";
+    return safeRedirect(params.get("redirect"));
+  }
+
+  function getEmailConfirmationUrl() {
+    const confirmationUrl = new URL(
+      "/auth/confirmed",
+      "https://www.draftwithfriends.com"
+    );
+    const redirect = getRedirectTo();
+    if (redirect !== "/organizer") {
+      confirmationUrl.searchParams.set("redirect", redirect);
+    }
+    return confirmationUrl.toString();
   }
 
   useEffect(() => {
     let active = true;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("confirmed") === "1") {
+      setMessage("Email confirmed! Sign in to start drafting.");
+    }
     supabase.auth.getSession().then(({ data }) => {
       if (active && data.session) window.location.replace(getRedirectTo());
     });
@@ -47,7 +69,7 @@ export default function OrganizerSignInPage() {
           ? await supabase.auth.signUp({
               email,
               password,
-              options: { emailRedirectTo: window.location.href },
+              options: { emailRedirectTo: getEmailConfirmationUrl() },
             })
           : await supabase.auth.signInWithPassword({ email, password });
 
