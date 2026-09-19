@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import {
+  clearRememberedAuthRedirect,
+  rememberAuthRedirect,
+  safeAuthRedirect,
+  USER_REDIRECT_METADATA_KEY,
+} from "../../lib/authRedirect";
 import { supabase } from "../../lib/supabase";
-
-function safeRedirect(value: string | null) {
-  return value?.startsWith("/") && !value.startsWith("//")
-    ? value
-    : "/organizer";
-}
 
 export default function OrganizerSignInPage() {
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
@@ -22,7 +22,7 @@ export default function OrganizerSignInPage() {
 
   function getRedirectTo() {
     const params = new URLSearchParams(window.location.search);
-    return safeRedirect(params.get("redirect"));
+    return safeAuthRedirect(params.get("redirect"));
   }
 
   function getEmailConfirmationUrl() {
@@ -40,14 +40,23 @@ export default function OrganizerSignInPage() {
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams(window.location.search);
+    rememberAuthRedirect(getRedirectTo());
     if (params.get("confirmed") === "1") {
       setMessage("Email confirmed! Sign in to start drafting.");
     }
     supabase.auth.getSession().then(({ data }) => {
-      if (active && data.session) window.location.replace(getRedirectTo());
+      if (active && data.session) {
+        const destination = getRedirectTo();
+        clearRememberedAuthRedirect();
+        window.location.replace(destination);
+      }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) window.location.replace(getRedirectTo());
+      if (event === "SIGNED_IN" && session) {
+        const destination = getRedirectTo();
+        clearRememberedAuthRedirect();
+        window.location.replace(destination);
+      }
     });
     return () => {
       active = false;
@@ -64,12 +73,17 @@ export default function OrganizerSignInPage() {
       if (mode === "sign-up" && password !== confirmPassword) {
         throw new Error("Passwords do not match.");
       }
+      const redirectTo = getRedirectTo();
+      rememberAuthRedirect(redirectTo);
       const response =
         mode === "sign-up"
           ? await supabase.auth.signUp({
               email,
               password,
-              options: { emailRedirectTo: getEmailConfirmationUrl() },
+              options: {
+                emailRedirectTo: getEmailConfirmationUrl(),
+                data: { [USER_REDIRECT_METADATA_KEY]: redirectTo },
+              },
             })
           : await supabase.auth.signInWithPassword({ email, password });
 
@@ -79,7 +93,8 @@ export default function OrganizerSignInPage() {
         setMessage("Account created. Check your email to confirm your account, then sign in.");
         setMode("sign-in");
       } else {
-        window.location.href = getRedirectTo();
+        clearRememberedAuthRedirect();
+        window.location.href = redirectTo;
       }
     } catch (error) {
       console.error(error);

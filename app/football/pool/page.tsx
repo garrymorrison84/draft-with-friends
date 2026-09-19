@@ -225,7 +225,7 @@ export default function FootballPoolPage() {
                   Your account keeps this team connected to you on every device and adds the pool to your history.
                 </p>
                 <Link
-                  href={`/organizer/sign-in?redirect=${encodeURIComponent(`/football/pool?id=${pool.id}`)}`}
+                  href={`/organizer/sign-in?redirect=${encodeURIComponent(`/football/pool?id=${pool.id}#choose-team`)}`}
                   className="mt-4 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-black text-slate-950 transition hover:bg-emerald-300"
                 >
                   Sign In or Create Account

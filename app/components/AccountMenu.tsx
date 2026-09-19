@@ -48,7 +48,13 @@ export default function AccountMenu() {
     window.location.href = "/";
   }
 
-  if (!authReady || (!user && pathname === "/organizer/sign-in")) return null;
+  if (
+    !authReady ||
+    pathname === "/auth/confirmed" ||
+    (!user && pathname === "/organizer/sign-in")
+  ) {
+    return null;
+  }
 
   return (
     <div ref={menuRef} className="absolute right-3 top-3 z-[100] sm:right-6 sm:top-6">
@@ -94,7 +100,10 @@ export default function AccountMenu() {
           href="/organizer/sign-in"
           onClick={(event) => {
             event.preventDefault();
-            const redirect = `${window.location.pathname}${window.location.search}`;
+            const isPoolLobby = pathname === "/football/pool" || pathname === "/pool";
+            const redirect = `${window.location.pathname}${window.location.search}${
+              isPoolLobby ? "#choose-team" : ""
+            }`;
             window.location.href = `/organizer/sign-in?redirect=${encodeURIComponent(redirect)}`;
           }}
           className="inline-flex rounded-xl border border-emerald-300/35 bg-[#111827]/95 px-4 py-2.5 text-sm font-black text-emerald-300 shadow-xl shadow-black/40 backdrop-blur transition hover:border-emerald-300 hover:bg-emerald-300 hover:text-slate-950"
