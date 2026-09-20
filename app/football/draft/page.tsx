@@ -37,6 +37,7 @@ import {
   defaultScoring,
   footballPlayers,
   getFootballDraftEligibilityCutoff,
+  getFootballInjuryDesignation,
   getFootballInjuryAvailability,
   getFootballReplayUrl,
   getTotalRosterSlots,
@@ -131,6 +132,21 @@ function hasScheduledOpponent(player: FootballPlayer) {
 
 function injuryLabel(player: FootballPlayer) {
   return [player.injuryStatus, player.injuryType].filter(Boolean).join(" • ");
+}
+
+function InjuryDesignationBadge({ player }: { player: FootballPlayer }) {
+  const designation = getFootballInjuryDesignation(player);
+  if (!designation) return null;
+
+  return (
+    <span
+      title={injuryLabel(player)}
+      aria-label={`${player.name} is ${designation === "Q" ? "questionable" : "doubtful"}`}
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-300/70 bg-red-500/25 text-[10px] font-black text-red-200"
+    >
+      {designation}
+    </span>
+  );
 }
 
 const eligiblePlayerGrid =
@@ -476,6 +492,7 @@ export default function FootballDraftPage() {
   const [isCommissioner, setIsCommissioner] = useState(false);
   const [draftIdentityReady, setDraftIdentityReady] = useState(false);
   const [pickError, setPickError] = useState("");
+  const [injuryFeedWarning, setInjuryFeedWarning] = useState<string | null>(null);
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
   const committedPickKeyRef = useRef("");
@@ -708,6 +725,15 @@ export default function FootballDraftPage() {
         if (!response.ok) throw new Error("Replay player pool failed");
         const data = await response.json();
         const replayPlayers = data?.playerPool?.players;
+        const providerWarning = data?.replay?.metadata?.injuryFeedWarning;
+
+        if (!cancelled) {
+          setInjuryFeedWarning(
+            typeof providerWarning === "string"
+              ? "Live college injury designations are temporarily unavailable. Confirm player availability before drafting."
+              : null,
+          );
+        }
 
         if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
           setPlayers(replayPlayers);
@@ -715,6 +741,9 @@ export default function FootballDraftPage() {
       } catch {
         if (!cancelled) {
           setPlayers((current) => current.length > 0 ? current : footballPlayers);
+          setInjuryFeedWarning(
+            "Live college injury designations are temporarily unavailable. Confirm player availability before drafting.",
+          );
         }
       } finally {
         requestInFlight = false;
@@ -1499,6 +1528,12 @@ export default function FootballDraftPage() {
           }`}>
             <h2 className={compactDraftLayout ? "text-2xl font-black" : "text-3xl font-black"}>Eligible Players</h2>
 
+            {injuryFeedWarning && (
+              <div className="mt-4 rounded-xl border border-red-300/30 bg-red-500/10 px-3 py-2 text-xs font-bold leading-relaxed text-red-200">
+                {injuryFeedWarning}
+              </div>
+            )}
+
             <input
               type="text"
               value={search}
@@ -1566,10 +1601,11 @@ export default function FootballDraftPage() {
                           {player.position}
                         </span>
                         <div className="min-w-0">
-                          <div className="flex min-w-0 items-baseline gap-2">
+                          <div className="flex min-w-0 items-center gap-2">
                             <p className={`${compactDraftLayout ? "text-sm" : "text-base"} truncate font-black text-white`}>
                               {player.name}
                             </p>
+                            <InjuryDesignationBadge player={player} />
                             <span className="shrink-0 text-xs font-black uppercase text-slate-500">
                               {player.schoolAbbreviation || player.school}
                             </span>
@@ -1578,11 +1614,6 @@ export default function FootballDraftPage() {
                             {player.gameTime} {player.opponent}
                             {player.gameStatus && <span className="text-emerald-300"> • {player.gameStatus}</span>}
                           </p>
-                          {getFootballInjuryAvailability(player) === "warning" && (
-                            <p className="mt-1 text-xs font-black leading-4 text-amber-300">
-                              Injury: {injuryLabel(player)}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </button>

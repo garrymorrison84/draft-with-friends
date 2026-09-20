@@ -11,6 +11,7 @@ import {
   FootballScoring,
   defaultScoring,
   footballPlayers,
+  getFootballInjuryDesignation,
   getFootballInjuryAvailability,
   getFootballReplayUrl,
   loadFootballDraftPicks,
@@ -66,6 +67,21 @@ const positionBadgeClasses: Record<FootballPlayer["position"], string> = {
 
 function injuryLabel(player: FootballPlayer) {
   return [player.injuryStatus, player.injuryType].filter(Boolean).join(" • ");
+}
+
+function InjuryDesignationBadge({ player }: { player: FootballPlayer }) {
+  const designation = getFootballInjuryDesignation(player);
+  if (!designation) return null;
+
+  return (
+    <span
+      title={injuryLabel(player)}
+      aria-label={`${player.name} is ${designation === "Q" ? "questionable" : "doubtful"}`}
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-300/70 bg-red-500/25 text-[10px] font-black text-red-200"
+    >
+      {designation}
+    </span>
+  );
 }
 
 function scoringStatLine(player: FootballPlayer) {
@@ -882,10 +898,11 @@ function TeamStatTable({
                     >
                       <PositionBadge entry={entry} />
                       <div className="min-w-0">
-                        <div className="flex min-w-0 items-baseline gap-1.5">
+                        <div className="flex min-w-0 items-center gap-1.5">
                           <p className="truncate whitespace-nowrap text-sm font-black text-white sm:text-base">
                             {player.position === "DST" ? player.school : formatCompactName(player.name)}
                           </p>
+                          <InjuryDesignationBadge player={player} />
                           {player.position !== "DST" && (
                             <span className="shrink-0 text-[10px] font-black uppercase text-slate-500 sm:text-xs">
                               {player.schoolAbbreviation || player.school}

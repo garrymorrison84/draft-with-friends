@@ -5,7 +5,10 @@ import {
   getFootballDraftEligibilityCutoff,
   isFootballPlayerEligibleAt,
 } from "../../../football/lib/storage";
-import { getOpticOddsNcaafInjuries } from "../replay/optic";
+import {
+  findCollegeFootballInjury,
+  getCollegeFootballInjuryFeed,
+} from "../replay/injuries";
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>;
 
@@ -222,9 +225,25 @@ export async function POST(request: NextRequest) {
   ) {
     try {
       const opticOddsPlayerId = playerId.slice("oo-".length);
-      const currentInjury = (await getOpticOddsNcaafInjuries(opticOddsKey)).find(
-        (injury) => injury.player?.id === opticOddsPlayerId
-      );
+      const injuryFeed = await getCollegeFootballInjuryFeed({
+        opticOddsKey,
+        rotoWireKey: process.env.ROTOWIRE_API_KEY,
+      });
+      const currentInjury = findCollegeFootballInjury(injuryFeed.injuries, {
+        opticOddsPlayerId,
+        name:
+          playerSnapshot && typeof playerSnapshot.name === "string"
+            ? playerSnapshot.name
+            : "",
+        school:
+          playerSnapshot && typeof playerSnapshot.school === "string"
+            ? playerSnapshot.school
+            : undefined,
+        position:
+          playerSnapshot && typeof playerSnapshot.position === "string"
+            ? playerSnapshot.position
+            : undefined,
+      });
       if (currentInjury?.status) injuryStatus = currentInjury.status;
     } catch {
       // Keep the last player-pool status if the live injury feed is temporarily unavailable.

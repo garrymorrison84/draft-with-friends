@@ -43,7 +43,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    return NextResponse.json(await getOpticOddsFootball(opticOddsKey, replayOptions), {
+    return NextResponse.json(await getOpticOddsFootball(opticOddsKey, {
+      ...replayOptions,
+      rotoWireKey: process.env.ROTOWIRE_API_KEY,
+    }), {
       headers: {
         "Cache-Control": "public, s-maxage=20, stale-while-revalidate=40",
       },

@@ -117,6 +117,17 @@ export function getFootballInjuryAvailability(
   return "warning";
 }
 
+export type FootballInjuryDesignation = "Q" | "D" | null;
+
+export function getFootballInjuryDesignation(
+  player: Pick<FootballPlayer, "injuryStatus">
+): FootballInjuryDesignation {
+  const status = player.injuryStatus?.trim().toLowerCase() || "";
+  if (/^(q|questionable|gtd|game[- ]time decision)$/.test(status)) return "Q";
+  if (/^(d|doubtful)$/.test(status)) return "D";
+  return null;
+}
+
 export function getFootballDraftEligibilityCutoff(
   pool: Pick<FootballPool, "draftType" | "scheduledDraftAt"> | null | undefined,
   now: Date | number = new Date()
