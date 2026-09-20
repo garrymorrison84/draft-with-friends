@@ -484,7 +484,7 @@ export default function FootballCommissionerPage() {
           ) : null}
         </section>
 
-        <section id="draft-picks" className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-6 shadow-xl shadow-black/40 sm:p-8">
+        <section id="draft-picks" className="mt-10 rounded-3xl border border-white/5 bg-[#111827] p-3 shadow-xl shadow-black/40 sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-2xl font-black">Draft Picks</h2>
@@ -515,34 +515,34 @@ export default function FootballCommissionerPage() {
                 return (
                   <div
                     key={pick.pickNumber}
-                    className="rounded-2xl border border-white/5 bg-[#1F2937] p-3 sm:p-4"
+                    className="rounded-2xl border border-white/5 bg-[#1F2937] p-2.5 sm:p-4"
                   >
-                    <div className="grid gap-3 lg:grid-cols-[72px_140px_minmax(180px,1fr)_minmax(300px,0.95fr)] lg:items-end">
+                    <div className="grid grid-cols-[28px_52px_minmax(72px,1fr)_minmax(105px,1.35fr)] items-end gap-1.5 sm:gap-3 lg:grid-cols-[72px_140px_minmax(180px,1fr)_minmax(300px,0.95fr)]">
                       <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        <p className="whitespace-nowrap text-[9px] font-black uppercase leading-tight text-slate-500 sm:text-xs sm:tracking-wide">
                           Pick
                         </p>
-                        <p className="mt-1 text-xl font-black sm:text-2xl">{pick.pickNumber}</p>
+                        <p className="mt-1 text-lg font-black sm:text-2xl">{pick.pickNumber}</p>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        <p className="whitespace-nowrap text-[9px] font-black uppercase leading-tight text-slate-500 sm:text-xs sm:tracking-wide">
                           Team
                         </p>
-                        <p className="mt-1 truncate text-lg font-black">{pick.team}</p>
+                        <p className="mt-1 truncate text-sm font-black sm:text-lg">{pick.team}</p>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-wide text-slate-500">
+                        <p className="whitespace-nowrap text-[9px] font-black uppercase leading-tight text-slate-500 sm:text-xs sm:tracking-wide">
                           Current Player
                         </p>
-                        <p className="mt-1 truncate text-lg font-black">
+                        <p className="mt-1 truncate text-sm font-black sm:text-lg">
                           {currentPlayer?.name || "Unknown Player"}
                         </p>
                       </div>
                       <div className="min-w-0">
-                        <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">
+                        <label className="mb-1 block truncate whitespace-nowrap text-[9px] font-black uppercase leading-tight text-slate-500 sm:mb-2 sm:text-xs sm:tracking-wide">
                           Search Replacement
                           {rosterSlot ? (
-                            <span className="ml-2 text-emerald-300">
+                            <span className="ml-1 text-emerald-300 sm:ml-2">
                               {rosterSlot === "FLEX" ? "RB/WR/TE" : rosterSlot}
                             </span>
                           ) : null}
@@ -557,7 +557,7 @@ export default function FootballCommissionerPage() {
                             }))
                           }
                           placeholder="Search player, school, or position..."
-                          className="w-full rounded-xl border border-white/5 bg-[#030712] px-4 py-2.5 text-white outline-none placeholder:text-slate-600"
+                          className="w-full min-w-0 rounded-lg border border-white/5 bg-[#030712] px-2 py-2 text-xs text-white outline-none placeholder:text-slate-600 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-base"
                         />
                       </div>
                     </div>
