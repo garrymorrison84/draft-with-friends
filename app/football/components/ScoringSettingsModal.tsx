@@ -149,7 +149,7 @@ export default function ScoringSettingsModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Scoring settings"
+      aria-label="League rules"
       className="fixed inset-0 z-[60] flex items-end justify-center bg-[#030712]/80 px-2 pb-3 backdrop-blur-sm md:items-center md:p-6"
     >
       <div className="flex min-w-0 max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60">
@@ -158,7 +158,7 @@ export default function ScoringSettingsModal({
             {poolName}
           </p>
           <h2 className="mt-2 break-words text-2xl font-black text-white sm:text-4xl">
-            Scoring Settings
+            League Rules
           </h2>
           <p className="mt-2 text-sm font-semibold text-slate-400">
             The points and roster rules used by this pool.

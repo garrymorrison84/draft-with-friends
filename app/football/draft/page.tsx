@@ -492,7 +492,6 @@ export default function FootballDraftPage() {
   const [isCommissioner, setIsCommissioner] = useState(false);
   const [draftIdentityReady, setDraftIdentityReady] = useState(false);
   const [pickError, setPickError] = useState("");
-  const [injuryFeedWarning, setInjuryFeedWarning] = useState<string | null>(null);
   const autoPickInFlightRef = useRef(false);
   const autoPickedKeyRef = useRef("");
   const committedPickKeyRef = useRef("");
@@ -725,15 +724,6 @@ export default function FootballDraftPage() {
         if (!response.ok) throw new Error("Replay player pool failed");
         const data = await response.json();
         const replayPlayers = data?.playerPool?.players;
-        const providerWarning = data?.replay?.metadata?.injuryFeedWarning;
-
-        if (!cancelled) {
-          setInjuryFeedWarning(
-            typeof providerWarning === "string"
-              ? "Live college injury designations are temporarily unavailable. Confirm player availability before drafting."
-              : null,
-          );
-        }
 
         if (!cancelled && Array.isArray(replayPlayers) && replayPlayers.length > 0) {
           setPlayers(replayPlayers);
@@ -741,9 +731,6 @@ export default function FootballDraftPage() {
       } catch {
         if (!cancelled) {
           setPlayers((current) => current.length > 0 ? current : footballPlayers);
-          setInjuryFeedWarning(
-            "Live college injury designations are temporarily unavailable. Confirm player availability before drafting.",
-          );
         }
       } finally {
         requestInFlight = false;
@@ -1473,16 +1460,8 @@ export default function FootballDraftPage() {
               onClick={() => setShowScoringSettings(true)}
               className="rounded-2xl border border-white/15 bg-[#111827] px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#1F2937] sm:px-8 sm:text-lg"
             >
-              Scoring Settings
+              League Rules
             </button>
-            {isCommissioner && (
-              <Link
-                href={`/football/pool?id=${pool.id}&view=lobby`}
-                className="rounded-2xl border border-slate-700 px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#111827] sm:px-8 sm:text-lg"
-              >
-                Return to Lobby
-              </Link>
-            )}
           </div>
         </div>
 
@@ -1527,12 +1506,6 @@ export default function FootballDraftPage() {
             compactDraftLayout ? "sm:p-4" : "sm:p-6"
           }`}>
             <h2 className={compactDraftLayout ? "text-2xl font-black" : "text-3xl font-black"}>Eligible Players</h2>
-
-            {injuryFeedWarning && (
-              <div className="mt-4 rounded-xl border border-red-300/30 bg-red-500/10 px-3 py-2 text-xs font-bold leading-relaxed text-red-200">
-                {injuryFeedWarning}
-              </div>
-            )}
 
             <input
               type="text"
