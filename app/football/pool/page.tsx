@@ -320,8 +320,8 @@ export default function FootballPoolPage() {
             <h2 className="text-2xl font-black">Commissioner Controls</h2>
             <p className="mt-2 text-sm font-semibold text-slate-400">Manage scoring, team names, and draft settings as the pool organizer.</p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Link href={`/football/scoring?id=${pool.id}`} className="rounded-xl bg-emerald-400 px-6 py-3 text-center font-black text-slate-950 hover:bg-emerald-300">Roster + Scoring</Link>
-              <Link href={`/football/commissioner?id=${pool.id}`} className="rounded-xl border border-white/10 bg-[#1F2937] px-6 py-3 text-center font-black hover:border-emerald-300/60">Team Names + Draft Picks</Link>
+              <Link href={`/football/commissioner?id=${pool.id}`} className="rounded-xl bg-emerald-400 px-6 py-3 text-center font-black text-slate-950 hover:bg-emerald-300">Edit Rosters/Teams</Link>
+              <Link href={`/football/scoring?id=${pool.id}`} className="rounded-xl border border-white/10 bg-[#1F2937] px-6 py-3 text-center font-black hover:border-emerald-300/60">Edit Pool Format &amp; Scoring</Link>
             </div>
           </section>
         )}
@@ -385,8 +385,8 @@ export default function FootballPoolPage() {
                 </Link>
               </div>
               <div className="mt-6 grid gap-3 md:grid-cols-2">
-                <ToolLink href={`/football/scoring?id=${pool.id}`} label="Edit Roster + Scoring" />
-                <ToolLink href={`/football/commissioner?id=${pool.id}`} label="Team Names + Draft Picks" />
+                <ToolLink href={`/football/commissioner?id=${pool.id}`} label="Edit Rosters/Teams" />
+                <ToolLink href={`/football/scoring?id=${pool.id}`} label="Edit Pool Format & Scoring" />
               </div>
             </div>
           </section>
