@@ -18,12 +18,11 @@ function easternDateParts(date: Date) {
   };
 }
 
-function mondayForDate(year: number, month: number, day: number, weekday: string) {
+function sundayForDate(year: number, month: number, day: number, weekday: string) {
   const weekdayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
     weekday
   );
-  const daysSinceMonday = (weekdayIndex + 6) % 7;
-  return Date.UTC(year, month - 1, day - daysSinceMonday);
+  return Date.UTC(year, month - 1, day - weekdayIndex);
 }
 
 export function getCurrentCollegeFootballSeasonYear(date = new Date()) {
@@ -39,19 +38,22 @@ export function getCurrentCollegeFootballWeek(date = new Date()) {
     timeZone: "UTC",
     weekday: "short",
   }).format(septemberFirst);
-  const seasonWeekOneMonday = mondayForDate(
+  // New pools roll to the next college-football week as soon as Sunday begins
+  // in Eastern time. The first Sunday-to-Saturday window containing September 1
+  // is Week 1, and every subsequent Sunday advances the default week.
+  const seasonWeekOneSunday = sundayForDate(
     seasonYear,
     9,
     1,
     septemberFirstWeekday
   );
-  const currentMonday = mondayForDate(
+  const currentSunday = sundayForDate(
     current.year,
     current.month,
     current.day,
     current.weekday
   );
   const calculatedWeek =
-    Math.floor((currentMonday - seasonWeekOneMonday) / millisecondsPerWeek) + 1;
+    Math.floor((currentSunday - seasonWeekOneSunday) / millisecondsPerWeek) + 1;
   return Math.min(18, Math.max(1, calculatedWeek));
 }
