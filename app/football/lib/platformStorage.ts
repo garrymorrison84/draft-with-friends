@@ -210,12 +210,14 @@ export async function submitFootballPick({
   team,
   expectedPickIndex,
   playerSnapshot,
+  automatic = false,
 }: {
   poolId: string;
   playerId: string;
   team: string;
   expectedPickIndex: number;
   playerSnapshot: import("./storage").FootballPlayer;
+  automatic?: boolean;
 }) {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData.session?.access_token;
@@ -225,7 +227,14 @@ export async function submitFootballPick({
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    body: JSON.stringify({ poolId, playerId, team, expectedPickIndex, playerSnapshot }),
+    body: JSON.stringify({
+      poolId,
+      playerId,
+      team,
+      expectedPickIndex,
+      playerSnapshot,
+      automatic,
+    }),
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) {

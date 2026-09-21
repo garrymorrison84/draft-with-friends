@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
   const team = typeof body.team === "string" ? body.team.trim() : "";
   const playerSnapshot = isRecord(body.playerSnapshot) ? body.playerSnapshot : null;
   const expectedPickIndex = Number(body.expectedPickIndex);
+  const automatic = body.automatic === true;
   if (!poolId || !playerId || !team || !Number.isInteger(expectedPickIndex) || expectedPickIndex < 0) {
     return NextResponse.json({ error: "Incomplete draft pick payload." }, { status: 400 });
   }
@@ -275,17 +276,45 @@ export async function POST(request: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Sign in before drafting for your team." }, { status: 401 });
   }
-  const isCommissioner = userId === pool.owner_id;
   const claims = isRecord(pool.settings.teamClaims) ? { ...pool.settings.teamClaims } : {};
-  if (!isCommissioner) {
-    if (claims[expectedTeam] !== userId) {
-      return NextResponse.json({ error: "You can only draft for your claimed team when it is on the clock." }, { status: 403 });
+  const claimedUserId = typeof claims[expectedTeam] === "string" ? claims[expectedTeam] : "";
+  if (automatic) {
+    const isPoolMember = userId === pool.owner_id || Object.values(claims).includes(userId);
+    const pickClockSeconds = Math.max(0, Number(pool.settings.pickClockSeconds) || 0);
+    const latestPickStartedAt = picks.at(-1)?.created_at
+      ? Date.parse(picks.at(-1)!.created_at)
+      : Number.NaN;
+    const resetStartedAt = typeof pool.settings.draftTimerStartedAt === "string"
+      ? Date.parse(pool.settings.draftTimerStartedAt)
+      : Number.NaN;
+    const scheduledStartedAt = typeof pool.settings.scheduledDraftAt === "string"
+      ? Date.parse(pool.settings.scheduledDraftAt)
+      : Number.NaN;
+    const timerStartedAt = Math.max(
+      Number.isFinite(latestPickStartedAt) ? latestPickStartedAt : 0,
+      Number.isFinite(resetStartedAt) ? resetStartedAt : 0,
+      picks.length === 0 && Number.isFinite(scheduledStartedAt) ? scheduledStartedAt : 0
+    );
+    const timeoutReached =
+      pool.settings.autoPickOnTimeout === true &&
+      pickClockSeconds > 0 &&
+      timerStartedAt > 0 &&
+      Date.now() - timerStartedAt >= pickClockSeconds * 1000 - 1000;
+    if (!isPoolMember || !timeoutReached) {
+      return NextResponse.json(
+        { error: "This automatic pick is not available yet." },
+        { status: 403 }
+      );
     }
+  } else if (claimedUserId !== userId) {
+    return NextResponse.json(
+      { error: "You can only draft for your claimed team when it is on the clock." },
+      { status: 403 }
+    );
   }
   let entryId: string;
   try {
-    const claimedUserId = typeof claims[team] === "string" ? claims[team] : "";
-    const entryUserId = isCommissioner && claimedUserId ? claimedUserId : userId;
+    const entryUserId = automatic ? claimedUserId || pool.owner_id : userId;
     entryId = await ensureDraftEntry({
       client,
       poolId,

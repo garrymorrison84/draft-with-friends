@@ -592,17 +592,13 @@ export default function FootballDraftPage() {
       }
       const commissioner = Boolean(organizer?.id && organizer.id === savedPool.ownerId);
       setIsCommissioner(commissioner);
-      if (commissioner) {
+      try {
+        await claimTeam(savedPool.id, chosenTeam);
         setDraftIdentityReady(true);
-      } else {
-        try {
-          await claimTeam(savedPool.id, chosenTeam);
-          setDraftIdentityReady(true);
-        } catch {
-          window.sessionStorage.removeItem(`dwf-football-team-${savedPool.id}`);
-          window.location.replace(`/football/pool?id=${savedPool.id}#choose-team`);
-          return;
-        }
+      } catch {
+        window.sessionStorage.removeItem(`dwf-football-team-${savedPool.id}`);
+        window.location.replace(`/football/pool?id=${savedPool.id}#choose-team`);
+        return;
       }
     }
 
@@ -915,9 +911,7 @@ export default function FootballDraftPage() {
     draftCompleteSoundPlayedRef.current = false;
     draftCompleteAfterPickSoundRef.current = 0;
   }, [activePoolId, draftComplete]);
-  const eligiblePlayerTeam = isCommissioner
-    ? currentTeam
-    : selectedTeam || currentTeam;
+  const eligiblePlayerTeam = selectedTeam || currentTeam;
   const draftablePositions = new Set(
     positions.filter((item) => {
       if (item === "ALL") return true;
@@ -1118,7 +1112,7 @@ export default function FootballDraftPage() {
       !draftOpen ||
       isPickClockPaused ||
       draftComplete ||
-      (!isCommissioner && selectedTeam !== currentTeam) ||
+      selectedTeam !== currentTeam ||
       !canTeamDraftPosition({
         team: currentTeam,
         position: player.position,
@@ -1141,7 +1135,10 @@ export default function FootballDraftPage() {
     setPendingPlayer(null);
   }
 
-  async function savePlayerPick(player: FootballPlayer) {
+  async function savePlayerPick(
+    player: FootballPlayer,
+    { automatic = false }: { automatic?: boolean } = {}
+  ) {
     const pickKey = pool ? `${pool.id}-${picks.length}` : "";
     if (
       !pool ||
@@ -1154,7 +1151,7 @@ export default function FootballDraftPage() {
       !draftOpen ||
       isPickClockPaused ||
       draftComplete ||
-      (!isCommissioner && selectedTeam !== currentTeam) ||
+      (!automatic && selectedTeam !== currentTeam) ||
       !canTeamDraftPosition({
         team: currentTeam,
         position: player.position,
@@ -1177,6 +1174,7 @@ export default function FootballDraftPage() {
         team: currentTeam,
         expectedPickIndex: picks.length,
         playerSnapshot: player,
+        automatic,
       });
       const pickedAt = result?.pickedAt || new Date().toISOString();
       const nextPicks = [
@@ -1286,9 +1284,15 @@ export default function FootballDraftPage() {
       return;
     }
 
-    const nextPlayer = displayedPlayers.find(
+    const nextPlayer = [...players]
+      .filter(
       (player) =>
         !draftedIds.has(player.id) &&
+        activeConferences.includes(player.conference) &&
+        hasScheduledOpponent(player) &&
+        isFootballPlayerEligibleAt(player, eligibilityCutoff) &&
+        getFootballInjuryAvailability(player) !== "out" &&
+        activePositions.has(player.position) &&
         canTeamDraftPosition({
           team: currentTeam,
           position: player.position,
@@ -1296,18 +1300,20 @@ export default function FootballDraftPage() {
           players,
           pool,
         })
-    );
+      )
+      .sort((a, b) => getPlayerPpg(b, pool.scoring) - getPlayerPpg(a, pool.scoring))[0];
 
     if (!nextPlayer) return;
 
     autoPickInFlightRef.current = true;
     autoPickedKeyRef.current = pickKey;
     setPendingPlayer(null);
-    void savePlayerPick(nextPlayer);
+    void savePlayerPick(nextPlayer, { automatic: true });
   }, [
     activePickClockSeconds,
     currentTeam,
-    displayedPlayers,
+    activeConferences,
+    activePositions,
     draftComplete,
     draftIdentityReady,
     draftOpen,
@@ -1596,7 +1602,7 @@ export default function FootballDraftPage() {
                     <button
                       type="button"
                       onClick={() => draftPlayer(player)}
-                      disabled={drafted || !draftIdentityReady || !draftOpen || isPickClockPaused || draftComplete || (!isCommissioner && selectedTeam !== currentTeam)}
+                      disabled={drafted || !draftIdentityReady || !draftOpen || isPickClockPaused || draftComplete || selectedTeam !== currentTeam}
                       className={`${compactDraftLayout ? "hidden xl:block" : "hidden md:block"} rounded-lg bg-emerald-400 px-2 py-2 text-xs font-black text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400`}
                     >
                       {drafted ? "Taken" : selected ? "Confirm" : "Draft"}
@@ -1796,7 +1802,7 @@ export default function FootballDraftPage() {
           scoring={pool.scoring}
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
-          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && isFootballPlayerEligibleAt(detailsPlayer, eligibilityCutoff) && getFootballInjuryAvailability(detailsPlayer) !== "out" && (isCommissioner || selectedTeam === currentTeam)}
+          canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && isFootballPlayerEligibleAt(detailsPlayer, eligibilityCutoff) && getFootballInjuryAvailability(detailsPlayer) !== "out" && selectedTeam === currentTeam}
         />
       )}
 
