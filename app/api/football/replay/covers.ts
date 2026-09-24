@@ -1,6 +1,6 @@
 const coversNcaafInjuriesUrl =
   "https://www.covers.com/sport/football/ncaaf/injuries";
-const coversCacheDurationMs = 30 * 60 * 1000;
+const coversCacheDurationMs = 24 * 60 * 60 * 1000;
 
 export type CoversNcaafInjury = {
   playerName: string;
