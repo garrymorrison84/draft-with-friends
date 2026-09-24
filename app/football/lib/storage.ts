@@ -108,7 +108,7 @@ export function getFootballInjuryAvailability(
     return "available";
   }
   if (
-    /\bout\b|\binactive\b|injured reserve|reserve\/injured|^ir$|\bpup\b|physically unable|season[- ]ending|will not play|\bsuspended\b/.test(
+    /^o$|\bout\b|\binactive\b|injured reserve|reserve\/injured|^ir$|\bpup\b|physically unable|season[- ]ending|will not play|\bsuspended\b/.test(
       status
     )
   ) {
@@ -117,12 +117,13 @@ export function getFootballInjuryAvailability(
   return "warning";
 }
 
-export type FootballInjuryDesignation = "Q" | "D" | null;
+export type FootballInjuryDesignation = "O" | "Q" | "D" | null;
 
 export function getFootballInjuryDesignation(
   player: Pick<FootballPlayer, "injuryStatus">
 ): FootballInjuryDesignation {
   const status = player.injuryStatus?.trim().toLowerCase() || "";
+  if (/^(o|out)$/.test(status)) return "O";
   if (/^(q|questionable|gtd|game[- ]time decision)$/.test(status)) return "Q";
   if (/^(d|doubtful)$/.test(status)) return "D";
   return null;

@@ -408,6 +408,7 @@ export async function getOpticOddsFootball(
         opticOddsPlayerId: player.id,
         name: player.name,
         school: team.name,
+        schoolAbbreviation: team.abbreviation,
         position: player.position,
       });
       return {
@@ -485,6 +486,7 @@ export async function getOpticOddsFootball(
         activeInjuries: injuryFeed.injuries.length,
         excludedInjuries: unavailable.length,
         injuryProviders: injuryFeed.providers,
+        coversInjuries: injuryFeed.coversCount,
         opticOddsInjuries: injuryFeed.opticOddsCount,
         rotoWireInjuries: injuryFeed.rotoWireCount,
         injuryFeedWarning: injuryFeed.warning,

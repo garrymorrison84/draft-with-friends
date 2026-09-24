@@ -240,6 +240,10 @@ export async function POST(request: NextRequest) {
           playerSnapshot && typeof playerSnapshot.school === "string"
             ? playerSnapshot.school
             : undefined,
+        schoolAbbreviation:
+          playerSnapshot && typeof playerSnapshot.schoolAbbreviation === "string"
+            ? playerSnapshot.schoolAbbreviation
+            : undefined,
         position:
           playerSnapshot && typeof playerSnapshot.position === "string"
             ? playerSnapshot.position

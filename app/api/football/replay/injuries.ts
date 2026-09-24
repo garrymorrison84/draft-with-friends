@@ -1,4 +1,5 @@
 import { getFootballInjuryAvailability } from "../../../football/lib/storage";
+import { getCoversNcaafInjuries } from "./covers";
 
 const opticOddsBaseUrl = "https://api.opticodds.com/api/v3";
 const rotoWireCfbInjuriesUrl =
@@ -37,11 +38,12 @@ type RotoWireEnvelope = {
 };
 
 export type CollegeFootballInjury = {
-  source: "OpticOdds" | "RotoWire";
+  source: "Covers" | "OpticOdds" | "RotoWire";
   sourcePlayerId?: string;
   opticOddsPlayerId?: string;
   playerName: string;
   teamName?: string;
+  teamAbbreviation?: string;
   position?: string;
   status: string;
   type?: string;
@@ -49,6 +51,7 @@ export type CollegeFootballInjury = {
 
 export type CollegeFootballInjuryFeed = {
   injuries: CollegeFootballInjury[];
+  coversCount: number;
   opticOddsCount: number;
   rotoWireCount: number;
   providers: string[];
@@ -158,6 +161,70 @@ function normalizeTeam(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+const teamAliases: Record<string, string> = {
+  centralflorida: "ucf",
+  connecticut: "uconn",
+  fiupanthers: "floridainternational",
+  massachusetts: "umass",
+  miamifl: "miamiflorida",
+  miamioh: "miamiohio",
+  mississippi: "olemiss",
+  northcarolinastate: "ncstate",
+  southerncalifornia: "usc",
+  southernmethodist: "smu",
+  texassanantonio: "utsa",
+  texaselpaso: "utep",
+};
+
+function canonicalTeam(value: string) {
+  const normalized = normalizeTeam(value);
+  return teamAliases[normalized] || normalized;
+}
+
+function positionMatches(left?: string, right?: string) {
+  if (!left || !right) return true;
+  const normalizePosition = (value: string) =>
+    value.toUpperCase() === "PK" ? "K" : value.toUpperCase();
+  return normalizePosition(left) === normalizePosition(right);
+}
+
+function teamMatches(
+  injury: CollegeFootballInjury,
+  player: { school?: string; schoolAbbreviation?: string }
+) {
+  const playerTeams = [player.school, player.schoolAbbreviation]
+    .filter((value): value is string => Boolean(value))
+    .map(canonicalTeam);
+  const injuryTeams = [injury.teamName, injury.teamAbbreviation]
+    .filter((value): value is string => Boolean(value))
+    .map(canonicalTeam);
+  return playerTeams.some((team) => injuryTeams.includes(team));
+}
+
+function personNameParts(value: string) {
+  const parts = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (/^(jr|sr|ii|iii|iv)$/.test(parts.at(-1) || "")) parts.pop();
+  return parts;
+}
+
+function abbreviatedNameMatches(injuryName: string, playerName: string) {
+  const injuryParts = personNameParts(injuryName);
+  const playerParts = personNameParts(playerName);
+  if (injuryParts.length < 2 || playerParts.length < 2) return false;
+  const [injuryFirst, ...injuryLastParts] = injuryParts;
+  const [playerFirst, ...playerLastParts] = playerParts;
+  return (
+    injuryFirst.length === 1 &&
+    injuryFirst === playerFirst[0] &&
+    injuryLastParts.join("") === playerLastParts.join("")
+  );
+}
+
 function chooseMostRestrictive(
   injuries: CollegeFootballInjury[]
 ): CollegeFootballInjury | undefined {
@@ -173,10 +240,13 @@ export async function getCollegeFootballInjuryFeed({
   opticOddsKey?: string;
   rotoWireKey?: string;
 }): Promise<CollegeFootballInjuryFeed> {
-  const [opticOddsResult, rotoWireResult] = await Promise.allSettled([
+  const [coversResult, opticOddsResult, rotoWireResult] = await Promise.allSettled([
+    getCoversNcaafInjuries(),
     opticOddsKey ? getOpticOddsNcaafInjuries(opticOddsKey) : Promise.resolve([]),
     rotoWireKey ? getRotoWireNcaafInjuries(rotoWireKey) : Promise.resolve([]),
   ]);
+  const coversInjuries =
+    coversResult.status === "fulfilled" ? coversResult.value : [];
   const opticOddsInjuries =
     opticOddsResult.status === "fulfilled" ? opticOddsResult.value : [];
   const rotoWireInjuries =
@@ -196,27 +266,35 @@ export async function getCollegeFootballInjuryFeed({
       type: injury.type || undefined,
     }];
   });
-  const injuries = [...normalizedOpticOdds, ...rotoWireInjuries];
+  const normalizedCovers: CollegeFootballInjury[] = coversInjuries.map(
+    (injury) => ({ source: "Covers", ...injury })
+  );
+  const injuries = [
+    ...normalizedCovers,
+    ...normalizedOpticOdds,
+    ...rotoWireInjuries,
+  ];
   const providers = [
+    ...(normalizedCovers.length ? ["Covers"] : []),
     ...(normalizedOpticOdds.length ? ["OpticOdds"] : []),
     ...(rotoWireInjuries.length ? ["RotoWire"] : []),
   ];
   const failures = [
+    coversResult.status === "rejected" ? "Covers" : "",
     opticOddsResult.status === "rejected" ? "OpticOdds" : "",
     rotoWireKey && rotoWireResult.status === "rejected" ? "RotoWire" : "",
   ].filter(Boolean);
 
   return {
     injuries,
+    coversCount: normalizedCovers.length,
     opticOddsCount: normalizedOpticOdds.length,
     rotoWireCount: rotoWireInjuries.length,
     providers,
     warning: failures.length
       ? `${failures.join(" and ")} injury data could not be refreshed.`
       : !injuries.length
-        ? rotoWireKey
-          ? "No active college football injuries were returned by the configured providers."
-          : "OpticOdds returned no active NCAAF injuries. Configure ROTOWIRE_API_KEY for the dedicated college injury feed."
+        ? "No active college football injuries were returned by the configured providers."
         : undefined,
   };
 }
@@ -227,6 +305,7 @@ export function findCollegeFootballInjury(
     opticOddsPlayerId?: string;
     name: string;
     school?: string;
+    schoolAbbreviation?: string;
     position?: string;
   }
 ) {
@@ -243,18 +322,27 @@ export function findCollegeFootballInjury(
   const nameMatches = injuries.filter(
     (injury) =>
       normalizeName(injury.playerName) === name &&
-      (!player.position || !injury.position || injury.position === player.position)
+      positionMatches(injury.position, player.position)
   );
-  if (!nameMatches.length) return undefined;
+  const hasTeam = Boolean(player.school || player.schoolAbbreviation);
+  const matchingTeams = hasTeam
+    ? nameMatches.filter((injury) => teamMatches(injury, player))
+    : [];
+  if (matchingTeams.length) return chooseMostRestrictive(matchingTeams);
 
-  const school = player.school ? normalizeTeam(player.school) : "";
-  const teamMatches = school
-    ? nameMatches.filter(
+  const abbreviatedMatches = hasTeam
+    ? injuries.filter(
         (injury) =>
-          injury.teamName && normalizeTeam(injury.teamName) === school
+          abbreviatedNameMatches(injury.playerName, player.name) &&
+          positionMatches(injury.position, player.position) &&
+          teamMatches(injury, player)
       )
     : [];
-  if (teamMatches.length) return chooseMostRestrictive(teamMatches);
+  if (abbreviatedMatches.length) {
+    return chooseMostRestrictive(abbreviatedMatches);
+  }
+
+  if (!nameMatches.length) return undefined;
 
   // Name-only matching is safe only when the feed has one player with that
   // normalized name and position. This prevents one school's injury from

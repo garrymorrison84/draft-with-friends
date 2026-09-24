@@ -72,11 +72,16 @@ function injuryLabel(player: FootballPlayer) {
 function InjuryDesignationBadge({ player }: { player: FootballPlayer }) {
   const designation = getFootballInjuryDesignation(player);
   if (!designation) return null;
+  const statusLabel = {
+    O: "out",
+    D: "doubtful",
+    Q: "questionable",
+  }[designation];
 
   return (
     <span
       title={injuryLabel(player)}
-      aria-label={`${player.name} is ${designation === "Q" ? "questionable" : "doubtful"}`}
+      aria-label={`${player.name} is ${statusLabel}`}
       className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-300/70 bg-red-500/25 text-[10px] font-black text-red-200"
     >
       {designation}
