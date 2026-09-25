@@ -33,6 +33,7 @@ import {
   FootballDraftPick,
   FootballPlayer,
   FootballPool,
+  FootballScoring,
   defaultFootballPlayerPool,
   defaultScoring,
   footballPlayers,
@@ -320,6 +321,171 @@ function PlayerStatColumns({
   );
 }
 
+type FootballRosterSlot = keyof FootballScoring["roster"];
+
+type TeamRosterEntry = {
+  slotLabel: FootballRosterSlot;
+  player: FootballPlayer | null;
+};
+
+const rosterSlotStyles: Record<FootballRosterSlot, string> = {
+  QB: positionStyles.QB.badge,
+  RB: positionStyles.RB.badge,
+  WR: positionStyles.WR.badge,
+  TE: positionStyles.TE.badge,
+  FLEX: "border-cyan-200 bg-cyan-500/35 text-cyan-50 shadow-cyan-500/20",
+  DST: positionStyles.DST.badge,
+  K: positionStyles.K.badge,
+};
+
+function buildTeamRosterEntries({
+  team,
+  picks,
+  players,
+  scoring,
+}: {
+  team: string;
+  picks: FootballDraftPick[];
+  players: FootballPlayer[];
+  scoring: FootballScoring;
+}) {
+  const remaining = picks
+    .filter((pick) => pick.team === team)
+    .sort((a, b) => a.pickNumber - b.pickNumber)
+    .map((pick) =>
+      players.find((player) => player.id === pick.playerId) || pick.playerSnapshot
+    )
+    .filter((player): player is FootballPlayer => Boolean(player));
+  const entries: TeamRosterEntry[] = [];
+
+  const addSlots = (
+    slotLabel: FootballRosterSlot,
+    count: number,
+    predicate: (player: FootballPlayer) => boolean
+  ) => {
+    for (let index = 0; index < count; index += 1) {
+      const playerIndex = remaining.findIndex(predicate);
+      const player = playerIndex >= 0 ? remaining.splice(playerIndex, 1)[0] : null;
+      entries.push({ slotLabel, player });
+    }
+  };
+
+  addSlots("QB", scoring.roster.QB, (player) => player.position === "QB");
+  addSlots("RB", scoring.roster.RB, (player) => player.position === "RB");
+  addSlots("WR", scoring.roster.WR, (player) => player.position === "WR");
+  addSlots("TE", scoring.roster.TE, (player) => player.position === "TE");
+  addSlots(
+    "FLEX",
+    scoring.roster.FLEX,
+    (player) => player.position === "RB" || player.position === "WR" || player.position === "TE"
+  );
+  addSlots("DST", scoring.roster.DST, (player) => player.position === "DST");
+  addSlots("K", scoring.roster.K, (player) => player.position === "K");
+
+  return entries;
+}
+
+function TeamRosterModal({
+  team,
+  picks,
+  players,
+  scoring,
+  onClose,
+}: {
+  team: string;
+  picks: FootballDraftPick[];
+  players: FootballPlayer[];
+  scoring: FootballScoring;
+  onClose: () => void;
+}) {
+  const entries = buildTeamRosterEntries({ team, picks, players, scoring });
+  const filledSlots = entries.filter((entry) => entry.player).length;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/75 p-1 backdrop-blur-sm md:p-6">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="team-roster-title"
+        className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-3rem)]"
+      >
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+            Current roster
+          </p>
+          <div className="mt-2 flex items-end justify-between gap-4">
+            <h2 id="team-roster-title" className="min-w-0 break-words text-3xl font-black text-white sm:text-4xl">
+              {team}
+            </h2>
+            <p className="shrink-0 text-sm font-black text-slate-400">
+              {filledSlots} of {entries.length} filled
+            </p>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-6">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
+            <div className="grid grid-cols-[minmax(0,1fr)_58px] border-b border-white/10 bg-[#172033] px-3 py-3 text-xs font-black uppercase tracking-wide text-slate-500 sm:grid-cols-[minmax(0,1fr)_78px] sm:px-5">
+              <span>Player</span>
+              <span className="text-center text-emerald-300">PPG</span>
+            </div>
+            {entries.map((entry, index) => {
+              const player = entry.player;
+              return (
+                <div
+                  key={`${entry.slotLabel}-${index}`}
+                  className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_58px] items-center border-b border-white/5 px-3 py-3 last:border-b-0 sm:min-h-[88px] sm:grid-cols-[minmax(0,1fr)_78px] sm:px-5"
+                >
+                  <div className="grid min-w-0 grid-cols-[58px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-4">
+                    <span className={`inline-flex min-h-10 items-center justify-center rounded-xl border px-2 text-center text-xs font-black sm:min-h-12 sm:text-sm ${rosterSlotStyles[entry.slotLabel]}`}>
+                      {entry.slotLabel}
+                    </span>
+                    {player ? (
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className="truncate text-sm font-black text-white sm:text-lg">
+                            {player.position === "DST" ? player.school : player.name}
+                          </p>
+                          {player.position !== "DST" ? (
+                            <span className="shrink-0 text-[10px] font-black uppercase text-slate-500 sm:text-xs">
+                              {player.schoolAbbreviation || player.school}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-xs font-bold text-slate-500 sm:text-sm">
+                          {player.gameTime} {player.opponent}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="min-w-0">
+                        <p className="text-sm font-black text-slate-400 sm:text-base">Open slot</p>
+                        <p className="text-xs font-bold text-slate-600 sm:text-sm">Still needed</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className={`text-center text-sm font-black sm:text-base ${player ? "text-emerald-300" : "text-slate-600"}`}>
+                    {player ? formatPoints(getPlayerPpg(player, scoring)) : "—"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t border-white/10 p-4 sm:flex sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 hover:bg-white/5 sm:w-auto"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlayerDetailsModal({
   player,
   scoring,
@@ -484,6 +650,7 @@ export default function FootballDraftPage() {
   const [search, setSearch] = useState("");
   const [pendingPlayer, setPendingPlayer] = useState<FootballPlayer | null>(null);
   const [detailsPlayer, setDetailsPlayer] = useState<FootballPlayer | null>(null);
+  const [rosterTeam, setRosterTeam] = useState("");
   const [showScoringSettings, setShowScoringSettings] = useState(false);
   const [players, setPlayers] = useState<FootballPlayer[]>(footballPlayers);
   const [now, setNow] = useState(() => new Date());
@@ -1708,9 +1875,16 @@ export default function FootballDraftPage() {
                   style={{ gridTemplateColumns: `repeat(${pool.numberOfTeams}, minmax(142px, 1fr))` }}
                 >
                   {pool.draftOrder.map((team) => (
-                    <div key={team} className="border-r border-emerald-300/20 px-3 py-3 text-center last:border-r-0 sm:p-6">
-                      <p className={`truncate font-black text-white ${draftBoardTeamClass}`}>{team}</p>
-                    </div>
+                    <button
+                      key={team}
+                      type="button"
+                      onClick={() => setRosterTeam(team)}
+                      aria-label={`View ${team} roster`}
+                      aria-haspopup="dialog"
+                      className="border-r border-emerald-300/20 px-3 py-3 text-center transition hover:bg-emerald-300/10 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300 last:border-r-0 sm:p-6"
+                    >
+                      <span className={`block truncate font-black text-white ${draftBoardTeamClass}`}>{team}</span>
+                    </button>
                   ))}
                 </div>
 
@@ -1808,6 +1982,16 @@ export default function FootballDraftPage() {
           onClose={() => setDetailsPlayer(null)}
           onDraft={() => draftFromDetails(detailsPlayer)}
           canDraft={draftIdentityReady && draftOpen && !isPickClockPaused && !draftComplete && !draftedIds.has(detailsPlayer.id) && isFootballPlayerEligibleAt(detailsPlayer, eligibilityCutoff) && getFootballInjuryAvailability(detailsPlayer) !== "out" && selectedTeam === currentTeam}
+        />
+      )}
+
+      {rosterTeam && (
+        <TeamRosterModal
+          team={rosterTeam}
+          picks={picks}
+          players={players}
+          scoring={pool.scoring ?? defaultScoring}
+          onClose={() => setRosterTeam("")}
         />
       )}
 
