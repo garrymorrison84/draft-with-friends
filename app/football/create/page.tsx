@@ -45,7 +45,7 @@ export default function CreateFootballPoolPage() {
   const [teamNames, setTeamNames] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrder, setDraftOrder] = useState(["Team 1", "Team 2", "Team 3", "Team 4"]);
   const [draftOrderMethod, setDraftOrderMethod] = useState("random");
-  const [draftType, setDraftType] = useState<"unscheduled" | "scheduled">("unscheduled");
+  const [draftType, setDraftType] = useState<"unscheduled" | "scheduled">("scheduled");
   const [scheduledDraftDate, setScheduledDraftDate] = useState(() => getLocalDateValue());
   const [scheduledDraftTime, setScheduledDraftTime] = useState("20:00");
   const [scheduledDraftTimeZone, setScheduledDraftTimeZone] =
@@ -489,32 +489,6 @@ export default function CreateFootballPoolPage() {
               <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 md:grid-cols-2">
                 <label
                   className={`cursor-pointer rounded-2xl border p-4 sm:p-5 ${
-                    draftType === "unscheduled"
-                      ? "border-emerald-400/40 bg-emerald-400/10"
-                      : "border-white/5 bg-[#111827]"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="draftType"
-                    checked={draftType === "unscheduled"}
-                    onChange={() => setDraftType("unscheduled")}
-                    className="mr-3"
-                  />
-                  <span
-                    className={`font-bold ${
-                      draftType === "unscheduled" ? "text-emerald-300" : "text-white"
-                    }`}
-                  >
-                    Anytime Draft
-                  </span>
-                  <p className="mt-1 text-xs leading-5 text-slate-400 sm:mt-2 sm:text-sm sm:leading-6">
-                    Draft at your own pace. Share the link with your friends. No time limit per pick.
-                  </p>
-                </label>
-
-                <label
-                  className={`cursor-pointer rounded-2xl border p-4 sm:p-5 ${
                     draftType === "scheduled"
                       ? "border-emerald-400/40 bg-emerald-400/10"
                       : "border-white/5 bg-[#111827]"
@@ -539,6 +513,32 @@ export default function CreateFootballPoolPage() {
                   </span>
                   <p className="mt-1 text-xs leading-5 text-slate-400 sm:mt-2 sm:text-sm sm:leading-6">
                     Set a draft time and choose how long each participant has to make a pick.
+                  </p>
+                </label>
+
+                <label
+                  className={`cursor-pointer rounded-2xl border p-4 sm:p-5 ${
+                    draftType === "unscheduled"
+                      ? "border-emerald-400/40 bg-emerald-400/10"
+                      : "border-white/5 bg-[#111827]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="draftType"
+                    checked={draftType === "unscheduled"}
+                    onChange={() => setDraftType("unscheduled")}
+                    className="mr-3"
+                  />
+                  <span
+                    className={`font-bold ${
+                      draftType === "unscheduled" ? "text-emerald-300" : "text-white"
+                    }`}
+                  >
+                    Anytime Draft
+                  </span>
+                  <p className="mt-1 text-xs leading-5 text-slate-400 sm:mt-2 sm:text-sm sm:leading-6">
+                    Draft at your own pace. Share the link with your friends. No time limit per pick.
                   </p>
                 </label>
               </div>
