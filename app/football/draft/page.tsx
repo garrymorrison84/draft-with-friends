@@ -402,30 +402,30 @@ function TeamRosterModal({
   const filledSlots = entries.filter((entry) => entry.player).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/75 p-1 backdrop-blur-sm md:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/75 p-1 backdrop-blur-sm md:p-3">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="team-roster-title"
-        className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-3rem)]"
+        className="flex max-h-[calc(100dvh-0.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/60 md:max-h-[calc(100dvh-1.5rem)]"
       >
-        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-5 sm:p-7">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-300">
+        <div className="shrink-0 border-b border-white/10 bg-[#1F2937] p-3 sm:p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300 sm:text-xs">
             Current roster
           </p>
-          <div className="mt-2 flex items-end justify-between gap-4">
-            <h2 id="team-roster-title" className="min-w-0 break-words text-3xl font-black text-white sm:text-4xl">
+          <div className="mt-1 flex items-end justify-between gap-4">
+            <h2 id="team-roster-title" className="min-w-0 break-words text-2xl font-black text-white sm:text-3xl">
               {team}
             </h2>
-            <p className="shrink-0 text-sm font-black text-slate-400">
+            <p className="shrink-0 text-xs font-black text-slate-400 sm:text-sm">
               {filledSlots} of {entries.length} filled
             </p>
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto p-1.5 sm:p-2">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#030712]">
-            <div className="grid grid-cols-[minmax(0,1fr)_58px] border-b border-white/10 bg-[#172033] px-3 py-3 text-xs font-black uppercase tracking-wide text-slate-500 sm:grid-cols-[minmax(0,1fr)_78px] sm:px-5">
+            <div className="grid grid-cols-[minmax(0,1fr)_52px] border-b border-white/10 bg-[#172033] px-3 py-2 text-[10px] font-black uppercase tracking-wide text-slate-500 sm:grid-cols-[minmax(0,1fr)_64px] sm:text-xs">
               <span>Player</span>
               <span className="text-center text-emerald-300">PPG</span>
             </div>
@@ -434,36 +434,35 @@ function TeamRosterModal({
               return (
                 <div
                   key={`${entry.slotLabel}-${index}`}
-                  className="grid min-h-[76px] grid-cols-[minmax(0,1fr)_58px] items-center border-b border-white/5 px-3 py-3 last:border-b-0 sm:min-h-[88px] sm:grid-cols-[minmax(0,1fr)_78px] sm:px-5"
+                  className="grid min-h-[54px] grid-cols-[minmax(0,1fr)_52px] items-center border-b border-white/5 px-3 py-1.5 last:border-b-0 sm:min-h-[58px] sm:grid-cols-[minmax(0,1fr)_64px]"
                 >
-                  <div className="grid min-w-0 grid-cols-[58px_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[72px_minmax(0,1fr)] sm:gap-4">
-                    <span className={`inline-flex min-h-10 items-center justify-center rounded-xl border px-2 text-center text-xs font-black sm:min-h-12 sm:text-sm ${rosterSlotStyles[entry.slotLabel]}`}>
+                  <div className="grid min-w-0 grid-cols-[48px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[56px_minmax(0,1fr)] sm:gap-3">
+                    <span className={`inline-flex min-h-8 items-center justify-center rounded-lg border px-1.5 text-center text-[11px] font-black sm:min-h-9 sm:rounded-xl sm:text-xs ${rosterSlotStyles[entry.slotLabel]}`}>
                       {entry.slotLabel}
                     </span>
                     {player ? (
                       <div className="min-w-0">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <p className="truncate text-sm font-black text-white sm:text-lg">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <p className="truncate text-[13px] font-black text-white sm:text-[15px]">
                             {player.position === "DST" ? player.school : player.name}
                           </p>
                           {player.position !== "DST" ? (
-                            <span className="shrink-0 text-[10px] font-black uppercase text-slate-500 sm:text-xs">
+                            <span className="shrink-0 text-[9px] font-black uppercase text-slate-500 sm:text-[10px]">
                               {player.schoolAbbreviation || player.school}
                             </span>
                           ) : null}
                         </div>
-                        <p className="truncate text-xs font-bold text-slate-500 sm:text-sm">
+                        <p className="truncate text-[10px] font-bold text-slate-500 sm:text-[11px]">
                           {player.gameTime} {player.opponent}
                         </p>
                       </div>
                     ) : (
                       <div className="min-w-0">
-                        <p className="text-sm font-black text-slate-400 sm:text-base">Open slot</p>
-                        <p className="text-xs font-bold text-slate-600 sm:text-sm">Still needed</p>
+                        <p className="text-xs font-black text-slate-400 sm:text-sm">Open slot</p>
                       </div>
                     )}
                   </div>
-                  <div className={`text-center text-sm font-black sm:text-base ${player ? "text-emerald-300" : "text-slate-600"}`}>
+                  <div className={`text-center text-xs font-black sm:text-sm ${player ? "text-emerald-300" : "text-slate-600"}`}>
                     {player ? formatPoints(getPlayerPpg(player, scoring)) : "—"}
                   </div>
                 </div>
@@ -472,11 +471,11 @@ function TeamRosterModal({
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-white/10 p-4 sm:flex sm:justify-end">
+        <div className="shrink-0 border-t border-white/10 p-2 sm:flex sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="w-full rounded-2xl border border-white/15 px-5 py-3 font-black text-slate-200 hover:bg-white/5 sm:w-auto"
+            className="w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-black text-slate-200 hover:bg-white/5 sm:w-auto"
           >
             Close
           </button>
