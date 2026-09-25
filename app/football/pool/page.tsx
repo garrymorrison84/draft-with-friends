@@ -196,7 +196,7 @@ export default function FootballPoolPage() {
                 onClick={(event) => {
                   if (!organizerId || !selectedTeam) event.preventDefault();
                 }}
-                className={`rounded-2xl px-8 py-4 text-center text-lg font-black transition ${organizerId && selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
+                className={`min-h-20 w-full rounded-2xl px-10 py-5 text-center text-xl font-black transition sm:w-auto sm:min-w-[240px] ${organizerId && selectedTeam ? "bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-400/30 hover:scale-105 hover:bg-emerald-300" : "cursor-not-allowed bg-slate-700 text-slate-400"}`}
               >
                 {!organizerId ? "Sign In to Join" : !selectedTeam ? "Choose Your Team" : picks.length > 0 ? "Continue Draft" : "Enter Draft"}
               </Link>
