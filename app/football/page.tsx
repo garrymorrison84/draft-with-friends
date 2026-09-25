@@ -84,7 +84,7 @@ export default function FootballHomePage() {
                 Fantasy Football for Saturdays.
               </h1>
               <p className="mt-5 max-w-3xl text-base font-semibold leading-7 text-slate-300 sm:text-lg md:mt-6 md:text-xl md:leading-9">
-                Pick your conferences, snake draft teams, and watch your players
+                Single weekend pools! Pick your conferences, snake draft teams, and watch your players
                 rack up points in real time.
               </p>
             </div>
