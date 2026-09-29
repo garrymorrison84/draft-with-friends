@@ -4,6 +4,8 @@ const routes = [
   "",
   "/football",
   "/football/create",
+  "/nfl",
+  "/nfl/create",
   "/create-pool",
   "/privacy",
   "/terms",

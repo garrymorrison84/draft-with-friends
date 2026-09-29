@@ -22,14 +22,14 @@ export const metadata: Metadata = {
     template: "%s | Draft With Friends",
   },
   description:
-    "Create private sports pools, run snake drafts with friends, and track live standings for college football and golf.",
+    "Create private sports pools, run snake drafts with friends, and track live standings for NFL, college football, and golf.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "Draft With Friends",
     description:
-      "Private snake drafts and live scoring for college football, golf, and more friend-group sports pools.",
+      "Private snake drafts and live scoring for NFL, college football, golf, and more friend-group sports pools.",
     url: "https://www.draftwithfriends.com",
     siteName: "Draft With Friends",
     type: "website",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Draft With Friends",
     description:
-      "Private snake drafts and live scoring for college football, golf, and more friend-group sports pools.",
+      "Private snake drafts and live scoring for NFL, college football, golf, and more friend-group sports pools.",
   },
   icons: {
     icon: [

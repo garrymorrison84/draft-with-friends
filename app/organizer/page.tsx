@@ -8,11 +8,12 @@ import { getCurrentOrganizerUser } from "../lib/poolApi";
 import { clearPool as clearLocalGolfPool } from "../lib/poolStorage";
 import { supabase } from "../lib/supabase";
 import { clearFootballHistory } from "../football/lib/storage";
+import { clearNflHistory } from "../nfl/lib/storage";
 
 type AccountPool = {
   id: string;
   name: string;
-  sport: "football" | "golf";
+  sport: "football" | "nfl" | "golf";
   event: string;
   role: "organizer" | "member";
   teamName: string;
@@ -216,6 +217,7 @@ export default function AccountPoolsPage() {
       }
       if (result?.deletedForEveryone) {
         if (pool.sport === "football") clearFootballHistory(pool.id);
+        else if (pool.sport === "nfl") clearNflHistory(pool.id);
         else clearLocalGolfPool(pool.id);
       }
       setPools((current) => current.filter((item) => `${item.sport}-${item.id}` !== poolKey));
@@ -256,6 +258,9 @@ export default function AccountPoolsPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/football/create" className="rounded-xl bg-emerald-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300">
               Create College Football Pool
+            </Link>
+            <Link href="/nfl/create" className="rounded-xl border border-emerald-300/35 bg-[#111827] px-5 py-3 text-sm font-black text-emerald-300 transition hover:border-emerald-300">
+              Create NFL Pool
             </Link>
             <Link href="/create-pool" className="rounded-xl border border-emerald-300/35 bg-[#111827] px-5 py-3 text-sm font-black text-emerald-300 transition hover:border-emerald-300">
               Create PGA Event Pool

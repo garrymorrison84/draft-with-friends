@@ -1,9 +1,10 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { getCurrentNflWeek } from "../../../nfl/lib/nflWeek";
 
 type AdminClient = NonNullable<ReturnType<typeof getSupabaseAdmin>["client"]>;
-type PoolSport = "football" | "golf";
+type PoolSport = "football" | "nfl" | "golf";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -63,6 +64,19 @@ function footballContestCompleted(settings: Record<string, unknown>, now = new D
   return week < currentCollegeWeek(now);
 }
 
+function nflContestCompleted(settings: Record<string, unknown>, now = new Date()) {
+  const week = footballWeek(settings.season);
+  if (!week) return false;
+  const createdAt = typeof settings.createdAt === "string" ? new Date(settings.createdAt) : null;
+  const currentSeasonYear = now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
+  if (createdAt && !Number.isNaN(createdAt.getTime())) {
+    const poolSeasonYear = createdAt.getMonth() < 2 ? createdAt.getFullYear() - 1 : createdAt.getFullYear();
+    if (poolSeasonYear < currentSeasonYear) return true;
+    if (poolSeasonYear > currentSeasonYear) return false;
+  }
+  return week < getCurrentNflWeek(now);
+}
+
 export async function GET(request: NextRequest) {
   const { client, error: adminError } = getSupabaseAdmin();
   if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
@@ -70,7 +84,7 @@ export async function GET(request: NextRequest) {
   const userId = await authenticatedUserId(request, client);
   if (!userId) return NextResponse.json({ error: "Sign in to view your pools." }, { status: 401 });
 
-  const [golfOwnedResult, footballResult, golfClaimsResult, hiddenPoolsResult] = await Promise.all([
+  const [golfOwnedResult, footballResult, nflResult, golfClaimsResult, hiddenPoolsResult] = await Promise.all([
     client
       .from("pools")
       .select("id,pool_name,golf_event,event_id,number_of_teams,golfers_per_team,scores_to_count,owner_id,draft_locked,archived")
@@ -79,6 +93,11 @@ export async function GET(request: NextRequest) {
       .from("platform_pools")
       .select("id,name,owner_id,settings")
       .eq("pool_type", "college_fantasy")
+      .limit(2000),
+    client
+      .from("platform_pools")
+      .select("id,name,owner_id,settings")
+      .eq("pool_type", "nfl_fantasy")
       .limit(2000),
     client
       .from("platform_pools")
@@ -96,6 +115,7 @@ export async function GET(request: NextRequest) {
   const firstError =
     golfOwnedResult.error ||
     footballResult.error ||
+    nflResult.error ||
     golfClaimsResult.error ||
     hiddenPoolsResult.error;
   if (firstError) return NextResponse.json({ error: firstError.message }, { status: 500 });
@@ -105,7 +125,7 @@ export async function GET(request: NextRequest) {
       if (!isRecord(row.settings)) return [];
       const sport = row.settings.sport;
       const poolId = row.settings.poolId;
-      return (sport === "football" || sport === "golf") && typeof poolId === "string"
+      return (sport === "football" || sport === "nfl" || sport === "golf") && typeof poolId === "string"
         ? [hiddenPoolKey(sport, poolId)]
         : [];
     })
@@ -128,6 +148,10 @@ export async function GET(request: NextRequest) {
 
   const golfPools = [...(golfOwnedResult.data || []), ...(joinedGolf || [])];
   const footballPools = (footballResult.data || []).filter((pool) => {
+    const isOwner = pool.owner_id === userId;
+    return isOwner || Boolean(claimedTeam(pool.settings, "teamClaims", userId));
+  });
+  const nflPools = (nflResult.data || []).filter((pool) => {
     const isOwner = pool.owner_id === userId;
     return isOwner || Boolean(claimedTeam(pool.settings, "teamClaims", userId));
   });
@@ -206,7 +230,35 @@ export async function GET(request: NextRequest) {
     }];
   });
 
-  const pools = [...footballRows, ...golfRows].sort((a, b) => {
+  const nflRows = nflPools.flatMap((pool) => {
+    if (hiddenPools.has(hiddenPoolKey("nfl", pool.id))) return [];
+    const settings = isRecord(pool.settings) ? pool.settings : {};
+    const teamName = claimedTeam(settings, "teamClaims", userId);
+    const isOwner = pool.owner_id === userId;
+    const draftOrder = Array.isArray(settings.draftOrder)
+      ? settings.draftOrder.filter((name): name is string => typeof name === "string")
+      : [];
+    const numberOfTeams = draftOrder.length || (typeof settings.numberOfTeams === "number" ? settings.numberOfTeams : 0);
+    const completed = nflContestCompleted(settings);
+    const season = typeof settings.season === "string" ? settings.season : "NFL";
+    return [{
+      id: pool.id,
+      name: typeof settings.poolName === "string" ? settings.poolName : pool.name,
+      sport: "nfl" as const,
+      event: season,
+      role: isOwner ? "organizer" as const : "member" as const,
+      teamName,
+      completed,
+      createdAt: typeof settings.createdAt === "string" ? settings.createdAt : null,
+      status: completed ? "Completed" : "Active",
+      details: `${numberOfTeams || "—"} teams • NFL fantasy football`,
+      lobbyHref: `/nfl/pool?id=${pool.id}`,
+      leaderboardHref: `/nfl/leaderboard?id=${pool.id}`,
+      manageHref: isOwner ? `/nfl/pool?id=${pool.id}#commissioner-controls` : null,
+    }];
+  });
+
+  const pools = [...footballRows, ...nflRows, ...golfRows].sort((a, b) => {
     const left = a.createdAt ? Date.parse(a.createdAt) : 0;
     const right = b.createdAt ? Date.parse(b.createdAt) : 0;
     return right - left;
@@ -229,16 +281,16 @@ export async function DELETE(request: NextRequest) {
   if (!isRecord(body)) return NextResponse.json({ error: "Invalid pool request." }, { status: 400 });
   const sport = body.sport;
   const poolId = typeof body.poolId === "string" ? body.poolId.trim() : "";
-  if ((sport !== "football" && sport !== "golf") || !poolId) {
+  if ((sport !== "football" && sport !== "nfl" && sport !== "golf") || !poolId) {
     return NextResponse.json({ error: "Choose a pool to delete from your history." }, { status: 400 });
   }
 
-  const ownerResult = sport === "football"
+  const ownerResult = sport === "football" || sport === "nfl"
     ? await client
       .from("platform_pools")
       .select("id,owner_id")
       .eq("id", poolId)
-      .eq("pool_type", "college_fantasy")
+      .eq("pool_type", sport === "football" ? "college_fantasy" : "nfl_fantasy")
       .maybeSingle()
     : await client
       .from("pools")
@@ -254,7 +306,7 @@ export async function DELETE(request: NextRequest) {
   }
 
   if (ownerResult.data.owner_id === userId) {
-    const relatedDeletes = sport === "football"
+    const relatedDeletes = sport === "football" || sport === "nfl"
       ? await Promise.all([
         client.from("platform_draft_picks").delete().eq("pool_id", poolId),
         client.from("pool_entries").delete().eq("pool_id", poolId),
@@ -269,12 +321,12 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: relatedError.message }, { status: 500 });
     }
 
-    const deleteResult = sport === "football"
+    const deleteResult = sport === "football" || sport === "nfl"
       ? await client
         .from("platform_pools")
         .delete()
         .eq("id", poolId)
-        .eq("pool_type", "college_fantasy")
+        .eq("pool_type", sport === "football" ? "college_fantasy" : "nfl_fantasy")
         .eq("owner_id", userId)
       : await client
         .from("pools")

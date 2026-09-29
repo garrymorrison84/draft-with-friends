@@ -30,7 +30,7 @@ function readClaims(settings: unknown): Record<string, string> {
   return Object.fromEntries(Object.entries(claims).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
 }
 
-function readFootballClaims(settings: unknown): Record<string, string> {
+function readFantasyClaims(settings: unknown): Record<string, string> {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) return {};
   const claims = (settings as Record<string, unknown>).teamClaims;
   if (!claims || typeof claims !== "object" || Array.isArray(claims)) return {};
@@ -42,12 +42,12 @@ export async function GET(request: NextRequest) {
   if (!poolId) return NextResponse.json({ error: "Missing pool id." }, { status: 400 });
   const { client, error } = getSupabaseAdmin();
   if (!client) return NextResponse.json({ error }, { status: 500 });
-  const [{ data: footballPool }, { data: claimRow }] = await Promise.all([
-    client.from("platform_pools").select("settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
+  const [{ data: fantasyPool }, { data: claimRow }] = await Promise.all([
+    client.from("platform_pools").select("settings").eq("id", poolId).in("pool_type", ["college_fantasy", "nfl_fantasy"]).maybeSingle(),
     client.from("platform_pools").select("settings").eq("id", claimRowId(poolId)).maybeSingle(),
   ]);
   const userId = await authenticatedUserId(request, client);
-  const claims = footballPool ? readFootballClaims(footballPool.settings) : readClaims(claimRow?.settings);
+  const claims = fantasyPool ? readFantasyClaims(fantasyPool.settings) : readClaims(claimRow?.settings);
   return NextResponse.json({
     claims: publicClaims(claims, userId),
   });
@@ -66,23 +66,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sign in before choosing your team." }, { status: 401 });
   }
   const id = claimRowId(poolId);
-  const { data: footballPool, error: footballError } = await client.from("platform_pools").select("settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle();
-  if (footballError) return NextResponse.json({ error: footballError.message }, { status: 500 });
-  const { data: golfPool, error: golfError } = footballPool
+  const { data: fantasyPool, error: fantasyError } = await client.from("platform_pools").select("pool_type,settings").eq("id", poolId).in("pool_type", ["college_fantasy", "nfl_fantasy"]).maybeSingle();
+  if (fantasyError) return NextResponse.json({ error: fantasyError.message }, { status: 500 });
+  const { data: golfPool, error: golfError } = fantasyPool
     ? { data: null, error: null }
     : await client.from("pools").select("owner_id,team_names").eq("id", poolId).maybeSingle();
   if (golfError) return NextResponse.json({ error: golfError.message }, { status: 500 });
-  if (!footballPool && !golfPool) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
-  const teamNames = footballPool && footballPool.settings && typeof footballPool.settings === "object" && !Array.isArray(footballPool.settings)
-    ? (footballPool.settings as Record<string, unknown>).teamNames
+  if (!fantasyPool && !golfPool) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  const teamNames = fantasyPool && fantasyPool.settings && typeof fantasyPool.settings === "object" && !Array.isArray(fantasyPool.settings)
+    ? (fantasyPool.settings as Record<string, unknown>).teamNames
     : golfPool?.team_names;
   if (!Array.isArray(teamNames) || !teamNames.includes(teamName)) {
     return NextResponse.json({ error: "That team is not available in this pool." }, { status: 409 });
   }
-  const { data: existing } = footballPool
+  const { data: existing } = fantasyPool
     ? { data: null }
     : await client.from("platform_pools").select("settings").eq("id", id).maybeSingle();
-  const claims = footballPool ? readFootballClaims(footballPool.settings) : readClaims(existing?.settings);
+  const claims = fantasyPool ? readFantasyClaims(fantasyPool.settings) : readClaims(existing?.settings);
   const currentClaim = claims[teamName];
   if (currentClaim && currentClaim !== userId && currentClaim !== legacyParticipantId) {
     return NextResponse.json({ error: "That team has already been claimed.", claims: publicClaims(claims, userId) }, { status: 409 });
@@ -91,13 +91,13 @@ export async function POST(request: NextRequest) {
     if ((claimant === userId || claimant === legacyParticipantId) && claimedTeam !== teamName) delete claims[claimedTeam];
   }
   claims[teamName] = userId;
-  if (footballPool) {
-    const settings = footballPool.settings && typeof footballPool.settings === "object" && !Array.isArray(footballPool.settings)
-      ? footballPool.settings as Record<string, unknown>
+  if (fantasyPool) {
+    const settings = fantasyPool.settings && typeof fantasyPool.settings === "object" && !Array.isArray(fantasyPool.settings)
+      ? fantasyPool.settings as Record<string, unknown>
       : {};
     const { error: updateError } = await client.from("platform_pools").update({
       settings: { ...settings, teamClaims: claims },
-    }).eq("id", poolId).eq("pool_type", "college_fantasy");
+    }).eq("id", poolId).eq("pool_type", fantasyPool.pool_type);
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
     return NextResponse.json({ success: true, claims: publicClaims(claims, userId) });
   }
