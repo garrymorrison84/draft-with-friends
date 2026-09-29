@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   const { client, error } = getSupabaseAdmin();
   if (!client) return NextResponse.json({ error }, { status: 500 });
   const [{ data: fantasyPool }, { data: claimRow }] = await Promise.all([
-    client.from("platform_pools").select("settings").eq("id", poolId).in("pool_type", ["college_fantasy", "nfl_fantasy"]).maybeSingle(),
+    client.from("platform_pools").select("settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
     client.from("platform_pools").select("settings").eq("id", claimRowId(poolId)).maybeSingle(),
   ]);
   const userId = await authenticatedUserId(request, client);
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sign in before choosing your team." }, { status: 401 });
   }
   const id = claimRowId(poolId);
-  const { data: fantasyPool, error: fantasyError } = await client.from("platform_pools").select("pool_type,settings").eq("id", poolId).in("pool_type", ["college_fantasy", "nfl_fantasy"]).maybeSingle();
+  const { data: fantasyPool, error: fantasyError } = await client.from("platform_pools").select("pool_type,settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle();
   if (fantasyError) return NextResponse.json({ error: fantasyError.message }, { status: 500 });
   const { data: golfPool, error: golfError } = fantasyPool
     ? { data: null, error: null }

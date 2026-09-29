@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     client
       .from("platform_pools")
       .select("id,name,owner_id,settings")
-      .eq("pool_type", "nfl_fantasy")
+      .eq("pool_type", "college_fantasy")
       .limit(2000),
     client
       .from("platform_pools")
@@ -148,10 +148,12 @@ export async function GET(request: NextRequest) {
 
   const golfPools = [...(golfOwnedResult.data || []), ...(joinedGolf || [])];
   const footballPools = (footballResult.data || []).filter((pool) => {
+    if (isRecord(pool.settings) && pool.settings.sport === "nfl") return false;
     const isOwner = pool.owner_id === userId;
     return isOwner || Boolean(claimedTeam(pool.settings, "teamClaims", userId));
   });
   const nflPools = (nflResult.data || []).filter((pool) => {
+    if (!isRecord(pool.settings) || pool.settings.sport !== "nfl") return false;
     const isOwner = pool.owner_id === userId;
     return isOwner || Boolean(claimedTeam(pool.settings, "teamClaims", userId));
   });
@@ -288,9 +290,9 @@ export async function DELETE(request: NextRequest) {
   const ownerResult = sport === "football" || sport === "nfl"
     ? await client
       .from("platform_pools")
-      .select("id,owner_id")
+      .select("id,owner_id,settings")
       .eq("id", poolId)
-      .eq("pool_type", sport === "football" ? "college_fantasy" : "nfl_fantasy")
+      .eq("pool_type", "college_fantasy")
       .maybeSingle()
     : await client
       .from("pools")
@@ -303,6 +305,14 @@ export async function DELETE(request: NextRequest) {
   }
   if (!ownerResult.data) {
     return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  }
+
+  if (sport === "football" || sport === "nfl") {
+    const settings = (ownerResult.data as { settings?: unknown }).settings;
+    const isNflPool = isRecord(settings) && settings.sport === "nfl";
+    if ((sport === "nfl" && !isNflPool) || (sport === "football" && isNflPool)) {
+      return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    }
   }
 
   if (ownerResult.data.owner_id === userId) {
@@ -326,7 +336,7 @@ export async function DELETE(request: NextRequest) {
         .from("platform_pools")
         .delete()
         .eq("id", poolId)
-        .eq("pool_type", sport === "football" ? "college_fantasy" : "nfl_fantasy")
+        .eq("pool_type", "college_fantasy")
         .eq("owner_id", userId)
       : await client
         .from("pools")

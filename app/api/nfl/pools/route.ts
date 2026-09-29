@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
         .from("platform_pools")
         .select("id,settings")
         .eq("id", poolId)
-        .eq("pool_type", "nfl_fantasy")
+        .eq("pool_type", "college_fantasy")
         .maybeSingle(),
       client
         .from("platform_draft_picks")
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!pool) {
+  if (!pool || !isRecord(pool.settings) || pool.settings.sport !== "nfl") {
     return NextResponse.json({ error: "Pool not found." }, { status: 404 });
   }
 
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 
   const [{ data: pool, error: poolError }, { data: currentPicks, error: picksError }] =
     await Promise.all([
-      client.from("platform_pools").select("id,owner_id,settings").eq("id", poolId).eq("pool_type", "nfl_fantasy").maybeSingle(),
+      client.from("platform_pools").select("id,owner_id,settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
       client.from("platform_draft_picks")
         .select("pick_index,selection_id,selection_snapshot,created_at")
         .eq("pool_id", poolId)
@@ -175,7 +175,9 @@ export async function POST(request: NextRequest) {
   if (poolError || picksError) {
     return NextResponse.json({ error: poolError?.message || picksError?.message }, { status: 500 });
   }
-  if (!pool) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  if (!pool || !isRecord(pool.settings) || pool.settings.sport !== "nfl") {
+    return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  }
 
   const picks = currentPicks || [];
   if (picks.length !== expectedPickIndex || picks.some((pick) => pick.selection_id === playerId)) {
@@ -392,7 +394,12 @@ export async function PATCH(request: NextRequest) {
       .eq("id", poolId)
       .maybeSingle();
     if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
-    if (row && row.pool_type !== "nfl_fantasy") {
+    if (
+      row &&
+      (row.pool_type !== "college_fantasy" ||
+        !isRecord(row.settings) ||
+        row.settings.sport !== "nfl")
+    ) {
       return NextResponse.json({ error: "That pool id belongs to another pool type." }, { status: 409 });
     }
     if (row && organizerId !== row.owner_id) {
@@ -425,6 +432,7 @@ export async function PATCH(request: NextRequest) {
       const isScheduled = submittedPool.draftType === "scheduled";
       nextSettings = {
         ...submittedPool,
+        sport: "nfl",
         id: poolId,
         teamNames,
         draftOrder,
@@ -445,8 +453,8 @@ export async function PATCH(request: NextRequest) {
         id: poolId,
         owner_id: organizerId,
         name: poolName,
-        pool_type: "nfl_fantasy",
-        settings: nextSettings,
+        pool_type: "college_fantasy",
+        settings: { ...nextSettings, sport: "nfl" },
       },
       { onConflict: "id" }
     );
@@ -482,10 +490,10 @@ export async function PATCH(request: NextRequest) {
       .from("platform_pools")
       .select("owner_id,settings")
       .eq("id", poolId)
-      .eq("pool_type", "nfl_fantasy")
+      .eq("pool_type", "college_fantasy")
       .maybeSingle();
     if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
-    if (!row || !isRecord(row.settings)) {
+    if (!row || !isRecord(row.settings) || row.settings.sport !== "nfl") {
       return NextResponse.json({ error: "Pool not found." }, { status: 404 });
     }
     if (organizerId !== row.owner_id) {
@@ -612,9 +620,9 @@ export async function PATCH(request: NextRequest) {
     const [poolResult, pickResult, duplicateResult] = await Promise.all([
       client
         .from("platform_pools")
-        .select("owner_id")
+        .select("owner_id,settings")
         .eq("id", poolId)
-        .eq("pool_type", "nfl_fantasy")
+        .eq("pool_type", "college_fantasy")
         .maybeSingle(),
       client
         .from("platform_draft_picks")
@@ -642,7 +650,11 @@ export async function PATCH(request: NextRequest) {
         { status: 500 }
       );
     }
-    if (!poolResult.data) {
+    if (
+      !poolResult.data ||
+      !isRecord(poolResult.data.settings) ||
+      poolResult.data.settings.sport !== "nfl"
+    ) {
       return NextResponse.json({ error: "Pool not found." }, { status: 404 });
     }
     if (organizerId !== poolResult.data.owner_id) {
@@ -697,10 +709,10 @@ export async function PATCH(request: NextRequest) {
       .from("platform_pools")
       .select("owner_id,settings")
       .eq("id", poolId)
-      .eq("pool_type", "nfl_fantasy")
+      .eq("pool_type", "college_fantasy")
       .maybeSingle();
     if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
-    if (!row || !isRecord(row.settings)) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    if (!row || !isRecord(row.settings) || row.settings.sport !== "nfl") return NextResponse.json({ error: "Pool not found." }, { status: 404 });
     const organizerId = await getAuthenticatedOrganizerId(request, client);
     if (!organizerId || organizerId !== row.owner_id) {
       return NextResponse.json({ error: "Only the commissioner can undo a pick." }, { status: 403 });
@@ -739,10 +751,10 @@ export async function PATCH(request: NextRequest) {
       .from("platform_pools")
       .select("owner_id,settings")
       .eq("id", poolId)
-      .eq("pool_type", "nfl_fantasy")
+      .eq("pool_type", "college_fantasy")
       .maybeSingle();
     if (poolError) return NextResponse.json({ error: poolError.message }, { status: 500 });
-    if (!row || !isRecord(row.settings)) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    if (!row || !isRecord(row.settings) || row.settings.sport !== "nfl") return NextResponse.json({ error: "Pool not found." }, { status: 404 });
     const organizerId = await getAuthenticatedOrganizerId(request, client);
     if (!organizerId || organizerId !== row.owner_id) {
       return NextResponse.json({ error: "Only the commissioner can pause the draft." }, { status: 403 });
@@ -773,11 +785,11 @@ export async function PATCH(request: NextRequest) {
   const { client, error: adminError } = getSupabaseAdmin();
   if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
   const [{ data: row, error: poolError }, { count: pickCount, error: picksError }] = await Promise.all([
-    client.from("platform_pools").select("settings").eq("id", poolId).eq("pool_type", "nfl_fantasy").maybeSingle(),
+    client.from("platform_pools").select("settings").eq("id", poolId).eq("pool_type", "college_fantasy").maybeSingle(),
     client.from("platform_draft_picks").select("pool_id", { count: "exact", head: true }).eq("pool_id", poolId),
   ]);
   if (poolError || picksError) return NextResponse.json({ error: poolError?.message || picksError?.message }, { status: 500 });
-  if (!row || !isRecord(row.settings)) return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+  if (!row || !isRecord(row.settings) || row.settings.sport !== "nfl") return NextResponse.json({ error: "Pool not found." }, { status: 404 });
   if ((pickCount || 0) > 0) return NextResponse.json({ error: "Team names lock when the draft begins." }, { status: 409 });
 
   const settings = row.settings;
@@ -862,12 +874,21 @@ export async function PUT(request: NextRequest) {
 
   const { data: existingPool, error: ownerLookupError } = await client
     .from("platform_pools")
-    .select("owner_id")
+    .select("owner_id,settings")
     .eq("id", poolId)
     .maybeSingle();
 
   if (ownerLookupError) {
     return NextResponse.json({ error: ownerLookupError.message }, { status: 500 });
+  }
+  if (
+    existingPool &&
+    (!isRecord(existingPool.settings) || existingPool.settings.sport !== "nfl")
+  ) {
+    return NextResponse.json(
+      { error: "That pool id belongs to another pool type." },
+      { status: 409 }
+    );
   }
 
   const organizerId = await getAuthenticatedOrganizerId(request, client);
@@ -888,6 +909,7 @@ export async function PUT(request: NextRequest) {
   const isScheduled = pool.draftType === "scheduled";
   const normalizedPool = {
     ...pool,
+    sport: "nfl",
     pickClockSeconds: isScheduled
       ? Math.max(30, Number(pool.pickClockSeconds) || 60)
       : 0,
@@ -901,7 +923,7 @@ export async function PUT(request: NextRequest) {
         typeof pool.poolName === "string" && pool.poolName.trim()
           ? pool.poolName.trim()
           : "NFL Pool",
-      pool_type: "nfl_fantasy",
+      pool_type: "college_fantasy",
       settings: normalizedPool,
     },
     { onConflict: "id" }
