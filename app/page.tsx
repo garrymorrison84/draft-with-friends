@@ -342,13 +342,15 @@ function MobileExperienceShowcase() {
   );
 }
 
+const SHOW_GOLF_POOL_ON_HOME = false;
+
 function SportButtons({ className = "" }: { className?: string }) {
   return (
     <div className={`relative z-10 ${className}`}>
       <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
         Pick Your Sport
       </p>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <a
           href="/football"
           className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
@@ -361,12 +363,14 @@ function SportButtons({ className = "" }: { className?: string }) {
         >
           Create NFL Fantasy Football Pool
         </a>
-        <a
-          href="/create-pool"
-          className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
-        >
-          Create PGA Event Pool
-        </a>
+        {SHOW_GOLF_POOL_ON_HOME ? (
+          <a
+            href="/create-pool"
+            className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
+          >
+            Create PGA Event Pool
+          </a>
+        ) : null}
       </div>
     </div>
   );
