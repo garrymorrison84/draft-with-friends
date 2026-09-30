@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 import BrandMark from "./components/BrandMark";
-import { getCurrentCollegeFootballWeek } from "./football/lib/collegeWeek";
-import { getCurrentNflWeek } from "./nfl/lib/nflWeek";
-
-export const revalidate = 3600;
+import SportButtons from "./components/SportButtons";
 
 const draftTeams = ["Andy", "Mark", "Steve"];
 
@@ -346,52 +343,7 @@ function MobileExperienceShowcase() {
   );
 }
 
-const SHOW_GOLF_POOL_ON_HOME = false;
-
-function SportButtons({
-  className = "",
-  collegeWeek,
-  nflWeek,
-}: {
-  className?: string;
-  collegeWeek: number;
-  nflWeek: number;
-}) {
-  return (
-    <div className={`relative z-10 ${className}`}>
-      <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-slate-400">
-        Pick Your Sport
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <a
-          href="/football"
-          className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
-        >
-          Create Week {collegeWeek} College Fantasy Football Pool
-        </a>
-        <a
-          href="/nfl"
-          className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
-        >
-          Create Week {nflWeek} NFL Fantasy Football Pool
-        </a>
-        {SHOW_GOLF_POOL_ON_HOME ? (
-          <a
-            href="/create-pool"
-            className="flex min-h-[4.6rem] items-center justify-center rounded-2xl bg-emerald-400 px-5 py-4 text-center text-base font-black leading-5 text-slate-950 shadow-lg shadow-emerald-400/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-300 hover:shadow-[0_18px_38px_rgba(52,211,153,0.3)]"
-          >
-            Create PGA Event Pool
-          </a>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
-  const collegeWeek = getCurrentCollegeFootballWeek();
-  const nflWeek = getCurrentNflWeek();
-
   return (
     <main className="min-h-screen overflow-hidden bg-[#030712] text-white">
       <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-8 px-5 py-8 sm:px-6 sm:py-14 lg:grid-cols-[0.95fr_1.05fr] lg:gap-12">
@@ -409,11 +361,7 @@ export default function Home() {
               Your Rules
             </h1>
 
-            <SportButtons
-              className="mt-7"
-              collegeWeek={collegeWeek}
-              nflWeek={nflWeek}
-            />
+            <SportButtons className="mt-7" />
 
             <MobileExperienceShowcase />
           </div>
@@ -427,11 +375,7 @@ export default function Home() {
               Your Rules
             </h1>
 
-            <SportButtons
-              className="mt-8 max-w-xl"
-              collegeWeek={collegeWeek}
-              nflWeek={nflWeek}
-            />
+            <SportButtons className="mt-8 max-w-xl" />
 
           </div>
 
