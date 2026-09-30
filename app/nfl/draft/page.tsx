@@ -1753,7 +1753,7 @@ export default function NflDraftPage() {
                         <div className="min-w-0">
                           <div className="flex min-w-0 items-center gap-2">
                             <p className={`${compactDraftLayout ? "text-sm" : "text-base"} truncate font-black text-white`}>
-                              {player.name}
+                              {player.position === "DST" ? player.school : player.name}
                             </p>
                             <InjuryDesignationBadge player={player} />
                             <span className="shrink-0 text-xs font-black uppercase text-slate-500">
@@ -1940,7 +1940,7 @@ export default function NflDraftPage() {
                                   WebkitLineClamp: 2,
                                 }}
                               >
-                                {player.name}
+                                {player.position === "DST" ? player.school : player.name}
                               </p>
                               <div className="relative z-10 mt-2 flex flex-wrap items-center gap-1.5 pr-1 sm:mt-3 sm:gap-2 sm:pr-2">
                                 <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black sm:px-3 sm:text-xs ${styles.badge}`}>
