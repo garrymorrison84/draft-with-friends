@@ -1631,15 +1631,6 @@ export default function NflDraftPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => setShowScoringSettings(true)}
-              className="rounded-2xl border border-white/15 bg-[#111827] px-6 py-4 text-center text-base font-black text-slate-200 transition hover:border-emerald-400/40 hover:bg-[#1F2937] sm:px-8 sm:text-lg"
-            >
-              League Rules
-            </button>
-          </div>
         </div>
 
         {pickError && (
@@ -1806,6 +1797,13 @@ export default function NflDraftPage() {
                 <h2 className="text-2xl font-black sm:text-3xl">Draft Board</h2>
               </div>
               <div className="flex flex-wrap gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowScoringSettings(true)}
+                  className="min-h-10 flex-1 rounded-xl border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-sm font-black text-emerald-300 transition hover:bg-emerald-400/15 sm:flex-none sm:px-4 sm:py-3"
+                >
+                  League Rules
+                </button>
                 {isCommissioner && <button
                   type="button"
                   onClick={() => void undoPick()}
