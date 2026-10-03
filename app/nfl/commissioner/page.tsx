@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   type NflDraftPick,
   type NflPlayer,
   type NflPool,
   defaultNflPlayerPool,
   nflPlayers,
-  loadNflDraftPicks,
-  loadNflPool,
   saveNflDraftPicks,
   saveNflPool,
 } from "../lib/storage";
 import {
+  loadPersistedNflHistory,
   updateCommissionerNflDraftPick,
   updateCommissionerNflTeamNames,
 } from "../lib/platformStorage";
@@ -174,43 +174,61 @@ export default function NflCommissionerPage() {
     message?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessError, setAccessError] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const poolId = params.get("id");
+    let active = true;
 
-    if (!poolId) {
-      setIsLoading(false);
-      return;
-    }
+    async function loadCommissionerTools() {
+      const params = new URLSearchParams(window.location.search);
+      const poolId = params.get("id");
+      if (!poolId) {
+        if (active) setIsLoading(false);
+        return;
+      }
 
-    const savedPool = loadNflPool(poolId);
-
-    if (!savedPool) {
-      setIsLoading(false);
-      return;
-    }
-
-    setPool(savedPool);
-    setPicks(loadNflDraftPicks(savedPool.id));
-    setTeamNames(savedPool.teamNames);
-    setIsLoading(false);
-
-    async function loadReplayPlayers() {
       try {
-        const response = await fetch("/api/nfl/replay");
-        const data = await response.json();
+        const [user, history, replayResponse] = await Promise.all([
+          getCurrentOrganizerUser(),
+          loadPersistedNflHistory(poolId),
+          fetch("/api/nfl/replay"),
+        ]);
+        if (!active) return;
+
+        if (!history) {
+          setIsLoading(false);
+          return;
+        }
+
+        saveNflPool(history.pool);
+        saveNflDraftPicks(history.pool.id, history.picks);
+        setPool(history.pool);
+        setPicks(history.picks);
+        setTeamNames(history.pool.teamNames);
+
+        if (!user) {
+          setAccessError("Sign in with the commissioner account to manage this pool.");
+        } else if (!history.pool.ownerId || history.pool.ownerId !== user.id) {
+          setAccessError("Only the commissioner account that created this pool can make these changes.");
+        }
+
+        const data = await replayResponse.json();
         const replayPlayers = data?.playerPool?.players;
 
         if (Array.isArray(replayPlayers) && replayPlayers.length > 0) {
           setPlayers(replayPlayers as NflPlayer[]);
         }
       } catch {
-        setPlayers(nflPlayers);
+        if (active) setPlayers(nflPlayers);
+      } finally {
+        if (active) setIsLoading(false);
       }
     }
 
-    loadReplayPlayers();
+    loadCommissionerTools();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -404,6 +422,34 @@ export default function NflCommissionerPage() {
           <Link href="/nfl/create" className="mt-6 inline-block text-emerald-300">
             Create an NFL pool
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (accessError) {
+    return (
+      <main className="min-h-screen bg-[#030712] text-white">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="md" />
+          <h1 className="mt-8 text-4xl font-black">Commissioner access required</h1>
+          <p className="mt-4 rounded-2xl border border-red-400/30 bg-red-400/10 p-5 font-bold text-red-200">
+            {accessError}
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={`/organizer/sign-in?redirect=${encodeURIComponent(`/nfl/commissioner?id=${pool.id}`)}`}
+              className="rounded-xl bg-emerald-400 px-6 py-3 text-center font-black text-slate-950"
+            >
+              Sign In
+            </Link>
+            <Link
+              href={`/nfl/pool?id=${pool.id}`}
+              className="rounded-xl border border-white/10 px-6 py-3 text-center font-black"
+            >
+              Back to Lobby
+            </Link>
+          </div>
         </div>
       </main>
     );

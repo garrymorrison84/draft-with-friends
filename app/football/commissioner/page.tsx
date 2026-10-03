@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import {
   type FootballDraftPick,
   type FootballPlayer,
   type FootballPool,
   defaultFootballPlayerPool,
   footballPlayers,
-  loadFootballDraftPicks,
-  loadFootballPool,
   saveFootballDraftPicks,
   saveFootballPool,
 } from "../lib/storage";
 import {
+  loadPersistedFootballHistory,
   updateCommissionerFootballDraftPick,
   updateCommissionerFootballTeamNames,
 } from "../lib/platformStorage";
@@ -174,43 +174,61 @@ export default function FootballCommissionerPage() {
     message?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessError, setAccessError] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const poolId = params.get("id");
+    let active = true;
 
-    if (!poolId) {
-      setIsLoading(false);
-      return;
-    }
+    async function loadCommissionerTools() {
+      const params = new URLSearchParams(window.location.search);
+      const poolId = params.get("id");
+      if (!poolId) {
+        if (active) setIsLoading(false);
+        return;
+      }
 
-    const savedPool = loadFootballPool(poolId);
-
-    if (!savedPool) {
-      setIsLoading(false);
-      return;
-    }
-
-    setPool(savedPool);
-    setPicks(loadFootballDraftPicks(savedPool.id));
-    setTeamNames(savedPool.teamNames);
-    setIsLoading(false);
-
-    async function loadReplayPlayers() {
       try {
-        const response = await fetch("/api/football/replay");
-        const data = await response.json();
+        const [user, history, replayResponse] = await Promise.all([
+          getCurrentOrganizerUser(),
+          loadPersistedFootballHistory(poolId),
+          fetch("/api/football/replay"),
+        ]);
+        if (!active) return;
+
+        if (!history) {
+          setIsLoading(false);
+          return;
+        }
+
+        saveFootballPool(history.pool);
+        saveFootballDraftPicks(history.pool.id, history.picks);
+        setPool(history.pool);
+        setPicks(history.picks);
+        setTeamNames(history.pool.teamNames);
+
+        if (!user) {
+          setAccessError("Sign in with the commissioner account to manage this pool.");
+        } else if (!history.pool.ownerId || history.pool.ownerId !== user.id) {
+          setAccessError("Only the commissioner account that created this pool can make these changes.");
+        }
+
+        const data = await replayResponse.json();
         const replayPlayers = data?.playerPool?.players;
 
         if (Array.isArray(replayPlayers) && replayPlayers.length > 0) {
           setPlayers(replayPlayers as FootballPlayer[]);
         }
       } catch {
-        setPlayers(footballPlayers);
+        if (active) setPlayers(footballPlayers);
+      } finally {
+        if (active) setIsLoading(false);
       }
     }
 
-    loadReplayPlayers();
+    loadCommissionerTools();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -404,6 +422,34 @@ export default function FootballCommissionerPage() {
           <Link href="/football/create" className="mt-6 inline-block text-emerald-300">
             Create a football pool
           </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (accessError) {
+    return (
+      <main className="min-h-screen bg-[#030712] text-white">
+        <div className="mx-auto max-w-4xl px-6 py-12">
+          <BrandMark size="md" />
+          <h1 className="mt-8 text-4xl font-black">Commissioner access required</h1>
+          <p className="mt-4 rounded-2xl border border-red-400/30 bg-red-400/10 p-5 font-bold text-red-200">
+            {accessError}
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={`/organizer/sign-in?redirect=${encodeURIComponent(`/football/commissioner?id=${pool.id}`)}`}
+              className="rounded-xl bg-emerald-400 px-6 py-3 text-center font-black text-slate-950"
+            >
+              Sign In
+            </Link>
+            <Link
+              href={`/football/pool?id=${pool.id}`}
+              className="rounded-xl border border-white/10 px-6 py-3 text-center font-black"
+            >
+              Back to Lobby
+            </Link>
+          </div>
         </div>
       </main>
     );

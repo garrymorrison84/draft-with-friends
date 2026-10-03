@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import BrandMark from "../../components/BrandMark";
+import CommissionerDraftTimeEditor from "../../components/CommissionerDraftTimeEditor";
 import { getCurrentOrganizerUser } from "../../lib/poolApi";
 import { claimTeam, loadTeamClaims } from "../../lib/teamClaims";
 import {
@@ -19,7 +20,10 @@ import {
   saveNflDraftPicks,
   saveNflPool,
 } from "../lib/storage";
-import { loadPersistedNflHistory } from "../lib/platformStorage";
+import {
+  loadPersistedNflHistory,
+  updateCommissionerNflDraftTime,
+} from "../lib/platformStorage";
 
 function getCurrentTeam(pool: NflPool, pickCount: number, draftComplete: boolean) {
   if (draftComplete) return "Draft Complete";
@@ -129,6 +133,31 @@ export default function NflPoolPage() {
       draftStartsIn,
     };
   }, [picks.length, pool]);
+
+  const canChangeDraftTime = Boolean(
+    pool &&
+      lobbyStats.draftTiming.draftType === "scheduled" &&
+      picks.length === 0 &&
+      lobbyStats.draftStartsIn
+  );
+
+  async function changeDraftTime({
+    scheduledDraftAt,
+    timeZone,
+  }: {
+    scheduledDraftAt: string;
+    timeZone: import("../../lib/draftTiming").DraftTimeZone;
+  }) {
+    if (!pool) return;
+    const sharedPool = await updateCommissionerNflDraftTime({
+      poolId: pool.id,
+      scheduledDraftAt,
+      timeZone,
+    });
+    const nextPool = { ...pool, ...sharedPool };
+    saveNflPool(nextPool);
+    setPool(nextPool);
+  }
 
   if (isLoading) {
     return (
@@ -322,6 +351,12 @@ export default function NflPoolPage() {
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Link href={`/nfl/commissioner?id=${pool.id}`} className="rounded-xl bg-emerald-400 px-6 py-3 text-center font-black text-slate-950 hover:bg-emerald-300">Edit Rosters/Teams</Link>
               <Link href={`/nfl/scoring?id=${pool.id}`} className="rounded-xl border border-white/10 bg-[#1F2937] px-6 py-3 text-center font-black hover:border-emerald-300/60">Edit Pool Format &amp; Scoring</Link>
+              {canChangeDraftTime && (
+                <CommissionerDraftTimeEditor
+                  timing={pool}
+                  onSave={changeDraftTime}
+                />
+              )}
             </div>
           </section>
         )}

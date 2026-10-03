@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     await Promise.all([
       client
         .from("platform_pools")
-        .select("id,settings")
+        .select("id,owner_id,settings")
         .eq("id", poolId)
         .eq("pool_type", "college_fantasy")
         .maybeSingle(),
@@ -573,6 +573,110 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: relatedError.message }, { status: 500 });
     }
 
+    const { error: updateError } = await client
+      .from("platform_pools")
+      .update({ settings: nextSettings })
+      .eq("id", poolId)
+      .eq("owner_id", organizerId);
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, pool: nextSettings });
+  }
+  if (body.action === "commissioner-update-draft-time") {
+    const scheduledDraftAt =
+      typeof body.scheduledDraftAt === "string" ? body.scheduledDraftAt.trim() : "";
+    const timeZone = typeof body.timeZone === "string" ? body.timeZone.trim() : "";
+    const allowedTimeZones = new Set([
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+    ]);
+    const scheduledTimestamp = new Date(scheduledDraftAt).getTime();
+    if (
+      !poolId ||
+      !scheduledDraftAt ||
+      !Number.isFinite(scheduledTimestamp) ||
+      scheduledTimestamp <= Date.now() ||
+      !allowedTimeZones.has(timeZone)
+    ) {
+      return NextResponse.json(
+        { error: "Choose an available future draft date and time." },
+        { status: 400 }
+      );
+    }
+
+    const { client, error: adminError } = getSupabaseAdmin();
+    if (!client) return NextResponse.json({ error: adminError }, { status: 500 });
+    const organizerId = await getAuthenticatedOrganizerId(request, client);
+    if (!organizerId) {
+      return NextResponse.json(
+        { error: "Commissioner sign-in is required to change the draft time." },
+        { status: 401 }
+      );
+    }
+
+    const [poolResult, picksResult] = await Promise.all([
+      client
+        .from("platform_pools")
+        .select("owner_id,settings")
+        .eq("id", poolId)
+        .eq("pool_type", "college_fantasy")
+        .maybeSingle(),
+      client
+        .from("platform_draft_picks")
+        .select("pick_index", { count: "exact", head: true })
+        .eq("pool_id", poolId),
+    ]);
+    if (poolResult.error || picksResult.error) {
+      return NextResponse.json(
+        { error: poolResult.error?.message || picksResult.error?.message },
+        { status: 500 }
+      );
+    }
+    if (!poolResult.data || !isRecord(poolResult.data.settings)) {
+      return NextResponse.json({ error: "Pool not found." }, { status: 404 });
+    }
+    if (organizerId !== poolResult.data.owner_id) {
+      return NextResponse.json(
+        { error: "Only the commissioner can change the draft time." },
+        { status: 403 }
+      );
+    }
+    if ((picksResult.count || 0) > 0) {
+      return NextResponse.json(
+        { error: "The draft time cannot be changed after the draft begins." },
+        { status: 409 }
+      );
+    }
+
+    const currentSettings = poolResult.data.settings;
+    const currentScheduledAt =
+      typeof currentSettings.scheduledDraftAt === "string"
+        ? new Date(currentSettings.scheduledDraftAt).getTime()
+        : Number.NaN;
+    if (
+      currentSettings.draftType !== "scheduled" ||
+      !Number.isFinite(currentScheduledAt) ||
+      currentScheduledAt <= Date.now()
+    ) {
+      return NextResponse.json(
+        { error: "The draft time can only be changed before a scheduled draft opens." },
+        { status: 409 }
+      );
+    }
+
+    const nextSettings = {
+      ...currentSettings,
+      draftType: "scheduled",
+      scheduledDraftAt,
+      timeZone,
+      draftPaused: false,
+      draftTimerStartedAt: null,
+      pausedPickClockRemaining: null,
+    };
     const { error: updateError } = await client
       .from("platform_pools")
       .update({ settings: nextSettings })

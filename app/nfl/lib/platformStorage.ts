@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 
 type PlatformPoolRow = {
   id: string;
+  owner_id?: string | null;
   settings: unknown;
 };
 
@@ -33,6 +34,12 @@ function restorePool(row: PlatformPoolRow): NflPool | null {
   return {
     ...(settings as Partial<NflPool>),
     id: row.id,
+    ownerId:
+      typeof row.owner_id === "string"
+        ? row.owner_id
+        : typeof settings.ownerId === "string"
+          ? settings.ownerId
+          : undefined,
     poolName:
       typeof settings.poolName === "string"
         ? settings.poolName
@@ -202,6 +209,37 @@ export async function updateCommissionerNflDraftPick({
     throw new Error(data?.error || "Could not update the shared draft pick.");
   }
   return data;
+}
+
+export async function updateCommissionerNflDraftTime({
+  poolId,
+  scheduledDraftAt,
+  timeZone,
+}: {
+  poolId: string;
+  scheduledDraftAt: string;
+  timeZone: import("../../lib/draftTiming").DraftTimeZone;
+}) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  const response = await fetch("/api/nfl/pools", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({
+      action: "commissioner-update-draft-time",
+      poolId,
+      scheduledDraftAt,
+      timeZone,
+    }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.error || "Could not update the shared draft time.");
+  }
+  return data.pool as NflPool;
 }
 
 export async function submitNflPick({
