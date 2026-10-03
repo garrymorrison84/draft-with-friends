@@ -78,8 +78,13 @@ function providerConferenceForTeam(team: Team) {
   return conferenceOverridesByTeam.get(team.name) || team.conference || null;
 }
 
-function statLine(stats: RawStats = {}): FootballStatLine {
+function statLine(
+  stats: RawStats = {},
+  playerPosition?: string
+): FootballStatLine {
   const n = (name: string) => Number(stats[name] || 0);
+  const providerInterceptions = n("interceptions");
+  const isQuarterback = playerPosition === "QB";
   const twoPointConversions = n("two_point_conversions") ||
     n("passing_two_point_conversions") +
       n("rushing_two_point_conversions") +
@@ -87,11 +92,16 @@ function statLine(stats: RawStats = {}): FootballStatLine {
   return {
     passingAttempts: n("passing_attempts"), completions: n("passing_completions"),
     passingYards: n("passing_yards"), passingTds: n("passing_touchdowns"),
-    interceptionsThrown: n("passing_interceptions"), rushingAttempts: n("rushing_attempts"),
+    // OpticOdds currently returns a QB's thrown interceptions as
+    // `interceptions`, while some feeds use `passing_interceptions`.
+    // Keep that ambiguous field out of defensive scoring for quarterbacks.
+    interceptionsThrown: n("passing_interceptions") || (isQuarterback ? providerInterceptions : 0),
+    rushingAttempts: n("rushing_attempts"),
     rushingYards: n("rushing_yards"), rushingTds: n("rushing_touchdowns"),
     receptions: n("receptions"), receivingTargets: n("receiving_targets"),
     receivingYards: n("receiving_yards"), receivingTds: n("receiving_touchdowns"),
-    sacks: n("sacks"), defenseInterceptions: n("interceptions"),
+    sacks: n("sacks"),
+    defenseInterceptions: n("defensive_interceptions") || (!isQuarterback ? providerInterceptions : 0),
     fumbleRecoveries: n("fumbles_recovered"), defenseTds: n("defensive_touchdowns"),
     safeties: n("safeties"), blockedKicks: n("blocked_kicks"),
     returnTds: n("kick_return_touchdowns") + n("punt_return_touchdowns"),
@@ -333,11 +343,13 @@ export async function getOpticOddsFootball(
   );
   const results = new Map<string, { fixture: Fixture; statLine: FootballStatLine }[]>();
   const defenseResults = new Map<string, { fixture: Fixture; statLine: FootballStatLine }[]>();
+  const playersById = new Map(players.map((player) => [player.id, player]));
   resultEnvelopes.forEach((envelope) => {
     (envelope.results || []).forEach((result) => {
       const list = results.get(result.player.id) || [];
       const allStats = statLine(
-        result.stats?.find((row) => row.period === "all")?.stats
+        result.stats?.find((row) => row.period === "all")?.stats,
+        playersById.get(result.player.id)?.position
       );
       list.push({ fixture: envelope.fixture, statLine: allStats });
       results.set(result.player.id, list);
