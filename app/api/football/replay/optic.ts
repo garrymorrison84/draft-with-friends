@@ -16,6 +16,10 @@ import {
 const baseUrl = "https://api.opticodds.com/api/v3";
 const fantasyPositions = new Set(["QB", "RB", "WR", "TE", "K", "PK"]);
 const powerConferences = new Set(["ACC", "Big 10", "Big 12", "Pac-12", "SEC", "IndFBS"]);
+const conferenceOverridesByTeam = new Map([
+  // OpticOdds still reports Boise State as MWC after its 2026 Pac-12 move.
+  ["Boise State", "Pac-12"],
+]);
 
 type Page<T> = { data?: T[]; has_more?: boolean };
 type Team = { id: string; name: string; abbreviation?: string; division?: string; conference?: string | null };
@@ -68,6 +72,10 @@ function conferenceName(value?: string | null) {
   if (value === "Big 10") return "Big Ten";
   if (value === "IndFBS") return "Independents";
   return value || "Independent";
+}
+
+function providerConferenceForTeam(team: Team) {
+  return conferenceOverridesByTeam.get(team.name) || team.conference || null;
 }
 
 function statLine(stats: RawStats = {}): FootballStatLine {
@@ -234,7 +242,7 @@ export async function getOpticOddsFootball(
     (_, index) => index + 1
   );
   const teams = (await pages<Team>("/teams?league=ncaaf&division=FBS", key, 3))
-    .filter((team) => powerConferences.has(team.conference || ""));
+    .filter((team) => powerConferences.has(providerConferenceForTeam(team) || ""));
   const teamIds = new Set(teams.map((team) => team.id));
   const teamBatches = Array.from(
     { length: Math.ceil(teams.length / 10) },
@@ -414,7 +422,7 @@ export async function getOpticOddsFootball(
       return {
         id: `oo-${player.id}`, name: player.name, school: team.name,
         schoolAbbreviation: team.abbreviation || team.name,
-        conference: conferenceName(team.conference),
+        conference: conferenceName(providerConferenceForTeam(team)),
         position: (player.position === "PK" ? "K" : player.position) as FootballPlayer["position"],
         rank: 9999, projected: projectedPoints(projectedStats),
         opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
@@ -448,7 +456,7 @@ export async function getOpticOddsFootball(
     return {
       id: `oo-dst-${team.id}`, name: `${team.name} D/ST`, school: team.name,
       schoolAbbreviation: team.abbreviation || team.name,
-      conference: conferenceName(team.conference), position: "DST", rank: 9999,
+      conference: conferenceName(providerConferenceForTeam(team)), position: "DST", rank: 9999,
       projected: projectedPoints(averageStats), opponent: selectedGame.opponent, gameTime: selectedGame.gameTime,
       gameStartAt: selectedFixture?.start_date,
       gameStatus: gameStatusForFixture(selectedFixture, team.id),

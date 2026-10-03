@@ -43,7 +43,7 @@ export type PlayerScoreResult = {
 };
 
 function finishScore(points: number, scoring: NflScoring) {
-  return scoring.fractionalPoints ? points : Math.round(points);
+  return scoring.fractionalPoints ? points : Math.trunc(points);
 }
 
 function addComponent(
@@ -51,13 +51,13 @@ function addComponent(
   label: string,
   statValue: number | undefined,
   points: number,
-  scoring: NflScoring
+  _scoring: NflScoring
 ) {
   if (!statValue || points === 0) return;
 
   components.push({
     label,
-    points: finishScore(points, scoring),
+    points,
   });
 }
 
